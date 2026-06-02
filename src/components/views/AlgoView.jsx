@@ -1,0 +1,287 @@
+import { useState } from 'react';
+
+export default function AlgoView() {
+  const [activeTab, setActiveTab] = useState('related');
+
+  const styles = {
+    container: { backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', padding: '40px', display: 'flex', gap: '32px', maxWidth: '1440px', margin: '0 auto' },
+    
+    // Sidebar Styles
+    sidebar: { width: '320px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '24px' },
+    card: { backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e0e0e0' },
+    cardTitle: { fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' },
+    cardDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px' },
+    inputLabel: { display: 'block', fontSize: '14px', color: '#3c4043', marginBottom: '8px', fontWeight: 'bold' },
+    input: { width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', marginBottom: '16px', boxSizing: 'border-box', outline: 'none' },
+    primaryBtn: { width: '100%', padding: '12px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '16px' },
+    selectRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' },
+    select: { padding: '8px 12px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '13px', outline: 'none' },
+    
+    // Gauge Chart Styles
+    gaugeHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+    gaugeContainer: { position: 'relative', width: '100%', textAlign: 'center', marginBottom: '24px' },
+    gaugeScore: { marginTop: '8px', fontSize: '32px', fontWeight: '900', color: '#e65100' },
+    gaugeScoreSub: { fontSize: '16px', color: '#80868b', fontWeight: 'normal' },
+    warningBox: { backgroundColor: '#fff3e0', border: '1px solid #ffe0b2', padding: '16px', borderRadius: '12px', marginBottom: '24px' },
+    warningTitle: { fontSize: '14px', fontWeight: 'bold', color: '#e65100', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' },
+    warningDesc: { fontSize: '13px', color: '#ef6c00', textAlign: 'center' },
+    legendBox: { backgroundColor: '#f8f9fa', padding: '16px', borderRadius: '12px', fontSize: '12px', color: '#5f6368', lineHeight: '1.6', marginBottom: '16px' },
+    outlineBtn: { width: '100%', padding: '12px', backgroundColor: '#ffffff', color: '#0056d2', border: '1px solid #d2e3fc', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+
+    // Main Content Styles
+    mainContent: { flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' },
+    mainHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '24px', borderBottom: '1px solid #e0e0e0' },
+    mainTitle: { fontSize: '28px', fontWeight: 'bold', color: '#202124', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' },
+    mainDesc: { fontSize: '15px', color: '#5f6368' },
+    metaInfo: { display: 'flex', alignItems: 'center', gap: '16px' },
+    metaText: { fontSize: '13px', color: '#80868b' },
+    
+    // Tabs
+    tabContainer: { display: 'flex', gap: '16px', marginBottom: '8px' },
+    tabBtn: (isActive) => ({
+      flex: 1, padding: '16px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+      fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s',
+      backgroundColor: isActive ? '#ffffff' : '#f1f3f4',
+      border: isActive ? '1px solid #0056d2' : '1px solid transparent',
+      color: isActive ? '#0056d2' : '#5f6368',
+      boxShadow: isActive ? '0 4px 12px rgba(0, 86, 210, 0.1)' : 'none'
+    }),
+    
+    // List Area
+    listHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 8px' },
+    listTitle: { fontSize: '15px', fontWeight: 'bold', color: '#3c4043' },
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px', marginBottom: '24px' },
+    newsCard: { backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e0e0e0', display: 'flex', gap: '16px', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer', ':hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' } },
+    newsLogo: (bg) => ({ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold', flexShrink: 0 }),
+    newsContent: { flex: 1, display: 'flex', flexDirection: 'column' },
+    newsTitle: { fontSize: '16px', fontWeight: 'bold', color: '#202124', marginBottom: '8px', lineHeight: '1.4' },
+    newsDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
+    newsFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' },
+    newsMeta: { fontSize: '12px', color: '#80868b', display: 'flex', alignItems: 'center', gap: '8px' },
+    badge: (type) => {
+      const colors = { '긍정': { bg: '#e6f4ea', text: '#137333' }, '중도': { bg: '#e8f0fe', text: '#1a73e8' }, '중립': { bg: '#fef7e0', text: '#b06000' }, '부정': { bg: '#fce8e6', text: '#c5221f' }, '반박': { bg: '#fce8e6', text: '#c5221f' } };
+      const color = colors[type] || colors['중도'];
+      return { padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', backgroundColor: color.bg, color: color.text };
+    },
+    moreBtn: { width: '100%', padding: '16px', backgroundColor: '#ffffff', border: '1px solid #dadce0', borderRadius: '12px', color: '#0056d2', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', textAlign: 'center' },
+
+    // Bottom Insight
+    bottomLayout: { display: 'flex', gap: '24px', marginTop: '16px' },
+    insightBox: { flex: 1.5, backgroundColor: '#f8f9fa', borderRadius: '12px', border: '1px solid #e0e0e0', padding: '24px' },
+    insightTitle: { fontSize: '16px', fontWeight: 'bold', color: '#202124', marginBottom: '16px' },
+    insightList: { margin: 0, paddingLeft: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' },
+    insightItem: { display: 'flex', gap: '12px', fontSize: '14px', color: '#3c4043', lineHeight: '1.5', alignItems: 'flex-start' },
+    
+    summaryBox: { flex: 1, backgroundColor: '#f0f4fd', borderRadius: '12px', border: '1px solid #d2e3fc', padding: '24px' },
+    summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '20px' },
+    statItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
+    statLabel: { fontSize: '13px', color: '#5f6368' },
+    statValue: { fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' },
+    
+    footer: { marginTop: '40px', padding: '24px', backgroundColor: '#f1f3f4', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px' }
+  };
+
+  const relatedList = [
+    { id: 1, logo: '#1a2b49', logoText: 'KBS', title: '질병청 "백신 접종 후 사망 사례, 인과성 확인 안돼"', desc: '질병관리청은 최근 제기된 백신 접종 후 사망 급증 주장에 대해 현재까지 인과성이 확인된 사례는 없다고 밝혔습니다.', date: '2024.05.20', views: '12,345', badge: '중도' },
+    { id: 2, logo: '#1a73e8', logoText: '연합뉴스', title: '전문가 "백신과 사망 간 연관성 매우 낮아"', desc: '의료 전문가들은 백신 접종과 사망 간의 연관성을 입증할 과학적 근거가 부족하다고 설명했습니다.', date: '2024.05.20', views: '9,876', badge: '긍정' },
+    { id: 3, logo: '#e65100', logoText: 'n', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라', desc: '전국 일부 지역에서 백신 접종 후 사망 신고가 잇따르고 있어 당국이 조사에 나섰습니다.', date: '2024.05.19', views: '8,234', badge: '중립' },
+    { id: 4, logo: '#ffffff', logoBorder: '#1a73e8', logoText: 'OO일보', title: '백신 부작용으로 인한 사망자 수 급증 추세', desc: '백신 접종 이후 예상치 못한 사망 사례가 빠르게 늘어나고 있다는 주장이 제기되고 있습니다.', date: '2024.05.19', views: '6,543', badge: '긍정' },
+  ];
+
+  const unrelatedList = [
+    { id: 1, logo: '#3c4043', logoText: '서울경제', title: '"백신 부작용 사망 급증" 주장은 사실과 달라', desc: '통계청 자료에 따르면 백신 접종 이후 사망자 수는 과거와 비교해 유의미한 증가가 없는 것으로 나타났습니다.', date: '2024.05.20', views: '10,321', badge: '반박' },
+    { id: 2, logo: '#00c4b4', logoText: 'YTN', title: '전문가 "백신보다 기저질환이 사망 원인"', desc: '전문가들은 백신 접종 후 사망 사례 대부분이 고령층의 기저질환 악화로 인한 것이라고 설명합니다.', date: '2024.05.20', views: '8,765', badge: '반박' },
+    { id: 3, logo: '#34a853', logoText: '한겨레', title: '사망 신고=백신 부작용? "인과성" 입증 어려워', desc: '보건당국은 백신 접종과 사망 사이의 인과성을 입증하기 어렵다며 신중한 해석을 당부했습니다.', date: '2024.05.19', views: '7,654', badge: '반박' },
+    { id: 4, logo: '#4285f4', logoText: '메디컬\n투데이', title: '국내외 연구 결과, 백신 안전성 이상 "문제 없어"', desc: '국내외 다수 연구에서 코로나19 백신의 안전성이 지속적으로 확인되고 있습니다.', date: '2024.05.19', views: '6,789', badge: '반박' },
+  ];
+
+  return (
+    <div style={styles.container}>
+      {/* Left Sidebar */}
+      <div style={styles.sidebar}>
+        <div style={styles.card}>
+          <div style={styles.cardTitle}>질문하기 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
+          <div style={styles.cardDesc}>분석하고 싶은 주제를 질문해보세요.</div>
+          <input style={styles.input} defaultValue="백신 부작용 사망자 급증?" />
+          <button style={styles.primaryBtn}>
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
+            분석하기
+          </button>
+          <div style={styles.selectRow}>
+            <span style={{color:'#5f6368'}}>기간 설정</span>
+            <select style={styles.select}>
+              <option>최근 1개월</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={styles.card}>
+          <div style={styles.gaugeHeader}>
+            <div style={styles.cardTitle} style={{margin:0, fontSize:'16px', fontWeight:'bold'}}>나의 성향 분석 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
+            <div style={{fontSize:'12px', color:'#80868b'}}>최근 30일 기준</div>
+          </div>
+          
+          <div style={styles.gaugeContainer}>
+            <svg viewBox="0 0 200 120" style={{ width: '100%', maxWidth: '240px', overflow: 'visible' }}>
+              {/* Background Arc */}
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#f1f3f4" strokeWidth="16" strokeLinecap="round" />
+              {/* Red Arc (Negative) */}
+              <path d="M 140 30 A 80 80 0 0 1 180 100" fill="none" stroke="#ea4335" strokeWidth="16" strokeLinecap="round" />
+              {/* Yellow Arc (Neutral) */}
+              <path d="M 60 30 A 80 80 0 0 1 140 30" fill="none" stroke="#fbbc04" strokeWidth="16" strokeLinecap="round" />
+              {/* Green Arc (Positive) */}
+              <path d="M 20 100 A 80 80 0 0 1 60 30" fill="none" stroke="#34a853" strokeWidth="16" strokeLinecap="round" />
+              
+              {/* Labels on arcs */}
+              <text x="30" y="60" fontSize="12" fill="#137333" fontWeight="bold" textAnchor="middle">긍정</text>
+              <text x="30" y="76" fontSize="12" fill="#137333" textAnchor="middle">10건</text>
+              
+              <text x="100" y="20" fontSize="12" fill="#b06000" fontWeight="bold" textAnchor="middle">중도</text>
+              <text x="100" y="36" fontSize="12" fill="#b06000" textAnchor="middle">2건</text>
+              
+              <text x="170" y="60" fontSize="12" fill="#c5221f" fontWeight="bold" textAnchor="middle">부정</text>
+              <text x="170" y="76" fontSize="12" fill="#c5221f" textAnchor="middle">0건</text>
+
+              {/* Needle pointing to positive */}
+              <g transform="translate(100, 100) rotate(-45)">
+                 <line x1="0" y1="0" x2="0" y2="-65" stroke="#202124" strokeWidth="3" strokeLinecap="round" />
+                 <circle cx="0" cy="0" r="6" fill="#202124" />
+              </g>
+            </svg>
+            <div style={{marginTop: '-10px'}}>
+              <div style={{fontSize: '13px', color: '#5f6368', fontWeight: 'bold'}}>편향 지수</div>
+              <div style={styles.gaugeScore}>80 <span style={styles.gaugeScoreSub}>/ 100</span></div>
+            </div>
+          </div>
+
+          <div style={styles.warningBox}>
+            <div style={styles.warningTitle}><span style={{fontSize:'16px'}}>!</span> 현재 사용자의 정보 소비는<br/>한쪽 의견에 치우쳐 있을 수 있습니다.</div>
+            <div style={styles.warningDesc}>다양한 관점을 접해보세요.</div>
+          </div>
+
+          <div style={styles.legendBox}>
+            <strong style={{display:'block', marginBottom:'8px', color:'#3c4043'}}>성향 분석 기준</strong>
+            <ul style={{margin:0, paddingLeft:'16px', display:'flex', flexDirection:'column', gap:'4px'}}>
+              <li><strong style={{color:'#34a853'}}>긍정:</strong> 해당 주제에 긍정적이거나 지지하는 내용</li>
+              <li><strong style={{color:'#fbbc04'}}>중도:</strong> 중립적이거나 양쪽 의견을 균형있게 다룬 내용</li>
+              <li><strong style={{color:'#ea4335'}}>부정:</strong> 해당 주제에 부정적이거나 반대하는 내용</li>
+            </ul>
+          </div>
+
+          <button style={styles.outlineBtn}>성향 분석 자세히 보기 ↗</button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div style={styles.mainContent}>
+        <div>
+          <div style={styles.mainHeader}>
+             <div>
+               <div style={styles.mainTitle}>"백신 부작용 사망자 급증?" 분석 결과 <span style={{color:'#80868b', fontSize:'18px', fontWeight:'normal'}}>ⓘ</span></div>
+               <div style={styles.mainDesc}>알고리즘이 수집한 뉴스 정보를 다양한 관점에서 분석해드립니다.</div>
+             </div>
+             <div style={styles.metaInfo}>
+               <span style={styles.metaText}>검색 시간: 2024.05.20 14:30</span>
+               <button style={{padding:'8px 16px', backgroundColor:'#ffffff', border:'1px solid #dadce0', borderRadius:'8px', color:'#0056d2', fontWeight:'bold', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px'}}>
+                 분석 안내 ↗
+               </button>
+             </div>
+          </div>
+        </div>
+
+        <div style={styles.tabContainer}>
+          <div style={styles.tabBtn(activeTab === 'related')} onClick={() => setActiveTab('related')}>
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            관련 뉴스 (12)
+          </div>
+          <div style={styles.tabBtn(activeTab === 'unrelated')} onClick={() => setActiveTab('unrelated')}>
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+            비연관 검색어 (반박 기사) (9)
+          </div>
+        </div>
+
+        <div>
+          <div style={styles.listHeader}>
+            <div style={styles.listTitle}>
+              {activeTab === 'related' ? '관련 뉴스 (해당 주장/의견을 지지하거나 다루는 기사)' : '비연관 검색어 (반박 기사)'}
+            </div>
+            <select style={styles.select}><option>최신순</option></select>
+          </div>
+
+          <div style={styles.grid}>
+            {(activeTab === 'related' ? relatedList : unrelatedList).map(item => (
+              <div key={item.id} style={styles.newsCard}>
+                <div style={{...styles.newsLogo(item.logo), color: item.logoBorder ? '#000' : '#fff', border: item.logoBorder ? `1px solid ${item.logoBorder}` : 'none', whiteSpace: 'pre-wrap', textAlign: 'center', lineHeight: '1.2'}}>
+                  {item.logoText}
+                </div>
+                <div style={styles.newsContent}>
+                  <div style={styles.newsTitle}>{item.title}</div>
+                  <div style={styles.newsDesc}>{item.desc}</div>
+                  <div style={styles.newsFooter}>
+                    <div style={styles.newsMeta}>
+                      <span>{item.date}</span>
+                      <span>|</span>
+                      <span>조회 {item.views}</span>
+                    </div>
+                    <div style={styles.badge(item.badge)}>{item.badge}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button style={styles.moreBtn}>더보기 v</button>
+        </div>
+
+        <div style={styles.bottomLayout}>
+          <div style={styles.insightBox}>
+             <div style={styles.insightTitle}>주요 인사이트</div>
+             <ul style={styles.insightList}>
+               <li style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> 관련 뉴스 중 긍정/중도 성향의 기사가 다수를 차지합니다.</li>
+               <li style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> 반박 기사는 주로 '인과성 부족'과 '기저질환 영향'을 근거로 반박하고 있습니다.</li>
+               <li style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> 다양한 관점을 확인하여 균형 잡힌 시각을 가지는 것이 중요합니다.</li>
+             </ul>
+          </div>
+          
+          <div style={styles.summaryBox}>
+             <div style={styles.insightTitle} style={{...styles.insightTitle, color:'#1a73e8'}}>알고리즘 분석 요약</div>
+             <div style={styles.summaryRow}>
+               <div style={styles.statItem}>
+                 <div style={styles.statLabel}>수집 기사 수</div>
+                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <span style={{fontSize:'24px'}}>📄</span>
+                    <span style={styles.statValue}>21<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>건</span></span>
+                 </div>
+               </div>
+               <div style={styles.statItem}>
+                 <div style={styles.statLabel}>언론사 수</div>
+                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <span style={{fontSize:'24px'}}>🏢</span>
+                    <span style={styles.statValue}>15<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>개</span></span>
+                 </div>
+               </div>
+               <div style={styles.statItem}>
+                 <div style={styles.statLabel}>평균 신뢰도</div>
+                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <span style={{fontSize:'24px', color:'#34a853'}}>✓</span>
+                    <span style={{...styles.statValue, color:'#202124'}}>3.2 <span style={{fontSize:'14px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></span>
+                 </div>
+               </div>
+             </div>
+             <button style={{width:'100%', padding:'12px', backgroundColor:'#ffffff', border:'1px solid #1a73e8', borderRadius:'8px', color:'#1a73e8', fontWeight:'bold', fontSize:'14px', cursor:'pointer', display:'flex', justifyContent:'center', alignItems:'center', gap:'8px'}}>
+               분석 리포트 다운로드 📥
+             </button>
+          </div>
+        </div>
+
+        <div style={styles.footer}>
+          <span style={{fontSize:'24px'}}>💡</span>
+          <div>
+            <div style={{fontSize:'13px', color:'#5f6368', marginBottom:'4px'}}>Cheat F/T는 정보를 수집하고 분석할 뿐, 결론을 내리지 않습니다.</div>
+            <div style={{fontSize:'13px', color:'#5f6368'}}>기사의 출처와 내용을 확인하고 최종 판단은 사용자에게 있습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
