@@ -7,12 +7,13 @@ import CommunityView from './components/views/CommunityView.jsx';
 import DetailView from './components/views/DetailView.jsx';
 import AlgoView from './components/views/AlgoView.jsx';
 import ReportView from './components/views/ReportView.jsx';
-
-
+import LoginView from './components/views/LoginView.jsx';
+import SignupView from './components/views/SignupView.jsx';
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const handleSearch = (query) => {
     if (!query.trim()) return;
@@ -131,10 +132,15 @@ export default function App() {
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
               </button>
             </>
+          ) : isLoggedIn ? (
+            <>
+              <button style={styles.iconBtn} onClick={() => navigate('/mypage')}><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></button>
+              <button style={{...styles.loginBtn, color: '#ea4335', borderColor: '#ea4335'}} onClick={() => setIsLoggedIn(false)}>로그아웃</button>
+            </>
           ) : (
             <>
-              <button style={styles.loginBtn}>로그인</button>
-              <button style={styles.signupBtn}>회원가입</button>
+              <button style={styles.loginBtn} onClick={() => navigate('/login')}>로그인</button>
+              <button style={styles.signupBtn} onClick={() => navigate('/signup')}>회원가입</button>
             </>
           )}
         </div>
@@ -150,6 +156,8 @@ export default function App() {
           <Route path="/mypage" element={<MyPageView />} />
           <Route path="/algo" element={<AlgoView />} />
           <Route path="/report" element={<ReportView />} />
+          <Route path="/login" element={<LoginView onLogin={() => setIsLoggedIn(true)} />} />
+          <Route path="/signup" element={<SignupView onLogin={() => setIsLoggedIn(true)} />} />
         </Routes>
       </div>
     </div>

@@ -56,9 +56,9 @@ export default function VerificationView({ query, onSearch, onArticleClick }) {
   };
 
   const results = [
-    { pub: 'KBS 뉴스', logo: 'KBS', color: '#1a73e8', date: '2024.05.20', title: '질병청 “백신 접종 후 사망 사례, 인과성 확인 안돼”', desc: '질병관리청은 최근 제기된 백신 접종 후 사망 급증 주장에 대해 현재까지 인과성이 확인된 사례는 없다고 밝혔습니다...', scoreText: '신용 가능', score: '5 / 5', scoreColor: '#00c4b4', rotation: 45, hint: '이 출처는 높은 신뢰도를 가진 공식력 있는 언론/기관입니다.' },
-    { pub: '연합뉴스', logo: '연합', color: '#1a73e8', date: '2024.05.20', title: '전문가 “백신과 사망 간 연관성 매우 낮아”', desc: '의료 전문가들은 백신 접종과 사망 간의 연관성을 입증할 과학적 근거가 부족하다고 설명했습니다...', scoreText: '신뢰 가능', score: '4 / 5', scoreColor: '#8bc34a', rotation: 9, hint: '이 출처는 비교적 신뢰할 수 있는 언론/기관입니다.' },
-    { pub: '뉴스1', logo: 'n', color: '#ea4335', date: '2024.05.19', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라', desc: '전국 일부 지역에서 백신 접종 후 사망 신고가 잇따르고 있어 당국이 조사에 나섰습니다...', scoreText: '보통', score: '3 / 5', scoreColor: '#fbbc04', rotation: -27, hint: '이 출처의 정보는 일부 사실 기반이나 검증이 더 필요할 수 있습니다.' },
+    { pub: 'KBS 뉴스', logo: 'KBS', color: '#1a73e8', date: '2024.05.20', title: '질병청 “백신 접종 후 사망 사례, 인과성 확인 안돼”', desc: '질병관리청은 최근 제기된 백신 접종 후 사망 급증 주장에 대해 현재까지 인과성이 확인된 사례는 없다고 밝혔습니다...', scoreText: '신용 가능', score: '5 / 5', scoreColor: '#00c4b4', rotation: 45, hint: '이 출처는 높은 신뢰도를 가진 공식력 있는 언론/기관입니다.', opposing: { pub: '뉴스1', date: '2024.05.19', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라' } },
+    { pub: '연합뉴스', logo: '연합', color: '#1a73e8', date: '2024.05.20', title: '전문가 “백신과 사망 간 연관성 매우 낮아”', desc: '의료 전문가들은 백신 접종과 사망 간의 연관성을 입증할 과학적 근거가 부족하다고 설명했습니다...', scoreText: '신뢰 가능', score: '4 / 5', scoreColor: '#8bc34a', rotation: 9, hint: '이 출처는 비교적 신뢰할 수 있는 언론/기관입니다.', opposing: { pub: 'OO일보', date: '2024.05.19', title: '백신 부작용으로 인한 사망자 수 급증 추세' } },
+    { pub: '뉴스1', logo: 'n', color: '#ea4335', date: '2024.05.19', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라', desc: '전국 일부 지역에서 백신 접종 후 사망 신고가 잇따르고 있어 당국이 조사에 나섰습니다...', scoreText: '보통', score: '3 / 5', scoreColor: '#fbbc04', rotation: -27, hint: '이 출처의 정보는 일부 사실 기반이나 검증이 더 필요할 수 있습니다.', opposing: { pub: 'KBS 뉴스', date: '2024.05.20', title: '질병청 “백신 접종 후 사망 사례, 인과성 확인 안돼”' } },
     { pub: 'OO일보', logo: 'OO', color: '#8ab4f8', date: '2024.05.19', title: '백신 부작용으로 인한 사망자 수 급증 추세', desc: '백신 접종 이후 예상치 못한 사망 사례가 빠르게 늘어나고 있다는 주장이 제기되고 있습니다...', scoreText: '주의', score: '2 / 5', scoreColor: '#ff9800', rotation: -63, hint: '이 출처는 신뢰도가 낮거나 편향된 보도일 가능성이 있습니다.' },
     { pub: 'Truth News', logo: 'TN', color: '#202124', date: '2024.05.18', title: '숨겨진 진실! 백신이 사망 원인이다', desc: '정부와 제약회사가 숨기고 있는 백신의 치명적 부작용 실체를 밝힙니다. 더 이상 침묵하지 마세요...', scoreText: '신뢰 불가', score: '1 / 5', scoreColor: '#ea4335', rotation: -99, hint: '이 출처는 검증되지 않은 정보나 허위 정보일 가능성이 매우 높습니다.' },
   ];
@@ -132,6 +132,18 @@ export default function VerificationView({ query, onSearch, onArticleClick }) {
                   </div>
                   <div style={styles.articleTitle}>{res.title}</div>
                   <div style={styles.articleDesc}>{res.desc}</div>
+                  
+                  {res.opposing && (
+                    <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#f0f4f9', borderRadius: '8px', borderLeft: '4px solid #1a73e8' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#174ea6', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                        다양성 모드: 반대되는 관점의 기사
+                      </div>
+                      <div style={{ fontSize: '15px', color: '#202124', fontWeight: '500' }}>{res.opposing.title}</div>
+                      <div style={{ fontSize: '13px', color: '#5f6368', marginTop: '4px' }}>{res.opposing.pub} • {res.opposing.date}</div>
+                    </div>
+                  )}
+
                   <div style={styles.linkBtn}>기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></div>
                 </div>
                 <div style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
