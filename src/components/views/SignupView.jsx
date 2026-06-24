@@ -37,8 +37,11 @@ export default function SignupView({ onLogin }) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-    // TODO: 백엔드 API 연동 위치
-    console.log('Signup attempt:', formData);
+    if (formData.password.length < 8) {
+      alert('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+    // TODO(backend): 회원가입 API 성공 응답으로 교체합니다.
     alert('회원가입이 완료되었습니다.');
     if (onLogin) onLogin();
     navigate('/');
@@ -52,47 +55,61 @@ export default function SignupView({ onLogin }) {
         
         <form onSubmit={handleSubmit}>
           <div style={styles.formGroup}>
-            <label style={styles.label}>이메일 주소</label>
+            <label htmlFor="signup-email" style={styles.label}>이메일 주소</label>
             <input 
+              id="signup-email"
               type="email" 
               name="email"
               style={styles.input} 
               placeholder="example@domain.com"
               value={formData.email}
               onChange={handleChange}
+              autoComplete="email"
+              required
             />
           </div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>닉네임</label>
+            <label htmlFor="signup-nickname" style={styles.label}>닉네임</label>
             <input 
+              id="signup-nickname"
               type="text" 
               name="nickname"
               style={styles.input} 
               placeholder="사용하실 닉네임을 입력하세요"
               value={formData.nickname}
               onChange={handleChange}
+              autoComplete="nickname"
+              required
             />
           </div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>비밀번호</label>
+            <label htmlFor="signup-password" style={styles.label}>비밀번호</label>
             <input 
+              id="signup-password"
               type="password" 
               name="password"
               style={styles.input} 
               placeholder="비밀번호 (8자 이상)"
               value={formData.password}
               onChange={handleChange}
+              autoComplete="new-password"
+              minLength={8}
+              required
             />
           </div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>비밀번호 확인</label>
+            <label htmlFor="signup-password-confirm" style={styles.label}>비밀번호 확인</label>
             <input 
+              id="signup-password-confirm"
               type="password" 
               name="passwordConfirm"
               style={styles.input} 
               placeholder="비밀번호를 다시 입력하세요"
               value={formData.passwordConfirm}
               onChange={handleChange}
+              autoComplete="new-password"
+              minLength={8}
+              required
             />
           </div>
           

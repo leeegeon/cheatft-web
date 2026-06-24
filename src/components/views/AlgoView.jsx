@@ -117,7 +117,7 @@ export default function AlgoView() {
 
         <div style={styles.card}>
           <div style={styles.gaugeHeader}>
-            <div style={styles.cardTitle} style={{margin:0, fontSize:'16px', fontWeight:'bold'}}>나의 성향 분석 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
+            <div style={{...styles.cardTitle, margin:0, fontSize:'16px', fontWeight:'bold'}}>나의 성향 분석 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
             <div style={{fontSize:'12px', color:'#80868b'}}>최근 30일 기준</div>
           </div>
           
@@ -244,7 +244,7 @@ export default function AlgoView() {
           </div>
           
           <div style={styles.summaryBox}>
-             <div style={styles.insightTitle} style={{...styles.insightTitle, color:'#1a73e8'}}>알고리즘 분석 요약</div>
+             <div style={{...styles.insightTitle, color:'#1a73e8'}}>알고리즘 분석 요약</div>
              <div style={styles.summaryRow}>
                <div style={styles.statItem}>
                  <div style={styles.statLabel}>수집 기사 수</div>

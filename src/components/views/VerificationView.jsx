@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
-export default function VerificationView({ query, onSearch, onArticleClick }) {
+export default function VerificationView({ onSearch, onArticleClick }) {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get('q')?.trim() || '';
   const [val, setVal] = useState(query || '');
 
   const styles = {
@@ -80,6 +83,8 @@ export default function VerificationView({ query, onSearch, onArticleClick }) {
             placeholder="검증하고 싶은 내용이나 문장을 입력하세요."
             value={val}
             onChange={(e) => setVal(e.target.value)}
+            maxLength={5000}
+            aria-label="검증할 정보"
           />
           <div style={styles.charCount}>{val.length} / 5,000</div>
           

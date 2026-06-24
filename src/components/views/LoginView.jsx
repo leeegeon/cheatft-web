@@ -25,8 +25,7 @@ export default function LoginView({ onLogin }) {
       alert('이메일과 비밀번호를 입력해주세요.');
       return;
     }
-    // TODO: 백엔드 API 연동 위치
-    console.log('Login attempt:', { email, password });
+    // TODO(backend): 인증 API 성공 응답으로 교체합니다.
     if (onLogin) onLogin();
     navigate('/');
   };
@@ -39,26 +38,32 @@ export default function LoginView({ onLogin }) {
         
         <form onSubmit={handleSubmit}>
           <div style={styles.formGroup}>
-            <label style={styles.label}>이메일 주소</label>
+            <label htmlFor="login-email" style={styles.label}>이메일 주소</label>
             <input 
+              id="login-email"
               type="email" 
               style={styles.input} 
               placeholder="example@domain.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
             />
           </div>
           <div style={styles.formGroup}>
-            <div style={{...styles.label, display: 'flex', justifyContent: 'space-between'}}>
+            <label htmlFor="login-password" style={{...styles.label, display: 'flex', justifyContent: 'space-between'}}>
               비밀번호
               <span style={{color: '#0056d2', cursor: 'pointer', fontWeight: 'normal'}}>비밀번호 찾기</span>
-            </div>
+            </label>
             <input 
+              id="login-password"
               type="password" 
               style={styles.input} 
               placeholder="비밀번호를 입력하세요"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
             />
           </div>
           
