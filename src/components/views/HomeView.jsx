@@ -1,7 +1,65 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getSummary } from '../../services/cheatftApi.js';
+
+const DEFAULT_SUMMARY = {
+  todayStats: {
+    requests: 1248,
+    completed: 842,
+    accuracyRate: 91,
+  },
+  recentChecks: [
+    { id: 1, title: '"OOO 백신 부작용 사망자 급증?"', result: 'FALSE', timeAgo: '2시간 전' },
+    { id: 2, title: '"지구온난화는 인위적인 조작이다?"', result: 'TRUE', timeAgo: '5시간 전' },
+    { id: 3, title: '"OOO 식품이 암을 치료한다?"', result: 'FALSE', timeAgo: '1일 전' },
+  ],
+  biasStatus: {
+    overallScore: 32,
+    categories: [
+      { name: '정치', score: 28, level: '보통' },
+      { name: '사회', score: 45, level: '다소 높음' },
+      { name: '경제', score: 31, level: '보통' },
+      { name: '과학', score: 22, level: '낮음' },
+      { name: '문화', score: 18, level: '낮음' },
+    ],
+  },
+};
+
+const CHECK_ICONS = ['💊', '🌍', '🍲'];
+
+function getCheckTitle(check) {
+  return check?.title || check?.query || check?.content || '제목 없음';
+}
+
+function normalizeResult(result) {
+  return String(result || '').toUpperCase();
+}
 
 export default function HomeView({ onSearch, onNavigate }) {
   const [query, setQuery] = useState('');
+  const [summary, setSummary] = useState(DEFAULT_SUMMARY);
+
+  useEffect(() => {
+    let ignore = false;
+
+    getSummary()
+      .then((data) => {
+        if (!ignore && data) {
+          setSummary({ ...DEFAULT_SUMMARY, ...data });
+        }
+      })
+      .catch(() => {
+        if (!ignore) setSummary(DEFAULT_SUMMARY);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const recentChecks = summary.recentChecks?.length ? summary.recentChecks : DEFAULT_SUMMARY.recentChecks;
+  const todayStats = summary.todayStats || DEFAULT_SUMMARY.todayStats;
+  const biasStatus = summary.biasStatus || DEFAULT_SUMMARY.biasStatus;
+  const biasCategories = biasStatus.categories?.length ? biasStatus.categories : DEFAULT_SUMMARY.biasStatus.categories;
 
   const styles = {
     container: { padding: '0', backgroundColor: '#f8f9fa', minHeight: '100%', fontFamily: 'sans-serif', color: '#202124' },
@@ -151,33 +209,33 @@ export default function HomeView({ onSearch, onNavigate }) {
                 <div style={styles.sectionTitle}>최신 팩트체크</div>
                 <div style={styles.sectionMore}>더보기 &gt;</div>
               </div>
-              <div style={styles.factCheckItem}>
-                <div style={styles.factImagePlaceholder}>💊</div>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.factBadge(false)}>FALSE</div>
-                  <div style={styles.factTitle}>"OOO 백신 부작용 사망자 급증?"</div>
-                  <div style={styles.factMeta}>검증 결과: False &nbsp;|&nbsp; 2시간 전</div>
-                </div>
-                <div style={{ color: '#80868b' }}>&gt;</div>
-              </div>
-              <div style={styles.factCheckItem}>
-                <div style={styles.factImagePlaceholder}>🌍</div>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.factBadge(true)}>TRUE</div>
-                  <div style={styles.factTitle}>"지구온난화는 인위적인 조작이다?"</div>
-                  <div style={styles.factMeta}>검증 결과: True &nbsp;|&nbsp; 5시간 전</div>
-                </div>
-                <div style={{ color: '#80868b' }}>&gt;</div>
-              </div>
-              <div style={{ ...styles.factCheckItem, borderBottom: 'none' }}>
-                <div style={styles.factImagePlaceholder}>🍲</div>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.factBadge(false)}>FALSE</div>
-                  <div style={styles.factTitle}>"OOO 식품이 암을 치료한다?"</div>
-                  <div style={styles.factMeta}>검증 결과: False &nbsp;|&nbsp; 1일 전</div>
-                </div>
-                <div style={{ color: '#80868b' }}>&gt;</div>
-              </div>
+              {recentChecks.slice(0, 3).map((check, index) => {
+                const title = getCheckTitle(check);
+                const result = normalizeResult(check.result);
+                return (
+                  <div
+                    key={check.id ?? title}
+                    style={index === 2 ? { ...styles.factCheckItem, borderBottom: 'none', cursor: 'pointer' } : { ...styles.factCheckItem, cursor: 'pointer' }}
+                    onClick={() => onSearch(title)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onSearch(title);
+                      }
+                    }}
+                  >
+                    <div style={styles.factImagePlaceholder}>{CHECK_ICONS[index] || '📰'}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={styles.factBadge(result === 'TRUE')}>{result || '확인중'}</div>
+                      <div style={styles.factTitle}>{title}</div>
+                      <div style={styles.factMeta}>검증 결과: {result || '확인중'} &nbsp;|&nbsp; {check.timeAgo || '방금 전'}</div>
+                    </div>
+                    <div style={{ color: '#80868b' }}>&gt;</div>
+                  </div>
+                );
+              })}
             </div>
             <div style={styles.promoBanner}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -207,19 +265,19 @@ export default function HomeView({ onSearch, onNavigate }) {
                   <div style={{ ...styles.statLabel, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '14px', height: '18px', backgroundColor: '#e8f0fe', borderRadius: '3px', border: '1px solid #1a73e8' }}></div> 검증 요청
                   </div>
-                  <div style={styles.statValue}>1,248</div>
+                  <div style={styles.statValue}>{todayStats.requests?.toLocaleString?.() ?? todayStats.requests}</div>
                 </div>
                 <div style={styles.statItem}>
                   <div style={{ ...styles.statLabel, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '20px', height: '20px', backgroundColor: '#e6f4ea', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="14" height="14" fill="#34a853" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div> 검증 완료
                   </div>
-                  <div style={styles.statValue}>842</div>
+                  <div style={styles.statValue}>{todayStats.completed?.toLocaleString?.() ?? todayStats.completed}</div>
                 </div>
                 <div style={styles.statItem}>
                   <div style={{ ...styles.statLabel, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="#9334e6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> 정확도
                   </div>
-                  <div style={styles.statValue}>91%</div>
+                  <div style={styles.statValue}>{todayStats.accuracyRate}%</div>
                 </div>
               </div>
             </div>
@@ -232,25 +290,19 @@ export default function HomeView({ onSearch, onNavigate }) {
                 <div style={styles.algoGauge}>
                   <div style={styles.algoGaugeInner}>
                     <div style={{ fontSize: '12px', color: '#5f6368', marginBottom: '2px' }}>편향 지수</div>
-                    <div style={styles.algoGaugeScore}>32</div>
+                    <div style={styles.algoGaugeScore}>{biasStatus.overallScore}</div>
                     <div style={styles.algoGaugeLabel}>보통</div>
                   </div>
                 </div>
                 <div style={{ flex: 1 }}>
-                  {[
-                    { label: '정치', value: 28, max: 100, color: '#00c4b4', status: '보통' },
-                    { label: '사회', value: 45, max: 100, color: '#1a73e8', status: '다소 높음' },
-                    { label: '경제', value: 31, max: 100, color: '#1a73e8', status: '보통' },
-                    { label: '과학', value: 22, max: 100, color: '#34a853', status: '낮음' },
-                    { label: '문화', value: 18, max: 100, color: '#34a853', status: '낮음' }
-                  ].map(item => (
-                    <div key={item.label} style={styles.algoBarRow}>
-                      <div style={styles.algoBarLabel}>{item.label}</div>
+                  {biasCategories.slice(0, 5).map(item => (
+                    <div key={item.name} style={styles.algoBarRow}>
+                      <div style={styles.algoBarLabel}>{item.name}</div>
                       <div style={styles.algoBarTrack}>
-                        <div style={styles.algoBarFill(`${item.value}%`, item.color)}></div>
+                        <div style={styles.algoBarFill(`${item.score}%`, item.score > 40 ? '#1a73e8' : item.score > 25 ? '#00c4b4' : '#34a853')}></div>
                       </div>
-                      <div style={styles.algoBarValue}>{item.value}</div>
-                      <div style={styles.algoBarStatus}>{item.status}</div>
+                      <div style={styles.algoBarValue}>{item.score}</div>
+                      <div style={styles.algoBarStatus}>{item.level}</div>
                     </div>
                   ))}
                 </div>

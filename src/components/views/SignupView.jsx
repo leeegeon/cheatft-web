@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signup } from '../../services/cheatftApi.js';
 
-export default function SignupView({ onLogin }) {
+export default function SignupView() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -9,6 +10,8 @@ export default function SignupView({ onLogin }) {
     password: '',
     passwordConfirm: ''
   });
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = {
     container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100%', backgroundColor: '#f8f9fa', padding: '40px' },
@@ -25,26 +28,48 @@ export default function SignupView({ onLogin }) {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrorMessage('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.email || !formData.nickname || !formData.password || !formData.passwordConfirm) {
-      alert('모든 항목을 입력해주세요.');
+      setErrorMessage('모든 항목을 입력해주세요.');
       return;
     }
     if (formData.password !== formData.passwordConfirm) {
-      alert('비밀번호가 일치하지 않습니다.');
+      setErrorMessage('비밀번호가 일치하지 않습니다.');
       return;
     }
     if (formData.password.length < 8) {
-      alert('비밀번호는 8자 이상이어야 합니다.');
+      setErrorMessage('비밀번호는 8자 이상이어야 합니다.');
       return;
     }
-    // TODO(backend): 회원가입 API 성공 응답으로 교체합니다.
-    alert('회원가입이 완료되었습니다.');
-    if (onLogin) onLogin();
-    navigate('/');
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const account = await signup({
+        email: formData.email,
+        password: formData.password,
+        nickname: formData.nickname,
+      });
+      navigate('/login', {
+        state: {
+          signupMessage: `${account?.nickname || formData.nickname}님, 회원가입이 완료되었습니다. 로그인해주세요.`,
+        },
+      });
+    } catch (error) {
+      if (error.code === 'API_NOT_CONFIGURED') {
+        setErrorMessage('API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.');
+        return;
+      }
+
+      setErrorMessage(error.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -113,7 +138,10 @@ export default function SignupView({ onLogin }) {
             />
           </div>
           
-          <button type="submit" style={styles.button}>회원가입</button>
+          {errorMessage && <div className="form-error" role="alert">{errorMessage}</div>}
+          <button type="submit" style={styles.button} disabled={isSubmitting}>
+            {isSubmitting ? '가입 중...' : '회원가입'}
+          </button>
         </form>
         
         <div style={styles.linkText}>

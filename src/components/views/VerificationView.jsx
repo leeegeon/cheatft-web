@@ -1,10 +1,147 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { getSummary, runFactCheck } from '../../services/cheatftApi.js';
+
+const PRESS_COLORS = ['#1a73e8', '#00c4b4', '#ea4335', '#8ab4f8', '#202124'];
+
+function formatDate(value) {
+  if (!value) return '2024.05.20';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace(/\.$/, '');
+}
+
+function formatDateTime(value) {
+  if (!value) return '2024.05.20 14:30';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).replace(/\. /g, '.').replace(/\.$/, '');
+}
+
+function mapApiArticle(article, index) {
+  const pressLabel = typeof article.press === 'number' ? `언론사 ${article.press}` : article.press || '출처 확인중';
+  const scoreValue = Math.max(1, 5 - Math.min(index, 4));
+
+  return {
+    articleId: article.articleId,
+    sourceLabel: '백엔드 API',
+    pub: pressLabel,
+    logo: String(pressLabel).slice(0, 2),
+    color: PRESS_COLORS[index % PRESS_COLORS.length],
+    date: formatDate(article.publishedAt || article.createdAt),
+    title: article.title,
+    desc: article.summary || article.url || '백엔드에서 반환한 기사입니다. 상세 요약 필드가 확정되면 이 영역에 표시됩니다.',
+    scoreText: scoreValue >= 4 ? '신뢰 가능' : scoreValue >= 3 ? '보통' : '주의',
+    score: `${scoreValue} / 5`,
+    scoreColor: scoreValue >= 4 ? '#8bc34a' : scoreValue >= 3 ? '#fbbc04' : '#ff9800',
+    rotation: 45 - index * 36,
+    hint: article.url ? '기사 원문 URL이 연결된 백엔드 결과입니다.' : '백엔드 기사 결과입니다.',
+    url: article.url,
+  };
+}
+
+function normalizeCheckResult(result) {
+  const normalized = String(result || '').toUpperCase();
+  if (['TRUE', 'FACT', 'REAL'].includes(normalized)) return 'TRUE';
+  if (['FALSE', 'FAKE'].includes(normalized)) return 'FALSE';
+  return normalized;
+}
+
+function getRecentCheckTitle(check) {
+  return check?.title || check?.query || check?.content || '제목 없음';
+}
+
+function mapRecentCheck(check, index) {
+  const result = normalizeCheckResult(check.result);
+  const isTrue = result === 'TRUE';
+  const isFalse = result === 'FALSE';
+  const title = getRecentCheckTitle(check);
+
+  return {
+    articleId: check.id,
+    checkQuery: title,
+    sourceLabel: '백엔드 API',
+    pub: 'Cheat F/T',
+    logo: 'FT',
+    color: isTrue ? '#34a853' : isFalse ? '#ea4335' : PRESS_COLORS[index % PRESS_COLORS.length],
+    date: check.timeAgo || '방금 전',
+    title,
+    desc: `홈 요약 API에서 불러온 최신 팩트체크 항목입니다. 결과: ${result || '확인중'}`,
+    scoreText: isTrue ? '신뢰 가능' : isFalse ? '주의' : '확인중',
+    score: isTrue ? '5 / 5' : isFalse ? '2 / 5' : '3 / 5',
+    scoreColor: isTrue ? '#34a853' : isFalse ? '#ea4335' : '#fbbc04',
+    rotation: isTrue ? 45 : isFalse ? -63 : 0,
+    hint: '카드를 누르면 이 주제로 상세 검증을 요청합니다.',
+  };
+}
 
 export default function VerificationView({ onSearch, onArticleClick }) {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q')?.trim() || '';
   const [val, setVal] = useState(query || '');
+  const [checkResult, setCheckResult] = useState(null);
+  const [apiStatus, setApiStatus] = useState(query ? 'loading' : 'idle');
+  const [apiError, setApiError] = useState('');
+  const [recentChecks, setRecentChecks] = useState([]);
+  const [latestStatus, setLatestStatus] = useState(query ? 'idle' : 'loading');
+
+  useEffect(() => {
+    if (!query) {
+      return;
+    }
+
+    let ignore = false;
+
+    runFactCheck(query, { page: 1, limit: 10 })
+      .then((data) => {
+        if (!ignore) {
+          setCheckResult(data);
+          setApiStatus('done');
+        }
+      })
+      .catch((error) => {
+        if (!ignore && error.code !== 'API_NOT_CONFIGURED') {
+          setApiError(error.message || '검증 결과를 불러오지 못했습니다.');
+        }
+        if (!ignore) {
+          setApiStatus('fallback');
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [query]);
+
+  useEffect(() => {
+    if (query) {
+      return;
+    }
+
+    let ignore = false;
+
+    getSummary()
+      .then((data) => {
+        if (ignore) return;
+        setRecentChecks(Array.isArray(data?.recentChecks) ? data.recentChecks : []);
+        setLatestStatus('done');
+      })
+      .catch(() => {
+        if (ignore) return;
+        setRecentChecks([]);
+        setLatestStatus('fallback');
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [query]);
 
   const styles = {
     container: { display: 'flex', gap: '24px', padding: '40px', backgroundColor: '#f8f9fa', minHeight: '100%', maxWidth: '1400px', margin: '0 auto' },
@@ -55,7 +192,32 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     gaugeScore: { fontWeight: 'bold', fontSize: '16px', color: '#202124', textAlign: 'center', marginTop: '-20px' },
     gaugeSub: { fontSize: '12px', color: '#80868b', marginTop: '4px' },
     gaugeHint: { fontSize: '12px', color: '#80868b', textAlign: 'center', marginTop: '12px', lineHeight: '1.4' },
-    bottomDisclaimer: { marginTop: '32px', padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '20px' }
+    bottomDisclaimer: { marginTop: '32px', padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '20px' },
+    sourceBadge: (source) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '4px 8px',
+      borderRadius: '999px',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      color: source === '백엔드 API' ? '#174ea6' : '#5f6368',
+      backgroundColor: source === '백엔드 API' ? '#e8f0fe' : '#f1f3f4',
+      border: source === '백엔드 API' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+    }),
+    sourceNotice: (source) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      color: source === 'api' ? '#174ea6' : source === 'fallback' ? '#5f6368' : '#80868b',
+      backgroundColor: source === 'api' ? '#e8f0fe' : source === 'fallback' ? '#f8f9fa' : '#ffffff',
+      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+      marginTop: '12px',
+    }),
+    emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' }
   };
 
   const results = [
@@ -65,6 +227,26 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     { pub: 'OO일보', logo: 'OO', color: '#8ab4f8', date: '2024.05.19', title: '백신 부작용으로 인한 사망자 수 급증 추세', desc: '백신 접종 이후 예상치 못한 사망 사례가 빠르게 늘어나고 있다는 주장이 제기되고 있습니다...', scoreText: '주의', score: '2 / 5', scoreColor: '#ff9800', rotation: -63, hint: '이 출처는 신뢰도가 낮거나 편향된 보도일 가능성이 있습니다.' },
     { pub: 'Truth News', logo: 'TN', color: '#202124', date: '2024.05.18', title: '숨겨진 진실! 백신이 사망 원인이다', desc: '정부와 제약회사가 숨기고 있는 백신의 치명적 부작용 실체를 밝힙니다. 더 이상 침묵하지 마세요...', scoreText: '신뢰 불가', score: '1 / 5', scoreColor: '#ea4335', rotation: -99, hint: '이 출처는 검증되지 않은 정보나 허위 정보일 가능성이 매우 높습니다.' },
   ];
+
+  const apiResults = Array.isArray(checkResult?.articles) ? checkResult.articles.map(mapApiArticle) : [];
+  const latestResults = recentChecks.map(mapRecentCheck);
+  const hasApiCheckResult = query && apiStatus === 'done';
+  const hasApiLatestResult = !query && latestStatus === 'done';
+  const isLoading = query && apiStatus === 'loading';
+  const isLatestLoading = !query && latestStatus === 'loading';
+  const displayResults = query
+    ? (hasApiCheckResult ? apiResults : results)
+    : (hasApiLatestResult ? latestResults : results);
+  const dataSource = query
+    ? (isLoading ? 'loading' : hasApiCheckResult ? 'api' : 'fallback')
+    : (isLatestLoading ? 'loading' : hasApiLatestResult ? 'api' : 'fallback');
+  const dataSourceText = dataSource === 'api'
+    ? '백엔드 API 응답 표시 중'
+    : dataSource === 'fallback'
+      ? '프론트 목업 fallback 표시 중'
+      : '백엔드 API 응답 대기 중';
+  const totalArticles = hasApiCheckResult ? (checkResult?.totalArticles ?? apiResults.length) : displayResults.length;
+  const searchTime = formatDateTime(checkResult?.searchTime);
 
   return (
     <div style={styles.container}>
@@ -114,9 +296,17 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                   <svg width="24" height="24" fill="#1a73e8" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
                   "{query}"
                 </div>
-                <div style={{ color: '#5f6368', marginTop: '8px' }}>검색 결과 총 12건의 관련 기사를 찾았습니다.</div>
+                <div style={{ color: '#5f6368', marginTop: '8px' }}>
+                  {isLoading
+                    ? '백엔드 검증 결과를 불러오는 중입니다.'
+                    : hasApiCheckResult && apiResults.length === 0
+                      ? '백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다.'
+                      : `검색 결과 총 ${totalArticles}건의 관련 기사를 찾았습니다.`}
+                  {apiError && <span style={{ color: '#ea4335', marginLeft: '8px' }}>{apiError}</span>}
+                </div>
+                <div style={styles.sourceNotice(dataSource)}>{dataSourceText}</div>
               </div>
-              <div style={styles.resultMeta}>검색 시간: 2024.05.20 14:30</div>
+              <div style={styles.resultMeta}>검색 시간: {searchTime}</div>
             </div>
 
             <div style={styles.filters}>
@@ -127,13 +317,19 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>
             </div>
 
-            {results.map((res, i) => (
-              <div key={i} style={styles.articleCard} onClick={onArticleClick}>
+            {displayResults.length === 0 ? (
+              <div style={styles.emptyState}>
+                백엔드에서 받은 기사 목록이 비어 있습니다.<br/>
+                프론트 예시 뉴스는 표시하지 않았습니다.
+              </div>
+            ) : displayResults.map((res, i) => (
+              <div key={res.articleId ?? res.title ?? i} style={styles.articleCard} onClick={() => onArticleClick(res.articleId ?? i + 1)}>
                 <div style={{ flex: 1, paddingRight: '40px' }}>
                   <div style={styles.articleMeta}>
                     <div style={styles.publisherLogo(res.color)}>{res.logo}</div>
                     <span style={styles.publisher}>{res.pub}</span>
                     <span style={styles.date}>{res.date}</span>
+                    <span style={styles.sourceBadge(res.sourceLabel || '프론트 목업')}>{res.sourceLabel || '프론트 목업'}</span>
                   </div>
                   <div style={styles.articleTitle}>{res.title}</div>
                   <div style={styles.articleDesc}>{res.desc}</div>
@@ -149,7 +345,13 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                     </div>
                   )}
 
-                  <div style={styles.linkBtn}>기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></div>
+                  {res.url ? (
+                    <a style={{ ...styles.linkBtn, textDecoration: 'none' }} href={res.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+                      기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+                    </a>
+                  ) : (
+                    <div style={styles.linkBtn}>기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></div>
+                  )}
                 </div>
                 <div style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
                 <div style={styles.gaugeContainer}>
@@ -178,7 +380,17 @@ export default function VerificationView({ onSearch, onArticleClick }) {
         ) : (
           <>
             <div style={{ ...styles.resultHeader, borderBottom: 'none', paddingBottom: '0' }}>
-              <div style={styles.resultQuery}>최신 팩트체크</div>
+              <div>
+                <div style={styles.resultQuery}>최신 팩트체크</div>
+                <div style={{ color: '#5f6368', marginTop: '8px' }}>
+                  {isLatestLoading
+                    ? '홈 요약 API에서 최신 팩트체크를 불러오는 중입니다.'
+                    : latestResults.length
+                      ? '홈 요약 API에서 불러온 최신 팩트체크입니다.'
+                      : 'API 연결 전에는 예시 팩트체크를 표시합니다.'}
+                </div>
+                <div style={styles.sourceNotice(dataSource)}>{dataSourceText}</div>
+              </div>
             </div>
             <div style={styles.filters}>
               <div style={{ display: 'flex', gap: '12px' }}>
@@ -188,13 +400,27 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>
             </div>
 
-            {results.slice(0, 3).map((res, i) => (
-              <div key={i} style={styles.articleCard} onClick={onArticleClick}>
+            {displayResults.length === 0 ? (
+              <div style={styles.emptyState}>
+                백엔드에서 받은 최신 팩트체크 목록이 비어 있습니다.<br/>
+                프론트 예시 뉴스는 표시하지 않았습니다.
+              </div>
+            ) : displayResults.slice(0, 3).map((res, i) => (
+              <div
+                key={res.articleId ?? res.title ?? i}
+                style={styles.articleCard}
+                onClick={() => {
+                  const nextQuery = res.checkQuery || res.title;
+                  setVal(nextQuery);
+                  onSearch(nextQuery);
+                }}
+              >
                 <div style={{ flex: 1, paddingRight: '40px' }}>
                   <div style={styles.articleMeta}>
                     <div style={styles.publisherLogo(res.color)}>{res.logo}</div>
                     <span style={styles.publisher}>{res.pub}</span>
                     <span style={styles.date}>{res.date}</span>
+                    <span style={styles.sourceBadge(res.sourceLabel || '프론트 목업')}>{res.sourceLabel || '프론트 목업'}</span>
                   </div>
                   <div style={styles.articleTitle}>{res.title}</div>
                   <div style={styles.articleDesc}>{res.desc}</div>

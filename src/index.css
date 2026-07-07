@@ -203,6 +203,12 @@ button:disabled {
   font-size: 13px;
 }
 
+.form-error {
+  color: #c5221f;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 @media (max-width: 1180px) {
   .top-navbar {
     height: auto !important;

@@ -1,8 +1,73 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getReports } from '../../services/cheatftApi.js';
+
+function formatDateTime(value) {
+  if (!value) return '2024.05.20 14:30';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).replace(/\. /g, '.').replace(/\.$/, '');
+}
+
+function mapApiReport(report, index) {
+  const presses = report.mainPresses?.length ? report.mainPresses : ['-'];
+
+  return {
+    id: report.id ?? index + 1,
+    title: report.topic,
+    date: formatDateTime(report.searchTime),
+    status: report.status || '분석 완료',
+    relatedCount: report.relatedCount ?? 0,
+    unrelatedCount: report.counterCount ?? 0,
+    score: report.averageReliability ?? 0,
+    sources: presses.slice(0, 3).map((press, pressIndex) => ({
+      name: typeof press === 'number' ? `언론사 ${press}` : String(press),
+      logo: ['#1a2b49', '#1a73e8', '#ea4335'][pressIndex % 3],
+      score: report.averageReliability ? `${report.averageReliability}/5` : null,
+    })),
+    extraCount: Math.max(0, presses.length - 3),
+    summaryDesc: report.summary || '백엔드 리포트 요약이 여기에 표시됩니다.',
+  };
+}
 
 export default function ReportView() {
   const [expandedId, setExpandedId] = useState(4); // Default to the 4th item expanded as in the design
   const [innerTab, setInnerTab] = useState('related'); // 'related' | 'unrelated' | 'summary'
+  const [reportData, setReportData] = useState(null);
+  const [apiError, setApiError] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [scoreFilter, setScoreFilter] = useState('');
+  const [page] = useState(1);
+
+  useEffect(() => {
+    let ignore = false;
+
+    getReports({
+      keyword: keyword.trim(),
+      date: dateFilter,
+      score: scoreFilter,
+      page,
+      limit: 10,
+    })
+      .then((data) => {
+        if (!ignore) setReportData(data);
+      })
+      .catch((error) => {
+        if (!ignore && error.code !== 'API_NOT_CONFIGURED') {
+          setApiError(error.message || '리포트를 불러오지 못했습니다.');
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [dateFilter, keyword, page, scoreFilter]);
 
   const styles = {
     container: { backgroundColor: '#ffffff', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', display: 'flex', borderTop: '1px solid #e0e0e0' },
@@ -105,6 +170,13 @@ export default function ReportView() {
     ], extraCount: 7, summaryDesc: '전문가들은 AI가 일부 일자리를 대체할 수 있지만 새로운 일자리 창출도 동시에 일어날 것이라고 전망합니다.' },
   ];
 
+  const displayReports = reportData?.reports?.length ? reportData.reports.map(mapApiReport) : reports;
+  const totalStats = reportData?.totalStats || {
+    searchedTopics: 18,
+    analyzedArticles: 216,
+    averageReliability: 3.2,
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={styles.container}>
@@ -119,7 +191,7 @@ export default function ReportView() {
           <div style={styles.menuList}>
             <div style={styles.menuItem(true)}>
               <span style={styles.menuIcon}>📄 전체 리포트</span>
-              <span style={styles.menuBadge}>18</span>
+              <span style={styles.menuBadge}>{reportData?.pagination?.totalItems ?? displayReports.length}</span>
             </div>
             <div style={styles.menuItem(false)}>
               <span style={styles.menuIcon}>⭐ 즐겨찾기</span>
@@ -143,8 +215,18 @@ export default function ReportView() {
 
           <div style={styles.sidebarSection}>
             <div style={styles.filterTitle}>리포트 필터</div>
-            <select style={styles.select}><option>날짜 선택</option></select>
-            <select style={styles.select}><option>전체 신빙성 등급</option></select>
+            <select style={styles.select} value={dateFilter} onChange={(event) => setDateFilter(event.target.value)}>
+              <option value="">날짜 선택</option>
+              <option value="1">최근 1일</option>
+              <option value="7">최근 7일</option>
+              <option value="30">최근 30일</option>
+            </select>
+            <select style={styles.select} value={scoreFilter} onChange={(event) => setScoreFilter(event.target.value)}>
+              <option value="">전체 신빙성 등급</option>
+              <option value="4">4점 이상</option>
+              <option value="3">3점 이상</option>
+              <option value="2">2점 이상</option>
+            </select>
           </div>
 
           <div style={styles.divider}></div>
@@ -168,14 +250,14 @@ export default function ReportView() {
               <div style={styles.statIconWrapper('#e8f0fe')}><span style={{color:'#1a73e8'}}>📄</span></div>
               <div>
                 <div style={styles.statLabel}>검색 주제 수</div>
-                <div style={styles.statValue}>18<span style={{fontSize:'14px', fontWeight:'normal'}}>건</span></div>
+                <div style={styles.statValue}>{totalStats.searchedTopics}<span style={{fontSize:'14px', fontWeight:'normal'}}>건</span></div>
               </div>
             </div>
             <div style={styles.statCard}>
               <div style={styles.statIconWrapper('#e6f4ea')}><span style={{color:'#137333'}}>🏢</span></div>
               <div>
                 <div style={styles.statLabel}>분석한 기사 수</div>
-                <div style={styles.statValue}>216<span style={{fontSize:'14px', fontWeight:'normal'}}>건</span></div>
+                <div style={styles.statValue}>{totalStats.analyzedArticles}<span style={{fontSize:'14px', fontWeight:'normal'}}>건</span></div>
               </div>
             </div>
             <div style={styles.statCard}>
@@ -189,13 +271,19 @@ export default function ReportView() {
               <div style={styles.statIconWrapper('#e6f4ea')}><span style={{color:'#137333'}}>✓</span></div>
               <div>
                 <div style={styles.statLabel}>평균 신뢰도</div>
-                <div style={styles.statValue}>3.2 <span style={{fontSize:'14px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></div>
+                <div style={styles.statValue}>{totalStats.averageReliability} <span style={{fontSize:'14px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></div>
               </div>
             </div>
           </div>
 
           <div style={styles.toolbar}>
-            <input type="text" placeholder="검색한 주제나 키워드로 검색하세요" style={styles.searchInput} />
+            <input
+              type="text"
+              placeholder="검색한 주제나 키워드로 검색하세요"
+              style={styles.searchInput}
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
             <div style={styles.toolsRight}>
               <select style={{...styles.select, marginBottom: 0, width: '120px'}}><option>최신순</option></select>
               <div style={styles.viewToggle}>
@@ -206,7 +294,8 @@ export default function ReportView() {
           </div>
 
           <div style={styles.listContainer}>
-            {reports.map((report) => {
+            {apiError && <div className="form-error" role="alert">{apiError}</div>}
+            {displayReports.map((report) => {
               const isExpanded = expandedId === report.id;
               
               return (

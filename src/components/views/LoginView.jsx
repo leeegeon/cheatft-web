@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { login } from '../../services/cheatftApi.js';
 
 export default function LoginView({ onLogin }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = {
     container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', backgroundColor: '#f8f9fa', padding: '40px' },
@@ -19,15 +23,35 @@ export default function LoginView({ onLogin }) {
     link: { color: '#0056d2', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'none' }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      alert('이메일과 비밀번호를 입력해주세요.');
+      setErrorMessage('이메일과 비밀번호를 입력해주세요.');
       return;
     }
-    // TODO(backend): 인증 API 성공 응답으로 교체합니다.
-    if (onLogin) onLogin();
-    navigate('/');
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const session = await login({ email, password });
+      if (!session?.accessToken) {
+        setErrorMessage('로그인 응답에 accessToken이 없습니다. 백엔드 응답 형식을 확인해주세요.');
+        return;
+      }
+
+      if (onLogin) onLogin(session);
+      navigate('/');
+    } catch (error) {
+      if (error.code === 'API_NOT_CONFIGURED') {
+        setErrorMessage('API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.');
+        return;
+      }
+
+      setErrorMessage(error.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -36,6 +60,7 @@ export default function LoginView({ onLogin }) {
         <div style={styles.title}>Cheat F/T 로그인</div>
         <div style={styles.subtitle}>편향 없는 진실의 시작, 환영합니다.</div>
         
+        {location.state?.signupMessage && <div className="integration-notice" role="status">{location.state.signupMessage}</div>}
         <form onSubmit={handleSubmit}>
           <div style={styles.formGroup}>
             <label htmlFor="login-email" style={styles.label}>이메일 주소</label>
@@ -67,7 +92,10 @@ export default function LoginView({ onLogin }) {
             />
           </div>
           
-          <button type="submit" style={styles.button}>로그인</button>
+          {errorMessage && <div className="form-error" role="alert">{errorMessage}</div>}
+          <button type="submit" style={styles.button} disabled={isSubmitting}>
+            {isSubmitting ? '로그인 중...' : '로그인'}
+          </button>
         </form>
         
         <div style={styles.linkText}>

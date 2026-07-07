@@ -1,15 +1,81 @@
-
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getPosts } from '../../services/cheatftApi.js';
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).replace(/\. /g, '.').replace(/\.$/, '');
+}
+
+function mapApiPost(post) {
+  return {
+    id: post.id,
+    type: post.category || '정보 공유',
+    title: post.title,
+    desc: post.content || '백엔드에서 반환한 커뮤니티 게시글입니다. 상세 본문 API가 확정되면 본문 요약을 표시합니다.',
+    author: post.author,
+    date: formatDateTime(post.createdAt),
+    views: Number(post.views ?? 0).toLocaleString(),
+    comments: Number(post.commentCount ?? 0).toLocaleString(),
+    bg: '#4285f4',
+    icon: '📰',
+  };
+}
+
+const CATEGORY_PARAM_BY_TAB = {
+  '정보 공유 커뮤니티': '정보 공유',
+  '정정 요청': '정정 요청',
+  '토론 게시판': '토론',
+  '공지사항': '공지',
+};
 
 export default function CommunityView({ onPostClick }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [communityData, setCommunityData] = useState(null);
+  const [apiError, setApiError] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [page, setPage] = useState(1);
   
   const activeTab = new URLSearchParams(location.search).get('tab') || '정보 공유 커뮤니티';
+  const categoryParam = selectedCategory || CATEGORY_PARAM_BY_TAB[activeTab] || '';
   
   const setActiveTab = (tab) => {
+    setPage(1);
     navigate(`?tab=${encodeURIComponent(tab)}`, { replace: true });
   };
+
+  useEffect(() => {
+    let ignore = false;
+
+    getPosts({
+      category: categoryParam,
+      keyword: searchKeyword.trim(),
+      page,
+      limit: 10,
+    })
+      .then((data) => {
+        if (!ignore) setCommunityData(data);
+      })
+      .catch((error) => {
+        if (!ignore && error.code !== 'API_NOT_CONFIGURED') {
+          setApiError(error.message || '게시글을 불러오지 못했습니다.');
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [categoryParam, page, searchKeyword]);
 
   const styles = {
     container: { backgroundColor: '#f8f9fa', minHeight: '100%', fontFamily: 'sans-serif', color: '#202124' },
@@ -82,6 +148,13 @@ export default function CommunityView({ onPostClick }) {
     { type: '질문', title: '팩트체크 등급 신뢰도는 어떻게 계산되나요?', desc: '신빙성 등급(5단계)은 어떤 기준과 알고리즘으로 산정되는지 궁금합니다.', author: 'curious_cat', date: '2024.05.19 16:20', views: '411', comments: '12', bg: '', icon: '' },
     { type: '정보 공유', title: '기후변화에 대한 과학적 근거 정리 (최신 연구 업데이트)', desc: 'IPCC 최신 보고서를 기반으로 핵심 내용을 요약했습니다.', author: 'earth_love', date: '2024.05.19 10:05', views: '1,102', comments: '25', bg: '#8ab4f8', icon: '🧊' }
   ];
+
+  const displayPosts = communityData?.posts?.length ? communityData.posts.map(mapApiPost) : posts;
+  const communityStats = communityData?.communityStats || {
+    todayPosts: 128,
+    todayComments: 342,
+    totalMembers: 2845,
+  };
 
   return (
     <div style={styles.container}>
@@ -179,10 +252,32 @@ export default function CommunityView({ onPostClick }) {
               <div style={styles.tab(false)}>댓글 많은 순</div>
             </div>
             <div style={styles.searchBox}>
-              <select style={styles.select}><option>전체 카테고리</option></select>
+              <select
+                style={styles.select}
+                value={selectedCategory}
+                onChange={(event) => {
+                  setSelectedCategory(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">탭 카테고리</option>
+                <option value="정보 공유">정보 공유</option>
+                <option value="정정 요청">정정 요청</option>
+                <option value="토론">토론</option>
+                <option value="공지">공지</option>
+                <option value="질문">질문</option>
+              </select>
               <div style={styles.inputWrapper}>
                 <svg width="18" height="18" fill="#5f6368" viewBox="0 0 24 24" style={{position:'absolute', left:'12px'}}><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
-                <input style={styles.searchInput} placeholder="검색어를 입력하세요" />
+                <input
+                  style={styles.searchInput}
+                  placeholder="검색어를 입력하세요"
+                  value={searchKeyword}
+                  onChange={(event) => {
+                    setSearchKeyword(event.target.value);
+                    setPage(1);
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -190,8 +285,9 @@ export default function CommunityView({ onPostClick }) {
           {activeTab === '정보 공유 커뮤니티' ? (
           <>
           <div>
-            {posts.map((post, i) => (
-              <div key={i} style={{ ...styles.postCard, padding: post.type==='공지' ? '16px 24px' : '24px' }} onClick={onPostClick}>
+            {apiError && <div className="form-error" role="alert">{apiError}</div>}
+            {displayPosts.map((post, i) => (
+              <div key={post.id ?? post.title ?? i} style={{ ...styles.postCard, padding: post.type==='공지' ? '16px 24px' : '24px' }} onClick={() => onPostClick(post.id ?? i + 1)}>
                 <div style={styles.postContent}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={styles.badge(post.type)}>{post.type}</div>
@@ -219,15 +315,20 @@ export default function CommunityView({ onPostClick }) {
           </div>
 
           <div style={styles.pagination}>
-            <div style={styles.pageBtn(false)}>&lt;</div>
-            <div style={styles.pageBtn(true)}>1</div>
-            <div style={styles.pageBtn(false)}>2</div>
-            <div style={styles.pageBtn(false)}>3</div>
-            <div style={styles.pageBtn(false)}>4</div>
-            <div style={styles.pageBtn(false)}>5</div>
-            <div style={styles.pageBtn(false)}>...</div>
-            <div style={styles.pageBtn(false)}>20</div>
-            <div style={styles.pageBtn(false)}>&gt;</div>
+            <div style={styles.pageBtn(false)} onClick={() => setPage((current) => Math.max(1, current - 1))}>&lt;</div>
+            {Array.from({ length: Math.min(5, communityData?.pagination?.totalPages ?? 5) }, (_, index) => index + 1).map((pageNumber) => (
+              <div key={pageNumber} style={styles.pageBtn(page === pageNumber)} onClick={() => setPage(pageNumber)}>{pageNumber}</div>
+            ))}
+            {(communityData?.pagination?.totalPages ?? 5) > 5 && <div style={styles.pageBtn(false)}>...</div>}
+            {(communityData?.pagination?.totalPages ?? 0) > 5 && (
+              <div style={styles.pageBtn(false)} onClick={() => setPage(communityData.pagination.totalPages)}>{communityData.pagination.totalPages}</div>
+            )}
+            <div
+              style={styles.pageBtn(false)}
+              onClick={() => setPage((current) => Math.min(communityData?.pagination?.totalPages ?? current + 1, current + 1))}
+            >
+              &gt;
+            </div>
           </div>
           </>
           ) : (
@@ -245,15 +346,15 @@ export default function CommunityView({ onPostClick }) {
             <div style={styles.statRow}>
               <div style={styles.statBox}>
                 <div style={styles.statLabel}>📝 오늘 게시글</div>
-                <div style={styles.statValue}>128<span style={{fontSize:'13px', fontWeight:'normal'}}>건</span></div>
+                <div style={styles.statValue}>{communityStats.todayPosts}<span style={{fontSize:'13px', fontWeight:'normal'}}>건</span></div>
               </div>
               <div style={styles.statBox}>
                 <div style={styles.statLabel}>💬 오늘 댓글 수</div>
-                <div style={styles.statValue}>342<span style={{fontSize:'13px', fontWeight:'normal'}}>개</span></div>
+                <div style={styles.statValue}>{communityStats.todayComments}<span style={{fontSize:'13px', fontWeight:'normal'}}>개</span></div>
               </div>
               <div style={styles.statBox}>
                 <div style={styles.statLabel}>👥 참여 회원</div>
-                <div style={styles.statValue}>2,845<span style={{fontSize:'13px', fontWeight:'normal'}}>명</span></div>
+                <div style={styles.statValue}>{communityStats.totalMembers?.toLocaleString?.() ?? communityStats.totalMembers}<span style={{fontSize:'13px', fontWeight:'normal'}}>명</span></div>
               </div>
             </div>
           </div>

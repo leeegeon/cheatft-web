@@ -1,7 +1,43 @@
 import { useState } from 'react';
+import { runAnalysis } from '../../services/cheatftApi.js';
+
+function mapAnalysisArticle(article, index, fallbackBadge = '중도') {
+  const pressLabel = typeof article.press === 'number' ? `언론사 ${article.press}` : article.press || '출처 확인중';
+
+  return {
+    id: article.articleId ?? index,
+    logo: ['#1a2b49', '#1a73e8', '#e65100', '#00c4b4'][index % 4],
+    logoText: String(pressLabel).slice(0, 4),
+    title: article.title,
+    desc: article.summary || '백엔드 분석 결과에서 반환된 기사입니다.',
+    date: article.publishedAt || '분석 결과',
+    views: '-',
+    badge: article.stance || fallbackBadge,
+  };
+}
 
 export default function AlgoView() {
   const [activeTab, setActiveTab] = useState('related');
+  const [keyword, setKeyword] = useState('백신 부작용 사망자 급증?');
+  const [period, setPeriod] = useState(1);
+  const [analysisData, setAnalysisData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+
+  const analyze = () => {
+    if (!keyword.trim()) return;
+
+    setIsLoading(true);
+    setApiError('');
+    runAnalysis({ keyword: keyword.trim(), period, limit: 4 })
+      .then((data) => setAnalysisData(data))
+      .catch((error) => {
+        if (error.code !== 'API_NOT_CONFIGURED') {
+          setApiError(error.message || '분석 결과를 불러오지 못했습니다.');
+        }
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   const styles = {
     container: { backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', padding: '40px', display: 'flex', gap: '32px', maxWidth: '1440px', margin: '0 auto' },
@@ -95,6 +131,27 @@ export default function AlgoView() {
     { id: 4, logo: '#4285f4', logoText: '메디컬\n투데이', title: '국내외 연구 결과, 백신 안전성 이상 "문제 없어"', desc: '국내외 다수 연구에서 코로나19 백신의 안전성이 지속적으로 확인되고 있습니다.', date: '2024.05.19', views: '6,789', badge: '반박' },
   ];
 
+  const bias = analysisData?.biasAnalysis;
+  const displayKeyword = analysisData?.keyword || `"${keyword}"`;
+  const displayRelatedList = analysisData?.relatedArticles?.length
+    ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '긍정'))
+    : relatedList;
+  const displayCounterList = analysisData?.counterArticles?.length
+    ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '반박'))
+    : unrelatedList;
+  const displayInsights = analysisData?.insights?.length
+    ? analysisData.insights
+    : [
+        '관련 뉴스 중 긍정/중도 성향의 기사가 다수를 차지합니다.',
+        "반박 기사는 주로 '인과성 부족'과 '기저질환 영향'을 근거로 반박하고 있습니다.",
+        '다양한 관점을 확인하여 균형 잡힌 시각을 가지는 것이 중요합니다.',
+      ];
+  const summaryStats = analysisData?.summaryStats || {
+    collectedArticles: 21,
+    pressCount: 15,
+    averageReliability: 3.2,
+  };
+
   return (
     <div style={styles.container}>
       {/* Left Sidebar */}
@@ -102,17 +159,20 @@ export default function AlgoView() {
         <div style={styles.card}>
           <div style={styles.cardTitle}>질문하기 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
           <div style={styles.cardDesc}>분석하고 싶은 주제를 질문해보세요.</div>
-          <input style={styles.input} defaultValue="백신 부작용 사망자 급증?" />
-          <button style={styles.primaryBtn}>
+          <input style={styles.input} value={keyword} onChange={(event) => setKeyword(event.target.value)} />
+          <button type="button" style={styles.primaryBtn} onClick={analyze} disabled={isLoading}>
             <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
-            분석하기
+            {isLoading ? '분석 중...' : '분석하기'}
           </button>
           <div style={styles.selectRow}>
             <span style={{color:'#5f6368'}}>기간 설정</span>
-            <select style={styles.select}>
-              <option>최근 1개월</option>
+            <select style={styles.select} value={period} onChange={(event) => setPeriod(Number(event.target.value))}>
+              <option value={1}>최근 1개월</option>
+              <option value={3}>최근 3개월</option>
+              <option value={6}>최근 6개월</option>
             </select>
           </div>
+          {apiError && <div className="form-error" role="alert">{apiError}</div>}
         </div>
 
         <div style={styles.card}>
@@ -134,13 +194,13 @@ export default function AlgoView() {
               
               {/* Labels on arcs */}
               <text x="30" y="60" fontSize="12" fill="#137333" fontWeight="bold" textAnchor="middle">긍정</text>
-              <text x="30" y="76" fontSize="12" fill="#137333" textAnchor="middle">10건</text>
+              <text x="30" y="76" fontSize="12" fill="#137333" textAnchor="middle">{bias?.positiveCount ?? 10}건</text>
               
               <text x="100" y="20" fontSize="12" fill="#b06000" fontWeight="bold" textAnchor="middle">중도</text>
-              <text x="100" y="36" fontSize="12" fill="#b06000" textAnchor="middle">2건</text>
+              <text x="100" y="36" fontSize="12" fill="#b06000" textAnchor="middle">{bias?.neutralCount ?? 2}건</text>
               
               <text x="170" y="60" fontSize="12" fill="#c5221f" fontWeight="bold" textAnchor="middle">부정</text>
-              <text x="170" y="76" fontSize="12" fill="#c5221f" textAnchor="middle">0건</text>
+              <text x="170" y="76" fontSize="12" fill="#c5221f" textAnchor="middle">{bias?.negativeCount ?? 0}건</text>
 
               {/* Needle pointing to positive */}
               <g transform="translate(100, 100) rotate(-45)">
@@ -150,7 +210,7 @@ export default function AlgoView() {
             </svg>
             <div style={{marginTop: '-10px'}}>
               <div style={{fontSize: '13px', color: '#5f6368', fontWeight: 'bold'}}>편향 지수</div>
-              <div style={styles.gaugeScore}>80 <span style={styles.gaugeScoreSub}>/ 100</span></div>
+              <div style={styles.gaugeScore}>{bias?.biasScore ?? 80} <span style={styles.gaugeScoreSub}>/ 100</span></div>
             </div>
           </div>
 
@@ -177,7 +237,7 @@ export default function AlgoView() {
         <div>
           <div style={styles.mainHeader}>
              <div>
-               <div style={styles.mainTitle}>"백신 부작용 사망자 급증?" 분석 결과 <span style={{color:'#80868b', fontSize:'18px', fontWeight:'normal'}}>ⓘ</span></div>
+               <div style={styles.mainTitle}>{displayKeyword} 분석 결과 <span style={{color:'#80868b', fontSize:'18px', fontWeight:'normal'}}>ⓘ</span></div>
                <div style={styles.mainDesc}>알고리즘이 수집한 뉴스 정보를 다양한 관점에서 분석해드립니다.</div>
              </div>
              <div style={styles.metaInfo}>
@@ -209,7 +269,7 @@ export default function AlgoView() {
           </div>
 
           <div style={styles.grid}>
-            {(activeTab === 'related' ? relatedList : unrelatedList).map(item => (
+            {(activeTab === 'related' ? displayRelatedList : displayCounterList).map(item => (
               <div key={item.id} style={styles.newsCard}>
                 <div style={{...styles.newsLogo(item.logo), color: item.logoBorder ? '#000' : '#fff', border: item.logoBorder ? `1px solid ${item.logoBorder}` : 'none', whiteSpace: 'pre-wrap', textAlign: 'center', lineHeight: '1.2'}}>
                   {item.logoText}
@@ -237,9 +297,9 @@ export default function AlgoView() {
           <div style={styles.insightBox}>
              <div style={styles.insightTitle}>주요 인사이트</div>
              <ul style={styles.insightList}>
-               <li style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> 관련 뉴스 중 긍정/중도 성향의 기사가 다수를 차지합니다.</li>
-               <li style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> 반박 기사는 주로 '인과성 부족'과 '기저질환 영향'을 근거로 반박하고 있습니다.</li>
-               <li style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> 다양한 관점을 확인하여 균형 잡힌 시각을 가지는 것이 중요합니다.</li>
+               {displayInsights.map((insight) => (
+                 <li key={insight} style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> {insight}</li>
+               ))}
              </ul>
           </div>
           
@@ -250,21 +310,21 @@ export default function AlgoView() {
                  <div style={styles.statLabel}>수집 기사 수</div>
                  <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                     <span style={{fontSize:'24px'}}>📄</span>
-                    <span style={styles.statValue}>21<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>건</span></span>
+                    <span style={styles.statValue}>{summaryStats.collectedArticles}<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>건</span></span>
                  </div>
                </div>
                <div style={styles.statItem}>
                  <div style={styles.statLabel}>언론사 수</div>
                  <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                     <span style={{fontSize:'24px'}}>🏢</span>
-                    <span style={styles.statValue}>15<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>개</span></span>
+                    <span style={styles.statValue}>{summaryStats.pressCount}<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>개</span></span>
                  </div>
                </div>
                <div style={styles.statItem}>
                  <div style={styles.statLabel}>평균 신뢰도</div>
                  <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                     <span style={{fontSize:'24px', color:'#34a853'}}>✓</span>
-                    <span style={{...styles.statValue, color:'#202124'}}>3.2 <span style={{fontSize:'14px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></span>
+                    <span style={{...styles.statValue, color:'#202124'}}>{summaryStats.averageReliability} <span style={{fontSize:'14px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></span>
                  </div>
                </div>
              </div>
