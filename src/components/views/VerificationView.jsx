@@ -3,6 +3,199 @@ import { useSearchParams } from 'react-router-dom';
 import { getSummary, runFactCheck } from '../../services/cheatftApi.js';
 
 const PRESS_COLORS = ['#1a73e8', '#00c4b4', '#ea4335', '#8ab4f8', '#202124'];
+const SORT_LABELS = {
+  latest: '최신순',
+  views: '조회수순',
+  relevance: '연관도순',
+};
+const MOCK_VIEW_COUNTS = [18420, 12680, 9310, 6420, 2880];
+const MOCK_RELEVANCE_SCORES = [96, 88, 81, 73, 58];
+const MOCK_SOURCE_CATEGORIES = ['방송/통신사', '방송/통신사', '방송/통신사', '종합지', '전문지/매거진'];
+const SOURCE_FILTERS = [
+  { value: 'all', label: '전체 출처' },
+  { value: '방송/통신사', label: '방송/통신사' },
+  { value: '종합지', label: '종합지' },
+  { value: '경제지', label: '경제지' },
+  { value: '인터넷/IT지', label: '인터넷/IT지' },
+  { value: '지역지', label: '지역지' },
+  { value: '전문지/매거진', label: '전문지/매거진' },
+  { value: '해외 통신사', label: '해외 통신사' },
+  { value: 'mock', label: '프론트 더미' },
+];
+const NAVER_PRESS_CATEGORY_RANGES = [
+  { end: 9, category: '종합지' },
+  { end: 23, category: '방송/통신사' },
+  { end: 34, category: '경제지' },
+  { end: 47, category: '인터넷/IT지' },
+  { end: 71, category: '전문지/매거진' },
+  { end: 83, category: '지역지' },
+  { end: 86, category: '해외 통신사' },
+];
+const PRESS_NAME_ALIASES = {
+  'KBS 뉴스': 'KBS',
+  'MBC 뉴스': 'MBC',
+  'SBS 뉴스': 'SBS',
+  'YTN 뉴스': 'YTN',
+  'TV조선 뉴스': 'TV조선',
+};
+const NAVER_PRESS_NAMES = [
+  '경향신문',
+  '국민일보',
+  '동아일보',
+  '문화일보',
+  '서울신문',
+  '세계일보',
+  '조선일보',
+  '중앙일보',
+  '한겨레',
+  '한국일보',
+  '뉴스1',
+  '뉴시스',
+  '연합뉴스',
+  '연합뉴스TV',
+  '채널A',
+  '한국경제TV',
+  'JTBC',
+  'KBS',
+  'MBC',
+  'MBN',
+  'SBS',
+  'SBS Biz',
+  'TV조선',
+  'YTN',
+  '매일경제',
+  '머니투데이',
+  '비즈워치',
+  '서울경제',
+  '아시아경제',
+  '이데일리',
+  '조선비즈',
+  '조세일보',
+  '파이낸셜뉴스',
+  '한국경제',
+  '헤럴드경제',
+  '노컷뉴스',
+  '더팩트',
+  '데일리안',
+  '동행미디어 시대',
+  '미디어오늘',
+  '아이뉴스24',
+  '오마이뉴스',
+  '프레시안',
+  '디지털데일리',
+  '디지털타임스',
+  '블로터',
+  '전자신문',
+  '지디넷코리아',
+  '더스쿠프',
+  '레이디경향',
+  '매경이코노미',
+  '시사IN',
+  '시사저널',
+  '신동아',
+  '월간 산',
+  '이코노미스트',
+  '주간경향',
+  '주간동아',
+  '주간조선',
+  '중앙SUNDAY',
+  '한겨레21',
+  '한경비즈니스',
+  '기자협회보',
+  '농민신문',
+  '뉴스타파',
+  '동아사이언스',
+  '여성신문',
+  '일다',
+  '코리아중앙데일리',
+  '코리아헤럴드',
+  '코메디닷컴',
+  '헬스조선',
+  '강원도민일보',
+  '강원일보',
+  '경기일보',
+  '국제신문',
+  '대구MBC',
+  '대전일보',
+  '매일신문',
+  '부산일보',
+  '전주MBC',
+  'CJB청주방송',
+  'JIBS',
+  'kbc광주방송',
+  '신화사 연합뉴스',
+  'AP연합뉴스',
+  'EPA연합뉴스',
+];
+
+function normalizePressName(value) {
+  return String(value || '').replace(/\s+/g, '').toLowerCase();
+}
+
+function getPressIndex(press) {
+  if (typeof press === 'number' || (typeof press === 'string' && press.trim() !== '' && Number.isInteger(Number(press)))) {
+    const pressIndex = Number(press);
+    return pressIndex >= 0 && pressIndex < NAVER_PRESS_NAMES.length ? pressIndex : -1;
+  }
+
+  const pressName = String(press || '').trim();
+  const aliasName = PRESS_NAME_ALIASES[pressName] || pressName.replace(/\s+뉴스$/, '');
+  const exactIndex = NAVER_PRESS_NAMES.indexOf(aliasName);
+  if (exactIndex >= 0) return exactIndex;
+
+  const normalizedName = normalizePressName(aliasName);
+  return NAVER_PRESS_NAMES.findIndex((name) => normalizePressName(name) === normalizedName);
+}
+
+function getPressLabel(press) {
+  const pressIndex = getPressIndex(press);
+  if (pressIndex >= 0) return NAVER_PRESS_NAMES[pressIndex];
+  if (typeof press === 'number' || (typeof press === 'string' && press.trim() !== '' && Number.isInteger(Number(press)))) return `언론사 ${Number(press)}`;
+  return press || '출처 확인중';
+}
+
+function getPressCategory(press) {
+  const pressIndex = getPressIndex(press);
+  const matchedRange = NAVER_PRESS_CATEGORY_RANGES.find((range) => pressIndex <= range.end);
+  return pressIndex >= 0 && matchedRange ? matchedRange.category : '기타 출처';
+}
+
+function matchesSourceFilter(item, sourceFilter) {
+  if (sourceFilter === 'all') return true;
+  if (sourceFilter === 'mock') return item.sourceLabel === '프론트 더미';
+  return item.sourceCategory === sourceFilter;
+}
+
+function getNumericValue(...values) {
+  const matched = values.find((value) => value !== undefined && value !== null && value !== '');
+  const numericValue = Number(matched);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function getDateValue(value) {
+  if (!value) return 0;
+  const directDate = new Date(value);
+  if (!Number.isNaN(directDate.getTime())) return directDate.getTime();
+
+  const parts = String(value).match(/\d+/g);
+  if (!parts || parts.length < 3) return 0;
+  const [year, month, day] = parts.map(Number);
+  return new Date(year, month - 1, day).getTime();
+}
+
+function sortResultsBy(items, sortBy) {
+  return [...items].sort((a, b) => {
+    if (sortBy === 'views') {
+      return (b.viewCount || 0) - (a.viewCount || 0) || (a.sortIndex || 0) - (b.sortIndex || 0);
+    }
+
+    if (sortBy === 'relevance') {
+      return (b.relevanceScore || 0) - (a.relevanceScore || 0) || (a.sortIndex || 0) - (b.sortIndex || 0);
+    }
+
+    return getDateValue(b.date) - getDateValue(a.date) || (a.sortIndex || 0) - (b.sortIndex || 0);
+  });
+}
 
 function formatDate(value) {
   if (!value) return '2024.05.20';
@@ -25,12 +218,17 @@ function formatDateTime(value) {
 }
 
 function mapApiArticle(article, index) {
-  const pressLabel = typeof article.press === 'number' ? `언론사 ${article.press}` : article.press || '출처 확인중';
+  const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
+  const pressLabel = getPressLabel(pressValue);
   const scoreValue = Math.max(1, 5 - Math.min(index, 4));
 
   return {
     articleId: article.articleId,
     sourceLabel: '백엔드 API',
+    sourceCategory: getPressCategory(pressValue),
+    sortIndex: index,
+    viewCount: getNumericValue(article.viewCount, article.views, article.readCount),
+    relevanceScore: getNumericValue(article.relevanceScore, article.relevance, article.similarity),
     pub: pressLabel,
     logo: String(pressLabel).slice(0, 2),
     color: PRESS_COLORS[index % PRESS_COLORS.length],
@@ -67,6 +265,10 @@ function mapRecentCheck(check, index) {
     articleId: check.id,
     checkQuery: title,
     sourceLabel: '백엔드 API',
+    sourceCategory: '기타 출처',
+    sortIndex: index,
+    viewCount: getNumericValue(check.viewCount, check.views, check.readCount),
+    relevanceScore: getNumericValue(check.relevanceScore, check.relevance, check.similarity),
     pub: 'Cheat F/T',
     logo: 'FT',
     color: isTrue ? '#34a853' : isFalse ? '#ea4335' : PRESS_COLORS[index % PRESS_COLORS.length],
@@ -90,6 +292,16 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const [apiError, setApiError] = useState('');
   const [recentChecks, setRecentChecks] = useState([]);
   const [latestStatus, setLatestStatus] = useState(query ? 'idle' : 'loading');
+  const [sortBy, setSortBy] = useState('latest');
+  const [sourceFilter, setSourceFilter] = useState('all');
+
+  function handleSortChange(nextSortBy) {
+    setSortBy(nextSortBy);
+    if (query) {
+      setApiStatus('loading');
+      setApiError('');
+    }
+  }
 
   useEffect(() => {
     if (!query) {
@@ -98,7 +310,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
     let ignore = false;
 
-    runFactCheck(query, { page: 1, limit: 10 })
+    runFactCheck(query, { page: 1, limit: 10, sort: sortBy })
       .then((data) => {
         if (!ignore) {
           setCheckResult(data);
@@ -117,7 +329,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     return () => {
       ignore = true;
     };
-  }, [query]);
+  }, [query, sortBy]);
 
   useEffect(() => {
     if (query) {
@@ -212,40 +424,73 @@ export default function VerificationView({ onSearch, onArticleClick }) {
       borderRadius: '8px',
       fontSize: '13px',
       fontWeight: 'bold',
-      color: source === 'api' ? '#174ea6' : source === 'fallback' ? '#5f6368' : '#80868b',
-      backgroundColor: source === 'api' ? '#e8f0fe' : source === 'fallback' ? '#f8f9fa' : '#ffffff',
-      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+      color: source === 'api' || source === 'mixed' ? '#174ea6' : source === 'fallback' ? '#5f6368' : '#80868b',
+      backgroundColor: source === 'api' || source === 'mixed' ? '#e8f0fe' : source === 'fallback' ? '#f8f9fa' : '#ffffff',
+      border: source === 'api' || source === 'mixed' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
       marginTop: '12px',
+    }),
+    resultGroupLabel: (source) => ({
+      margin: '24px 0 12px',
+      padding: '10px 14px',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      color: source === 'api' ? '#174ea6' : '#5f6368',
+      backgroundColor: source === 'api' ? '#e8f0fe' : '#f8f9fa',
+      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
     }),
     emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' }
   };
 
-  const results = [
+  const mockResults = [
     { pub: 'KBS 뉴스', logo: 'KBS', color: '#1a73e8', date: '2024.05.20', title: '질병청 “백신 접종 후 사망 사례, 인과성 확인 안돼”', desc: '질병관리청은 최근 제기된 백신 접종 후 사망 급증 주장에 대해 현재까지 인과성이 확인된 사례는 없다고 밝혔습니다...', scoreText: '신용 가능', score: '5 / 5', scoreColor: '#00c4b4', rotation: 45, hint: '이 출처는 높은 신뢰도를 가진 공식력 있는 언론/기관입니다.', opposing: { pub: '뉴스1', date: '2024.05.19', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라' } },
     { pub: '연합뉴스', logo: '연합', color: '#1a73e8', date: '2024.05.20', title: '전문가 “백신과 사망 간 연관성 매우 낮아”', desc: '의료 전문가들은 백신 접종과 사망 간의 연관성을 입증할 과학적 근거가 부족하다고 설명했습니다...', scoreText: '신뢰 가능', score: '4 / 5', scoreColor: '#8bc34a', rotation: 9, hint: '이 출처는 비교적 신뢰할 수 있는 언론/기관입니다.', opposing: { pub: 'OO일보', date: '2024.05.19', title: '백신 부작용으로 인한 사망자 수 급증 추세' } },
     { pub: '뉴스1', logo: 'n', color: '#ea4335', date: '2024.05.19', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라', desc: '전국 일부 지역에서 백신 접종 후 사망 신고가 잇따르고 있어 당국이 조사에 나섰습니다...', scoreText: '보통', score: '3 / 5', scoreColor: '#fbbc04', rotation: -27, hint: '이 출처의 정보는 일부 사실 기반이나 검증이 더 필요할 수 있습니다.', opposing: { pub: 'KBS 뉴스', date: '2024.05.20', title: '질병청 “백신 접종 후 사망 사례, 인과성 확인 안돼”' } },
     { pub: 'OO일보', logo: 'OO', color: '#8ab4f8', date: '2024.05.19', title: '백신 부작용으로 인한 사망자 수 급증 추세', desc: '백신 접종 이후 예상치 못한 사망 사례가 빠르게 늘어나고 있다는 주장이 제기되고 있습니다...', scoreText: '주의', score: '2 / 5', scoreColor: '#ff9800', rotation: -63, hint: '이 출처는 신뢰도가 낮거나 편향된 보도일 가능성이 있습니다.' },
     { pub: 'Truth News', logo: 'TN', color: '#202124', date: '2024.05.18', title: '숨겨진 진실! 백신이 사망 원인이다', desc: '정부와 제약회사가 숨기고 있는 백신의 치명적 부작용 실체를 밝힙니다. 더 이상 침묵하지 마세요...', scoreText: '신뢰 불가', score: '1 / 5', scoreColor: '#ea4335', rotation: -99, hint: '이 출처는 검증되지 않은 정보나 허위 정보일 가능성이 매우 높습니다.' },
-  ];
+  ].map((result, index) => ({
+    ...result,
+    sourceLabel: '프론트 더미',
+    sourceCategory: MOCK_SOURCE_CATEGORIES[index] || '프론트 더미',
+    sortIndex: index,
+    viewCount: MOCK_VIEW_COUNTS[index] || 0,
+    relevanceScore: MOCK_RELEVANCE_SCORES[index] || 0,
+  }));
 
   const apiResults = Array.isArray(checkResult?.articles) ? checkResult.articles.map(mapApiArticle) : [];
   const latestResults = recentChecks.map(mapRecentCheck);
+  const sortedApiResults = sortResultsBy(apiResults, sortBy);
+  const sortedMockResults = sortResultsBy(mockResults, sortBy);
+  const sortedLatestResults = sortResultsBy(latestResults, sortBy);
+  const filteredApiResults = sortedApiResults.filter((result) => matchesSourceFilter(result, sourceFilter));
+  const filteredMockResults = sortedMockResults.filter((result) => matchesSourceFilter(result, sourceFilter));
+  const filteredLatestResults = sortedLatestResults.filter((result) => matchesSourceFilter(result, sourceFilter));
   const hasApiCheckResult = query && apiStatus === 'done';
   const hasApiLatestResult = !query && latestStatus === 'done';
   const isLoading = query && apiStatus === 'loading';
   const isLatestLoading = !query && latestStatus === 'loading';
   const displayResults = query
-    ? (hasApiCheckResult ? apiResults : results)
-    : (hasApiLatestResult ? latestResults : results);
+    ? (hasApiCheckResult ? [...filteredApiResults, ...filteredMockResults] : filteredMockResults)
+    : (hasApiLatestResult ? filteredLatestResults : filteredMockResults);
   const dataSource = query
-    ? (isLoading ? 'loading' : hasApiCheckResult ? 'api' : 'fallback')
+    ? (isLoading ? 'loading' : hasApiCheckResult ? 'mixed' : 'fallback')
     : (isLatestLoading ? 'loading' : hasApiLatestResult ? 'api' : 'fallback');
   const dataSourceText = dataSource === 'api'
     ? '백엔드 API 응답 표시 중'
+    : dataSource === 'mixed'
+      ? '백엔드 API와 프론트 더미데이터 함께 표시 중'
     : dataSource === 'fallback'
-      ? '프론트 목업 fallback 표시 중'
+      ? '프론트 더미데이터 표시 중'
       : '백엔드 API 응답 대기 중';
-  const totalArticles = hasApiCheckResult ? (checkResult?.totalArticles ?? apiResults.length) : displayResults.length;
+  const totalArticles = hasApiCheckResult ? (checkResult?.totalArticles ?? apiResults.length) : apiResults.length;
+  const queryResultGroups = hasApiCheckResult
+    ? [
+        { key: 'api', label: `백엔드 API 결과 ${filteredApiResults.length}건`, source: 'api', items: filteredApiResults },
+        { key: 'mock', label: `프론트 더미데이터 ${filteredMockResults.length}건`, source: 'mock', items: filteredMockResults },
+      ]
+    : [
+        { key: 'mock', label: `프론트 더미데이터 ${filteredMockResults.length}건`, source: 'mock', items: filteredMockResults },
+      ];
   const searchTime = formatDateTime(checkResult?.searchTime);
 
   return (
@@ -300,8 +545,10 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                   {isLoading
                     ? '백엔드 검증 결과를 불러오는 중입니다.'
                     : hasApiCheckResult && apiResults.length === 0
-                      ? '백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다.'
-                      : `검색 결과 총 ${totalArticles}건의 관련 기사를 찾았습니다.`}
+                      ? `백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다. 아래에 프론트 더미데이터 ${mockResults.length}건을 함께 표시합니다.`
+                      : hasApiCheckResult
+                        ? `백엔드 API 기준 ${totalArticles}건, 화면 표시용 프론트 더미데이터 ${mockResults.length}건을 함께 보여줍니다.`
+                        : `프론트 더미데이터 ${mockResults.length}건을 표시합니다.`}
                   {apiError && <span style={{ color: '#ea4335', marginLeft: '8px' }}>{apiError}</span>}
                 </div>
                 <div style={styles.sourceNotice(dataSource)}>{dataSourceText}</div>
@@ -311,58 +558,85 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
             <div style={styles.filters}>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <select style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}><option>전체 출처</option></select>
-                <select style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}><option>최신순</option></select>
+                <select
+                  value={sourceFilter}
+                  onChange={(event) => setSourceFilter(event.target.value)}
+                  style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
+                  aria-label="출처 분류 필터"
+                >
+                  {SOURCE_FILTERS.map((filter) => (
+                    <option key={filter.value} value={filter.value}>{filter.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={sortBy}
+                  onChange={(event) => handleSortChange(event.target.value)}
+                  style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
+                  aria-label="검색 결과 정렬"
+                >
+                  <option value="latest">최신순</option>
+                  <option value="views">조회수순</option>
+                  <option value="relevance">연관도순</option>
+                </select>
               </div>
               <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>
             </div>
 
-            {displayResults.length === 0 ? (
+            {queryResultGroups.every((group) => group.items.length === 0) ? (
               <div style={styles.emptyState}>
-                백엔드에서 받은 기사 목록이 비어 있습니다.<br/>
-                프론트 예시 뉴스는 표시하지 않았습니다.
+                표시할 백엔드 API 결과와 프론트 더미데이터가 없습니다.
               </div>
-            ) : displayResults.map((res, i) => (
-              <div key={res.articleId ?? res.title ?? i} style={styles.articleCard} onClick={() => onArticleClick(res.articleId ?? i + 1)}>
-                <div style={{ flex: 1, paddingRight: '40px' }}>
-                  <div style={styles.articleMeta}>
-                    <div style={styles.publisherLogo(res.color)}>{res.logo}</div>
-                    <span style={styles.publisher}>{res.pub}</span>
-                    <span style={styles.date}>{res.date}</span>
-                    <span style={styles.sourceBadge(res.sourceLabel || '프론트 목업')}>{res.sourceLabel || '프론트 목업'}</span>
-                  </div>
-                  <div style={styles.articleTitle}>{res.title}</div>
-                  <div style={styles.articleDesc}>{res.desc}</div>
-                  
-                  {res.opposing && (
-                    <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#f0f4f9', borderRadius: '8px', borderLeft: '4px solid #1a73e8' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#174ea6', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-                        다양성 모드: 반대되는 관점의 기사
+            ) : queryResultGroups.map((group) => (
+              <div key={group.key}>
+                <div style={styles.resultGroupLabel(group.source)}>{group.label} · {SORT_LABELS[sortBy]}</div>
+                {group.items.length === 0 ? (
+                  <div style={styles.emptyState}>이 섹션에 표시할 결과가 없습니다.</div>
+                ) : group.items.map((res, i) => (
+                  <div key={`${group.key}-${res.articleId ?? res.title ?? i}`} style={styles.articleCard} onClick={() => onArticleClick(res.articleId ?? i + 1)}>
+                    <div style={{ flex: 1, paddingRight: '40px' }}>
+                      <div style={styles.articleMeta}>
+                        <div style={styles.publisherLogo(res.color)}>{res.logo}</div>
+                        <span style={styles.publisher}>{res.pub}</span>
+                        <span style={styles.date}>{res.date}</span>
+                        <span style={styles.sourceBadge(res.sourceLabel || '프론트 더미')}>{res.sourceLabel || '프론트 더미'}</span>
+                        {res.sourceCategory && <span style={styles.date}>{res.sourceCategory}</span>}
+                        {res.viewCount > 0 && <span style={styles.date}>조회 {res.viewCount.toLocaleString('ko-KR')}</span>}
+                        {res.relevanceScore > 0 && <span style={styles.date}>연관도 {res.relevanceScore}</span>}
                       </div>
-                      <div style={{ fontSize: '15px', color: '#202124', fontWeight: '500' }}>{res.opposing.title}</div>
-                      <div style={{ fontSize: '13px', color: '#5f6368', marginTop: '4px' }}>{res.opposing.pub} • {res.opposing.date}</div>
-                    </div>
-                  )}
+                      <div style={styles.articleTitle}>{res.title}</div>
+                      <div style={styles.articleDesc}>{res.desc}</div>
+                      
+                      {res.opposing && (
+                        <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#f0f4f9', borderRadius: '8px', borderLeft: '4px solid #1a73e8' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#174ea6', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                            다양성 모드: 반대되는 관점의 기사
+                          </div>
+                          <div style={{ fontSize: '15px', color: '#202124', fontWeight: '500' }}>{res.opposing.title}</div>
+                          <div style={{ fontSize: '13px', color: '#5f6368', marginTop: '4px' }}>{res.opposing.pub} • {res.opposing.date}</div>
+                        </div>
+                      )}
 
-                  {res.url ? (
-                    <a style={{ ...styles.linkBtn, textDecoration: 'none' }} href={res.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-                      기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-                    </a>
-                  ) : (
-                    <div style={styles.linkBtn}>기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></div>
-                  )}
-                </div>
-                <div style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
-                <div style={styles.gaugeContainer}>
-                  <div style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
-                  <div style={styles.gaugeArc(res.scoreColor)}>
-                    <div style={styles.gaugeArcInner(res.scoreColor, res.rotation)}></div>
+                      {res.url ? (
+                        <a style={{ ...styles.linkBtn, textDecoration: 'none' }} href={res.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+                          기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+                        </a>
+                      ) : (
+                        <div style={styles.linkBtn}>기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></div>
+                      )}
+                    </div>
+                    <div style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
+                    <div style={styles.gaugeContainer}>
+                      <div style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
+                      <div style={styles.gaugeArc(res.scoreColor)}>
+                        <div style={styles.gaugeArcInner(res.scoreColor, res.rotation)}></div>
+                      </div>
+                      <div style={styles.gaugeScore}>{res.scoreText}</div>
+                      <div style={styles.gaugeSub}>{res.score}</div>
+                      <div style={styles.gaugeHint}>{res.hint}</div>
+                    </div>
                   </div>
-                  <div style={styles.gaugeScore}>{res.scoreText}</div>
-                  <div style={styles.gaugeSub}>{res.score}</div>
-                  <div style={styles.gaugeHint}>{res.hint}</div>
-                </div>
+                ))}
               </div>
             ))}
 
@@ -394,8 +668,26 @@ export default function VerificationView({ onSearch, onArticleClick }) {
             </div>
             <div style={styles.filters}>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <select style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}><option>전체 카테고리</option></select>
-                <select style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}><option>최신순</option></select>
+                <select
+                  value={sourceFilter}
+                  onChange={(event) => setSourceFilter(event.target.value)}
+                  style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
+                  aria-label="출처 분류 필터"
+                >
+                  {SOURCE_FILTERS.map((filter) => (
+                    <option key={filter.value} value={filter.value}>{filter.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={sortBy}
+                  onChange={(event) => handleSortChange(event.target.value)}
+                  style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
+                  aria-label="최신 팩트체크 정렬"
+                >
+                  <option value="latest">최신순</option>
+                  <option value="views">조회수순</option>
+                  <option value="relevance">연관도순</option>
+                </select>
               </div>
               <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>
             </div>
@@ -421,6 +713,9 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                     <span style={styles.publisher}>{res.pub}</span>
                     <span style={styles.date}>{res.date}</span>
                     <span style={styles.sourceBadge(res.sourceLabel || '프론트 목업')}>{res.sourceLabel || '프론트 목업'}</span>
+                    {res.sourceCategory && <span style={styles.date}>{res.sourceCategory}</span>}
+                    {res.viewCount > 0 && <span style={styles.date}>조회 {res.viewCount.toLocaleString('ko-KR')}</span>}
+                    {res.relevanceScore > 0 && <span style={styles.date}>연관도 {res.relevanceScore}</span>}
                   </div>
                   <div style={styles.articleTitle}>{res.title}</div>
                   <div style={styles.articleDesc}>{res.desc}</div>

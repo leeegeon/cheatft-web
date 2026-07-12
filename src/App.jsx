@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import HomeView from './components/views/HomeView.jsx';
 import VerificationView from './components/views/VerificationView.jsx';
 import MyPageView from './components/views/MyPageView.jsx';
@@ -13,6 +13,7 @@ import CommunityWriteView from './components/views/CommunityWriteView.jsx';
 import NotFoundView from './components/views/NotFoundView.jsx';
 import { clearAccessToken, getAccessToken } from './services/apiClient.js';
 import { buildSearchPath, normalizeSearchQuery } from './utils/search.js';
+import cheatftLogo from './assets/cheatft-logo.png';
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,7 +31,16 @@ export default function App() {
   const handleLogout = () => {
     clearAccessToken();
     setIsLoggedIn(false);
+    if (location.pathname === '/mypage' || location.pathname === '/community/write') {
+      navigate('/');
+    }
   };
+
+  const requireLogin = (element) => (
+    isLoggedIn
+      ? element
+      : <Navigate to="/login" replace state={{ from: { pathname: location.pathname, search: location.search } }} />
+  );
 
   const styles = {
     container: { display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', backgroundColor: '#ffffff', overflow: 'hidden', fontFamily: 'sans-serif' },
@@ -41,8 +51,8 @@ export default function App() {
     navLinks: { display: 'flex', gap: '32px', height: '100%' },
     navRight: { display: 'flex', alignItems: 'center', gap: '16px' },
     iconBtn: { background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#5f6368', padding: '8px' },
-    loginBtn: { background: '#ffffff', border: '1px solid #dadce0', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#3c4043', fontSize: '14px' },
-    signupBtn: { backgroundColor: '#0056d2', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#ffffff', fontSize: '14px' },
+    loginBtn: { background: '#ffffff', border: '1px solid #dadce0', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#3c4043', fontSize: '14px', whiteSpace: 'nowrap', flexShrink: 0 },
+    signupBtn: { backgroundColor: '#0056d2', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#ffffff', fontSize: '14px', whiteSpace: 'nowrap', flexShrink: 0 },
     main: { flex: 1, backgroundColor: '#ffffff', color: '#000000', overflowY: 'auto', position: 'relative' }
   };
 
@@ -60,44 +70,7 @@ export default function App() {
       {/* Top Navbar */}
       <header className="top-navbar" style={styles.navbar}>
         <button className="brand-button" type="button" onClick={() => navigate('/')} aria-label="Cheat F/T 홈으로 이동">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="44" height="44" viewBox="0 0 100 100" aria-hidden="true">
-              <defs>
-                <linearGradient id="blueG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#1a73e8" />
-                  <stop offset="100%" stopColor="#0d47a1" />
-                </linearGradient>
-                <linearGradient id="greenG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#00df9a" />
-                  <stop offset="100%" stopColor="#007f5f" />
-                </linearGradient>
-                <mask id="e-mask">
-                  <rect x="0" y="0" width="100" height="100" fill="white" />
-                  <rect x="0" y="34" width="60" height="10" fill="black" />
-                  <rect x="0" y="56" width="60" height="10" fill="black" />
-                  <polygon points="46,0 100,0 100,100 36,100" fill="black" />
-                </mask>
-                <mask id="d-mask">
-                  <rect x="0" y="0" width="100" height="100" fill="white" />
-                  <circle cx="50" cy="50" r="18" fill="black" />
-                  <polygon points="0,0 52,0 42,100 0,100" fill="black" />
-                </mask>
-              </defs>
-              <rect x="66" y="66" width="14" height="34" rx="7" fill="#111827" transform="rotate(-45 73 83)" />
-              <circle cx="50" cy="50" r="36" fill="url(#blueG)" mask="url(#e-mask)" />
-              <g mask="url(#d-mask)">
-                <circle cx="50" cy="50" r="36" fill="url(#greenG)" />
-              </g>
-            </svg>
-            <div style={{ fontSize: '36px', fontWeight: '900', fontStyle: 'italic', letterSpacing: '-1.5px', marginTop: '4px' }}>
-              <span style={{ color: '#1a2b49' }}>Cheat </span>
-              <span style={{ color: '#1a73e8' }}>F/</span>
-              <span style={{ color: '#00c4b4' }}>T</span>
-            </div>
-          </div>
-          <div style={{ fontSize: '11px', color: '#5f6368', paddingLeft: '52px', marginTop: '-8px', letterSpacing: '-0.5px' }}>
-            진실을 검증하고, 편향을 줄여 더 나은 정보를 만듭니다.
-          </div>
+          <img className="brand-logo" src={cheatftLogo} alt="Cheat F/T" />
         </button>
         <nav className="nav-links" style={styles.navLinks} aria-label="주요 메뉴">
           {navItems.map(item => {
@@ -166,9 +139,9 @@ export default function App() {
           <Route path="/search" element={<VerificationView key={location.search} onSearch={handleSearch} onArticleClick={(id = 1) => navigate(`/article/${id}`)} />} />
           <Route path="/article/:id" element={<DetailView type="뉴스" />} />
           <Route path="/community" element={<CommunityView onPostClick={(id = 1) => navigate(`/community/${id}`)} />} />
-          <Route path="/community/write" element={<CommunityWriteView />} />
+          <Route path="/community/write" element={requireLogin(<CommunityWriteView />)} />
           <Route path="/community/:id" element={<DetailView type="커뮤니티" />} />
-          <Route path="/mypage" element={<MyPageView />} />
+          <Route path="/mypage" element={requireLogin(<MyPageView />)} />
           <Route path="/algo" element={<AlgoView />} />
           <Route path="/report" element={<ReportView />} />
           <Route path="/login" element={<LoginView onLogin={handleLogin} />} />

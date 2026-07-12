@@ -2,6 +2,21 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../../services/cheatftApi.js';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getLoginValidationError({ email, password }) {
+  if (!email.trim() || !password) return '이메일과 비밀번호를 입력해주세요.';
+  if (!EMAIL_PATTERN.test(email.trim())) return '올바른 이메일 형식으로 입력해주세요.';
+  return '';
+}
+
+function getReadableAuthError(error) {
+  if (error.code === 'API_NOT_CONFIGURED') return 'API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.';
+  if (error.status === 401) return '이메일 또는 비밀번호가 올바르지 않습니다.';
+  if (error.status === 403) return '로그인 권한이 없습니다. 계정 상태를 확인해주세요.';
+  return error.message || '로그인에 실패했습니다.';
+}
+
 export default function LoginView({ onLogin }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,8 +40,9 @@ export default function LoginView({ onLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMessage('이메일과 비밀번호를 입력해주세요.');
+    const validationError = getLoginValidationError({ email, password });
+    if (validationError) {
+      setErrorMessage(validationError);
       return;
     }
 
@@ -34,21 +50,19 @@ export default function LoginView({ onLogin }) {
     setErrorMessage('');
 
     try {
-      const session = await login({ email, password });
+      const session = await login({ email: email.trim(), password });
       if (!session?.accessToken) {
         setErrorMessage('로그인 응답에 accessToken이 없습니다. 백엔드 응답 형식을 확인해주세요.');
         return;
       }
 
       if (onLogin) onLogin(session);
-      navigate('/');
+      const fromPath = location.state?.from?.pathname
+        ? `${location.state.from.pathname}${location.state.from.search || ''}`
+        : '/';
+      navigate(fromPath, { replace: true });
     } catch (error) {
-      if (error.code === 'API_NOT_CONFIGURED') {
-        setErrorMessage('API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.');
-        return;
-      }
-
-      setErrorMessage(error.message || '로그인에 실패했습니다.');
+      setErrorMessage(getReadableAuthError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,8 +84,12 @@ export default function LoginView({ onLogin }) {
               style={styles.input} 
               placeholder="example@domain.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrorMessage('');
+              }}
               autoComplete="email"
+              disabled={isSubmitting}
               required
             />
           </div>
@@ -86,8 +104,12 @@ export default function LoginView({ onLogin }) {
               style={styles.input} 
               placeholder="비밀번호를 입력하세요"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrorMessage('');
+              }}
               autoComplete="current-password"
+              disabled={isSubmitting}
               required
             />
           </div>
