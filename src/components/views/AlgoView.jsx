@@ -21,6 +21,7 @@ export default function AlgoView() {
   const [keyword, setKeyword] = useState('백신 부작용 사망자 급증?');
   const [period, setPeriod] = useState(1);
   const [analysisData, setAnalysisData] = useState(null);
+  const [analysisStatus, setAnalysisStatus] = useState('fallback');
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
@@ -29,12 +30,18 @@ export default function AlgoView() {
 
     setIsLoading(true);
     setApiError('');
+    setAnalysisStatus('loading');
     runAnalysis({ keyword: keyword.trim(), period, limit: 4 })
-      .then((data) => setAnalysisData(data))
+      .then((data) => {
+        setAnalysisData(data || {});
+        setAnalysisStatus('done');
+      })
       .catch((error) => {
         if (error.code !== 'API_NOT_CONFIGURED') {
           setApiError(error.message || '분석 결과를 불러오지 못했습니다.');
         }
+        setAnalysisData(null);
+        setAnalysisStatus('fallback');
       })
       .finally(() => setIsLoading(false));
   };
@@ -100,6 +107,19 @@ export default function AlgoView() {
       return { padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', backgroundColor: color.bg, color: color.text };
     },
     moreBtn: { width: '100%', padding: '16px', backgroundColor: '#ffffff', border: '1px solid #dadce0', borderRadius: '12px', color: '#0056d2', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', textAlign: 'center' },
+    sourceNotice: (source) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      color: source === 'api' ? '#174ea6' : source === 'loading' ? '#80868b' : '#5f6368',
+      backgroundColor: source === 'api' ? '#e8f0fe' : '#f8f9fa',
+      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+    }),
+    emptyState: { gridColumn: '1 / -1', padding: '40px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
 
     // Bottom Insight
     bottomLayout: { display: 'flex', gap: '24px', marginTop: '16px' },
@@ -131,26 +151,38 @@ export default function AlgoView() {
     { id: 4, logo: '#4285f4', logoText: '메디컬\n투데이', title: '국내외 연구 결과, 백신 안전성 이상 "문제 없어"', desc: '국내외 다수 연구에서 코로나19 백신의 안전성이 지속적으로 확인되고 있습니다.', date: '2024.05.19', views: '6,789', badge: '반박' },
   ];
 
+  const hasApiAnalysis = analysisStatus === 'done';
   const bias = analysisData?.biasAnalysis;
   const displayKeyword = analysisData?.keyword || `"${keyword}"`;
-  const displayRelatedList = analysisData?.relatedArticles?.length
-    ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '긍정'))
+  const displayRelatedList = hasApiAnalysis
+    ? (Array.isArray(analysisData?.relatedArticles) ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '긍정')) : [])
     : relatedList;
-  const displayCounterList = analysisData?.counterArticles?.length
-    ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '반박'))
+  const displayCounterList = hasApiAnalysis
+    ? (Array.isArray(analysisData?.counterArticles) ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '반박')) : [])
     : unrelatedList;
-  const displayInsights = analysisData?.insights?.length
-    ? analysisData.insights
+  const displayInsights = hasApiAnalysis
+    ? (Array.isArray(analysisData?.insights) ? analysisData.insights : [])
     : [
         '관련 뉴스 중 긍정/중도 성향의 기사가 다수를 차지합니다.',
         "반박 기사는 주로 '인과성 부족'과 '기저질환 영향'을 근거로 반박하고 있습니다.",
         '다양한 관점을 확인하여 균형 잡힌 시각을 가지는 것이 중요합니다.',
       ];
-  const summaryStats = analysisData?.summaryStats || {
+  const summaryStats = hasApiAnalysis ? {
+    collectedArticles: analysisData?.summaryStats?.collectedArticles ?? 0,
+    pressCount: analysisData?.summaryStats?.pressCount ?? 0,
+    averageReliability: analysisData?.summaryStats?.averageReliability ?? 0,
+  } : {
     collectedArticles: 21,
     pressCount: 15,
     averageReliability: 3.2,
   };
+  const activeList = activeTab === 'related' ? displayRelatedList : displayCounterList;
+  const sourceState = analysisStatus === 'loading' ? 'loading' : hasApiAnalysis ? 'api' : 'fallback';
+  const sourceText = sourceState === 'api'
+    ? '백엔드 API 응답 표시 중'
+    : sourceState === 'loading'
+      ? '백엔드 API 응답 대기 중'
+      : '프론트 목업 fallback 표시 중';
 
   return (
     <div style={styles.container}>
@@ -239,6 +271,7 @@ export default function AlgoView() {
              <div>
                <div style={styles.mainTitle}>{displayKeyword} 분석 결과 <span style={{color:'#80868b', fontSize:'18px', fontWeight:'normal'}}>ⓘ</span></div>
                <div style={styles.mainDesc}>알고리즘이 수집한 뉴스 정보를 다양한 관점에서 분석해드립니다.</div>
+               <div style={{ marginTop: '12px' }}><span style={styles.sourceNotice(sourceState)}>{sourceText}</span></div>
              </div>
              <div style={styles.metaInfo}>
                <span style={styles.metaText}>검색 시간: 2024.05.20 14:30</span>
@@ -252,11 +285,11 @@ export default function AlgoView() {
         <div style={styles.tabContainer}>
           <div style={styles.tabBtn(activeTab === 'related')} onClick={() => setActiveTab('related')}>
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-            관련 뉴스 (12)
+            관련 뉴스 ({displayRelatedList.length})
           </div>
           <div style={styles.tabBtn(activeTab === 'unrelated')} onClick={() => setActiveTab('unrelated')}>
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
-            비연관 검색어 (반박 기사) (9)
+            비연관 검색어 (반박 기사) ({displayCounterList.length})
           </div>
         </div>
 
@@ -269,7 +302,12 @@ export default function AlgoView() {
           </div>
 
           <div style={styles.grid}>
-            {(activeTab === 'related' ? displayRelatedList : displayCounterList).map(item => (
+            {activeList.length === 0 ? (
+              <div style={styles.emptyState}>
+                백엔드에서 받은 {activeTab === 'related' ? '관련 뉴스' : '반박 기사'} 목록이 비어 있습니다.<br/>
+                프론트 예시 데이터는 섞지 않았습니다.
+              </div>
+            ) : activeList.map(item => (
               <div key={item.id} style={styles.newsCard}>
                 <div style={{...styles.newsLogo(item.logo), color: item.logoBorder ? '#000' : '#fff', border: item.logoBorder ? `1px solid ${item.logoBorder}` : 'none', whiteSpace: 'pre-wrap', textAlign: 'center', lineHeight: '1.2'}}>
                   {item.logoText}
@@ -297,7 +335,9 @@ export default function AlgoView() {
           <div style={styles.insightBox}>
              <div style={styles.insightTitle}>주요 인사이트</div>
              <ul style={styles.insightList}>
-               {displayInsights.map((insight) => (
+               {displayInsights.length === 0 ? (
+                 <li style={styles.insightItem}><span style={{color:'#80868b', fontSize:'16px'}}>•</span> 백엔드에서 받은 인사이트가 없습니다.</li>
+               ) : displayInsights.map((insight) => (
                  <li key={insight} style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> {insight}</li>
                ))}
              </ul>

@@ -37,18 +37,23 @@ function normalizeResult(result) {
 export default function HomeView({ onSearch, onNavigate }) {
   const [query, setQuery] = useState('');
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
+  const [summaryStatus, setSummaryStatus] = useState('loading');
 
   useEffect(() => {
     let ignore = false;
 
     getSummary()
       .then((data) => {
-        if (!ignore && data) {
+        if (!ignore) {
           setSummary({ ...DEFAULT_SUMMARY, ...data });
+          setSummaryStatus('done');
         }
       })
       .catch(() => {
-        if (!ignore) setSummary(DEFAULT_SUMMARY);
+        if (!ignore) {
+          setSummary(DEFAULT_SUMMARY);
+          setSummaryStatus('fallback');
+        }
       });
 
     return () => {
@@ -56,10 +61,15 @@ export default function HomeView({ onSearch, onNavigate }) {
     };
   }, []);
 
-  const recentChecks = summary.recentChecks?.length ? summary.recentChecks : DEFAULT_SUMMARY.recentChecks;
+  const isApiSummary = summaryStatus === 'done';
+  const recentChecks = isApiSummary
+    ? (Array.isArray(summary.recentChecks) ? summary.recentChecks : [])
+    : DEFAULT_SUMMARY.recentChecks;
   const todayStats = summary.todayStats || DEFAULT_SUMMARY.todayStats;
   const biasStatus = summary.biasStatus || DEFAULT_SUMMARY.biasStatus;
-  const biasCategories = biasStatus.categories?.length ? biasStatus.categories : DEFAULT_SUMMARY.biasStatus.categories;
+  const biasCategories = isApiSummary
+    ? (Array.isArray(biasStatus.categories) ? biasStatus.categories : [])
+    : DEFAULT_SUMMARY.biasStatus.categories;
 
   const styles = {
     container: { padding: '0', backgroundColor: '#f8f9fa', minHeight: '100%', fontFamily: 'sans-serif', color: '#202124' },
@@ -92,6 +102,18 @@ export default function HomeView({ onSearch, onNavigate }) {
     factBadge: (isTrue) => ({ padding: '4px 10px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold', color: '#ffffff', backgroundColor: isTrue ? '#34a853' : '#ea4335', marginBottom: '8px', display: 'inline-block' }),
     factTitle: { fontSize: '17px', fontWeight: 'bold', color: '#202124', marginBottom: '6px' },
     factMeta: { fontSize: '14px', color: '#80868b' },
+    sourceBadge: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '4px 8px',
+      borderRadius: '999px',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      color: isApiSummary ? '#174ea6' : '#5f6368',
+      backgroundColor: isApiSummary ? '#e8f0fe' : '#f1f3f4',
+      border: isApiSummary ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+    },
+    emptyState: { padding: '32px 20px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
     promoBanner: { marginTop: '24px', backgroundColor: '#3b5bdb', borderRadius: '16px', padding: '32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#ffffff' },
     statBox: { backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '24px', display: 'flex', justifyContent: 'space-between', marginBottom: '24px' },
     statItem: { display: 'flex', flexDirection: 'column', gap: '8px' },
@@ -207,9 +229,17 @@ export default function HomeView({ onSearch, onNavigate }) {
             <div style={styles.sectionCard}>
               <div style={{...styles.sectionHeader, cursor: 'pointer'}} onClick={() => onNavigate('search')}>
                 <div style={styles.sectionTitle}>최신 팩트체크</div>
-                <div style={styles.sectionMore}>더보기 &gt;</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={styles.sourceBadge}>{isApiSummary ? '백엔드 API' : '프론트 목업'}</span>
+                  <div style={styles.sectionMore}>더보기 &gt;</div>
+                </div>
               </div>
-              {recentChecks.slice(0, 3).map((check, index) => {
+              {recentChecks.length === 0 ? (
+                <div style={styles.emptyState}>
+                  백엔드에서 받은 최신 팩트체크 목록이 비어 있습니다.<br/>
+                  프론트 예시 데이터는 섞지 않았습니다.
+                </div>
+              ) : recentChecks.slice(0, 3).map((check, index) => {
                 const title = getCheckTitle(check);
                 const result = normalizeResult(check.result);
                 return (

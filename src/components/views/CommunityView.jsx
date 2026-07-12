@@ -41,6 +41,7 @@ export default function CommunityView({ onPostClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [communityData, setCommunityData] = useState(null);
+  const [communityStatus, setCommunityStatus] = useState('loading');
   const [apiError, setApiError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -64,11 +65,18 @@ export default function CommunityView({ onPostClick }) {
       limit: 10,
     })
       .then((data) => {
-        if (!ignore) setCommunityData(data);
+        if (!ignore) {
+          setCommunityData(data || {});
+          setCommunityStatus('done');
+        }
       })
       .catch((error) => {
         if (!ignore && error.code !== 'API_NOT_CONFIGURED') {
           setApiError(error.message || '게시글을 불러오지 못했습니다.');
+        }
+        if (!ignore) {
+          setCommunityData(null);
+          setCommunityStatus('fallback');
         }
       });
 
@@ -101,6 +109,19 @@ export default function CommunityView({ onPostClick }) {
     guideList: { margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#5f6368', lineHeight: '1.8' },
     
     centerHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+    sourceNotice: (source) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      color: source === 'api' ? '#174ea6' : source === 'loading' ? '#80868b' : '#5f6368',
+      backgroundColor: source === 'api' ? '#e8f0fe' : '#f8f9fa',
+      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+      marginBottom: '16px',
+    }),
     tabGroup: { display: 'flex', gap: '20px' },
     tab: (isActive) => ({ fontSize: '15px', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#202124' : '#80868b', cursor: 'pointer' }),
     searchBox: { display: 'flex', alignItems: 'center', gap: '12px' },
@@ -119,6 +140,7 @@ export default function CommunityView({ onPostClick }) {
     postDesc: { fontSize: '14px', color: '#5f6368', marginBottom: '16px', lineHeight: '1.5' },
     postMeta: { fontSize: '13px', color: '#80868b', display: 'flex', alignItems: 'center', gap: '12px' },
     postImage: (bg) => ({ width: '160px', height: '100px', borderRadius: '8px', backgroundColor: bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '24px', fontWeight: 'bold' }),
+    emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
     
     pagination: { display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '32px' },
     pageBtn: (isActive) => ({ width: '32px', height: '32px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', cursor: 'pointer', backgroundColor: isActive ? '#1a73e8' : 'transparent', color: isActive ? '#fff' : '#5f6368', fontWeight: isActive ? 'bold' : 'normal' }),
@@ -149,12 +171,25 @@ export default function CommunityView({ onPostClick }) {
     { type: '정보 공유', title: '기후변화에 대한 과학적 근거 정리 (최신 연구 업데이트)', desc: 'IPCC 최신 보고서를 기반으로 핵심 내용을 요약했습니다.', author: 'earth_love', date: '2024.05.19 10:05', views: '1,102', comments: '25', bg: '#8ab4f8', icon: '🧊' }
   ];
 
-  const displayPosts = communityData?.posts?.length ? communityData.posts.map(mapApiPost) : posts;
-  const communityStats = communityData?.communityStats || {
+  const hasApiPosts = communityStatus === 'done';
+  const displayPosts = hasApiPosts
+    ? (Array.isArray(communityData?.posts) ? communityData.posts.map(mapApiPost) : [])
+    : posts;
+  const communityStats = hasApiPosts ? {
+    todayPosts: communityData?.communityStats?.todayPosts ?? 0,
+    todayComments: communityData?.communityStats?.todayComments ?? 0,
+    totalMembers: communityData?.communityStats?.totalMembers ?? 0,
+  } : {
     todayPosts: 128,
     todayComments: 342,
     totalMembers: 2845,
   };
+  const sourceState = communityStatus === 'loading' ? 'loading' : hasApiPosts ? 'api' : 'fallback';
+  const sourceText = sourceState === 'api'
+    ? '백엔드 API 응답 표시 중'
+    : sourceState === 'loading'
+      ? '백엔드 API 응답 대기 중'
+      : '프론트 목업 fallback 표시 중';
 
   return (
     <div style={styles.container}>
@@ -284,9 +319,15 @@ export default function CommunityView({ onPostClick }) {
 
           {activeTab === '정보 공유 커뮤니티' ? (
           <>
+          <div style={styles.sourceNotice(sourceState)}>{sourceText}</div>
           <div>
             {apiError && <div className="form-error" role="alert">{apiError}</div>}
-            {displayPosts.map((post, i) => (
+            {displayPosts.length === 0 ? (
+              <div style={styles.emptyState}>
+                백엔드에서 받은 게시글 목록이 비어 있습니다.<br/>
+                프론트 예시 데이터는 섞지 않았습니다.
+              </div>
+            ) : displayPosts.map((post, i) => (
               <div key={post.id ?? post.title ?? i} style={{ ...styles.postCard, padding: post.type==='공지' ? '16px 24px' : '24px' }} onClick={() => onPostClick(post.id ?? i + 1)}>
                 <div style={styles.postContent}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>

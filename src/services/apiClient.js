@@ -59,6 +59,14 @@ export async function apiRequest(path, options = {}) {
     })
   }
 
+  if (payload?.status && Number(payload.status) >= 400) {
+    throw new ApiError(payload?.message || '요청 처리 중 오류가 발생했습니다.', {
+      status: payload.status,
+      code: payload?.code || 'API_ERROR',
+      details: payload?.details || payload?.data || null,
+    })
+  }
+
   return payload
 }
 

@@ -1,6 +1,97 @@
 import { useEffect, useState } from 'react'
 import { getProfile } from '../../services/cheatftApi.js'
 
+const DEFAULT_USER_INFO = {
+  nickname: '사용자 님',
+  level: 4,
+  userTitle: '신뢰 탐색자',
+  joinDate: '2024.04.12',
+}
+
+const DEFAULT_CONTRIBUTION = {
+  opinionShareCount: 23,
+  editRequestCount: 7,
+  knowledgeCommunityAnswerCount: 15,
+  totalLikesReceived: 128,
+}
+
+const DEFAULT_STREAK = {
+  currentStreakDays: 7,
+  targetStreakDays: 14,
+  rewardMessage: '14일 연속 시 뱃지 지급!',
+}
+
+const DEFAULT_DASHBOARD = {
+  totalSearch: { count: 58, changeRate: 16 },
+  checkedArticles: { count: 42, changeRate: 22 },
+  factCheckReports: { count: 19, changeRate: 19 },
+  communityActivities: { count: 31, changeRate: 8 },
+  averageReliabilityScore: { score: 3.2, changeRate: 0.4 },
+}
+
+const DEFAULT_INFO_BIAS = {
+  biasDistribution: { positiveRatio: 71, neutralRatio: 14, negativeRatio: 0 },
+  alertMessage: '현재 긍정적인 정보가 다소 많습니다. 다양한 관점의 정보를 확인해보세요.',
+  categoryBiasDistribution: [
+    { category: '정치', positive: 8, neutral: 2, negative: 0 },
+    { category: '경제', positive: 6, neutral: 1, negative: 0 },
+    { category: '사회', positive: 5, neutral: 1, negative: 0 },
+    { category: '과학/기술', positive: 4, neutral: 0, negative: 0 },
+    { category: '국제', positive: 3, neutral: 3, negative: 0 },
+  ],
+}
+
+const DEFAULT_RELIABILITY = {
+  trustworthy4_5: { count: 18, ratio: 42 },
+  reliable3: { count: 15, ratio: 36 },
+  normal2: { count: 7, ratio: 17 },
+  caution1: { count: 2, ratio: 5 },
+  untrustworthy0: { count: 0, ratio: 0 },
+}
+
+const DEFAULT_ACTIVITIES = [
+  { title: '백신 부작용 사망자 급증?', date: '2024.05.20', score: 3.1 },
+  { title: '기후변화는 인간의 영향이 아니다?', date: '2024.05.18', score: 2.6 },
+  { title: 'AI가 일자리를 대체한다?', date: '2024.05.15', score: 3.4 },
+  { title: '일본 후쿠시마 오염수 방류 안전하다?', date: '2024.05.12', score: 2.9 },
+  { title: '우크라이나 전쟁, 미국의 개입이 원인?', date: '2024.05.10', score: 3.0 },
+]
+
+const DEFAULT_TOPICS = [
+  { rank: 1, category: '정치', searchCount: 25, ratio: 43 },
+  { rank: 2, category: '경제', searchCount: 18, ratio: 31 },
+  { rank: 3, category: '사회', searchCount: 12, ratio: 21 },
+  { rank: 4, category: '과학/기술', searchCount: 7, ratio: 12 },
+  { rank: 5, category: '국제', searchCount: 5, ratio: 9 },
+]
+
+const DEFAULT_BADGES = [
+  { name: '신뢰 탐색자', level: 'Lv. 4', condition: '' },
+  { name: '팩트 체크 마스터', level: null, condition: '10회 검증' },
+  { name: '소통 전문가', level: null, condition: '20회 참여' },
+  { name: '지식 공유자', level: null, condition: '15회 기여' },
+]
+
+const DEFAULT_MONTHLY = {
+  yearMonth: '2024.05',
+  searchCount: { count: 22, changeRate: 10 },
+  checkedArticles: { count: 16, changeRate: 14 },
+  communityActivities: { count: 9, changeRate: 13 },
+  averageReliabilityScore: { score: 3.2, changeRate: 0.3 },
+}
+
+function mergeObject(value, fallback) {
+  return value && typeof value === 'object' ? { ...fallback, ...value } : fallback
+}
+
+function mergeMetric(value, fallback) {
+  return value && typeof value === 'object' ? { ...fallback, ...value } : fallback
+}
+
+function arrayOrDefault(value, fallback) {
+  return Array.isArray(value) ? value : fallback
+}
+
 export default function MyPageView() {
   const [profile, setProfile] = useState(null)
 
@@ -20,48 +111,31 @@ export default function MyPageView() {
     }
   }, [])
 
-  const userInfo = profile?.userInfo || {
-    nickname: '사용자 님',
-    level: 4,
-    userTitle: '신뢰 탐색자',
-    joinDate: '2024.04.12',
+  const userInfo = mergeObject(profile?.userInfo, DEFAULT_USER_INFO)
+  const contribution = mergeObject(profile?.myContribution, DEFAULT_CONTRIBUTION)
+  const streak = mergeObject(profile?.streakReward, DEFAULT_STREAK)
+  const dashboardSource = profile?.personalDashboard || {}
+  const dashboard = {
+    totalSearch: mergeMetric(dashboardSource.totalSearch, DEFAULT_DASHBOARD.totalSearch),
+    checkedArticles: mergeMetric(dashboardSource.checkedArticles, DEFAULT_DASHBOARD.checkedArticles),
+    factCheckReports: mergeMetric(dashboardSource.factCheckReports, DEFAULT_DASHBOARD.factCheckReports),
+    communityActivities: mergeMetric(dashboardSource.communityActivities, DEFAULT_DASHBOARD.communityActivities),
+    averageReliabilityScore: mergeMetric(dashboardSource.averageReliabilityScore, DEFAULT_DASHBOARD.averageReliabilityScore),
   }
-  const contribution = profile?.myContribution || {
-    opinionShareCount: 23,
-    editRequestCount: 7,
-    knowledgeCommunityAnswerCount: 15,
-    totalLikesReceived: 128,
-  }
-  const streak = profile?.streakReward || {
-    currentStreakDays: 7,
-    targetStreakDays: 14,
-    rewardMessage: '14일 연속 시 뱃지 지급!',
-  }
-  const dashboard = profile?.personalDashboard || {
-    totalSearch: { count: 58, changeRate: 16 },
-    checkedArticles: { count: 42, changeRate: 22 },
-    factCheckReports: { count: 19, changeRate: 19 },
-    communityActivities: { count: 31, changeRate: 8 },
-    averageReliabilityScore: { score: 3.2, changeRate: 0.4 },
-  }
-  const infoBias = profile?.infoConsumptionBias || {
-    biasDistribution: { positiveRatio: 71, neutralRatio: 14, negativeRatio: 0 },
-    alertMessage: '현재 긍정적인 정보가 다소 많습니다. 다양한 관점의 정보를 확인해보세요.',
-    categoryBiasDistribution: [
-      { category: '정치', positive: 8, neutral: 2, negative: 0 },
-      { category: '경제', positive: 6, neutral: 1, negative: 0 },
-      { category: '사회', positive: 5, neutral: 1, negative: 0 },
-      { category: '과학/기술', positive: 4, neutral: 0, negative: 0 },
-      { category: '국제', positive: 3, neutral: 3, negative: 0 },
-    ],
+  const infoBiasSource = profile?.infoConsumptionBias || {}
+  const infoBias = {
+    biasDistribution: mergeMetric(infoBiasSource.biasDistribution, DEFAULT_INFO_BIAS.biasDistribution),
+    alertMessage: infoBiasSource.alertMessage || DEFAULT_INFO_BIAS.alertMessage,
+    categoryBiasDistribution: arrayOrDefault(infoBiasSource.categoryBiasDistribution, DEFAULT_INFO_BIAS.categoryBiasDistribution),
   }
   const biasDistribution = infoBias.biasDistribution
-  const reliabilityDistribution = profile?.reliabilityDistribution || {
-    trustworthy4_5: { count: 18, ratio: 42 },
-    reliable3: { count: 15, ratio: 36 },
-    normal2: { count: 7, ratio: 17 },
-    caution1: { count: 2, ratio: 5 },
-    untrustworthy0: { count: 0, ratio: 0 },
+  const reliabilitySource = profile?.reliabilityDistribution || {}
+  const reliabilityDistribution = {
+    trustworthy4_5: mergeMetric(reliabilitySource.trustworthy4_5, DEFAULT_RELIABILITY.trustworthy4_5),
+    reliable3: mergeMetric(reliabilitySource.reliable3, DEFAULT_RELIABILITY.reliable3),
+    normal2: mergeMetric(reliabilitySource.normal2, DEFAULT_RELIABILITY.normal2),
+    caution1: mergeMetric(reliabilitySource.caution1, DEFAULT_RELIABILITY.caution1),
+    untrustworthy0: mergeMetric(reliabilitySource.untrustworthy0, DEFAULT_RELIABILITY.untrustworthy0),
   }
   const reliabilityRows = [
     { label: '신뢰 가능 (4~5점)', value: reliabilityDistribution.trustworthy4_5 },
@@ -70,32 +144,16 @@ export default function MyPageView() {
     { label: '주의 (1점)', value: reliabilityDistribution.caution1 },
     { label: '신뢰 불가 (0점)', value: reliabilityDistribution.untrustworthy0 },
   ]
-  const recentActivities = profile?.recentActivities || [
-    { title: '백신 부작용 사망자 급증?', date: '2024.05.20', score: 3.1 },
-    { title: '기후변화는 인간의 영향이 아니다?', date: '2024.05.18', score: 2.6 },
-    { title: 'AI가 일자리를 대체한다?', date: '2024.05.15', score: 3.4 },
-    { title: '일본 후쿠시마 오염수 방류 안전하다?', date: '2024.05.12', score: 2.9 },
-    { title: '우크라이나 전쟁, 미국의 개입이 원인?', date: '2024.05.10', score: 3.0 },
-  ]
-  const interestTopics = profile?.interestTopicsTop5 || [
-    { rank: 1, category: '정치', searchCount: 25, ratio: 43 },
-    { rank: 2, category: '경제', searchCount: 18, ratio: 31 },
-    { rank: 3, category: '사회', searchCount: 12, ratio: 21 },
-    { rank: 4, category: '과학/기술', searchCount: 7, ratio: 12 },
-    { rank: 5, category: '국제', searchCount: 5, ratio: 9 },
-  ]
-  const earnedBadges = profile?.earnedBadges || [
-    { name: '신뢰 탐색자', level: 'Lv. 4', condition: '' },
-    { name: '팩트 체크 마스터', level: null, condition: '10회 검증' },
-    { name: '소통 전문가', level: null, condition: '20회 참여' },
-    { name: '지식 공유자', level: null, condition: '15회 기여' },
-  ]
-  const monthlySummary = profile?.monthlySummary || {
-    yearMonth: '2024.05',
-    searchCount: { count: 22, changeRate: 10 },
-    checkedArticles: { count: 16, changeRate: 14 },
-    communityActivities: { count: 9, changeRate: 13 },
-    averageReliabilityScore: { score: 3.2, changeRate: 0.3 },
+  const recentActivities = arrayOrDefault(profile?.recentActivities, DEFAULT_ACTIVITIES)
+  const interestTopics = arrayOrDefault(profile?.interestTopicsTop5, DEFAULT_TOPICS)
+  const earnedBadges = arrayOrDefault(profile?.earnedBadges, DEFAULT_BADGES)
+  const monthlySource = profile?.monthlySummary || {}
+  const monthlySummary = {
+    yearMonth: monthlySource.yearMonth || DEFAULT_MONTHLY.yearMonth,
+    searchCount: mergeMetric(monthlySource.searchCount, DEFAULT_MONTHLY.searchCount),
+    checkedArticles: mergeMetric(monthlySource.checkedArticles, DEFAULT_MONTHLY.checkedArticles),
+    communityActivities: mergeMetric(monthlySource.communityActivities, DEFAULT_MONTHLY.communityActivities),
+    averageReliabilityScore: mergeMetric(monthlySource.averageReliabilityScore, DEFAULT_MONTHLY.averageReliabilityScore),
   }
 
   const styles = {

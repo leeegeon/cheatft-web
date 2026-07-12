@@ -1,10 +1,12 @@
 # 백엔드 협의 체크리스트
 
-마지막 갱신: 2026-07-05
+마지막 갱신: 2026-07-10
 
 이 문서는 프런트엔드에서 필요한 계약을 정리한 협의 메모입니다. 현재 백엔드 담당자 명세의 기준 파일은 `../../cheatft_api/README.md`이고, 프론트 화면별 최신 매핑은 `../../docs/backend-contract.md`에 정리되어 있습니다.
 
 주의: 아래 "제안 API 목록"은 초기 회의용 제안 경로를 보존한 것입니다. 실제 `cheatft_api/README.md`의 현재 경로는 `/api/login`, `/api/signup`, `/api/checks`, `/api/analysis`처럼 `/api/...` 형태입니다. 구현 전에는 `../../docs/backend-contract.md`의 차이 정리를 먼저 확인하세요.
+
+현재 배포 더미 API는 `https://cheatft.leegeon.com/api`입니다. 백엔드 담당자 안내상 README dummy data를 반환하며 parameter 처리는 아직 구현되지 않아 입력과 무관하게 같은 응답이 보일 수 있습니다.
 
 ## 먼저 결정할 항목
 
@@ -114,6 +116,8 @@
 - 검색어 공유 URL: `/search?q=...`
 - 글 작성 초안: `sessionStorage`에 탭 단위 저장
 - 조회 화면은 API 응답을 우선 사용하고 실패 시 기존 목업으로 fallback
+- 검증하기 결과는 `백엔드 API` 또는 `프론트 목업` 배지로 데이터 출처 표시
+- 검증하기는 API 요청 성공 시 API의 `articles` 배열만 표시하고, 빈 배열이면 프론트 예시를 섞지 않고 빈 상태 표시
 - 로그인, 회원가입, 게시글 등록은 실패 시 오류 표시
 - 홈/검증하기 기본 화면은 `GET /summary`의 `recentChecks`로 최신 팩트체크 표시
 - 커뮤니티 목록은 `GET /posts`에 `category`, `keyword`, `page`, `limit` 전달
@@ -121,8 +125,16 @@
 - 마이페이지는 `GET /profile`의 성향 분포, 신뢰도 분포, 관심 주제, 뱃지, 최근 활동, 월간 요약까지 표시
 - 목업 데이터는 추후 `src/mocks/` 또는 `src/data/`로 분리 예정
 
-`VITE_API_BASE_URL=http://localhost:8080/api`처럼 `/api`까지 포함하면 프론트 서비스 함수는 `apiRequest('/login')`처럼 호출해야 합니다. `apiRequest('/api/login')`로 작성하면 `/api/api/login`이 됩니다.
-현재 `../../cheatft_api`는 실제 서버 구현체가 아니라 README 명세 문서만 있으므로, `localhost:8080`에서 별도 백엔드/더미 서버가 실행 중이지 않으면 브라우저에 `Failed to fetch`가 표시됩니다.
+`VITE_API_BASE_URL=https://cheatft.leegeon.com/api`처럼 `/api`까지 포함하면 프론트 서비스 함수는 `apiRequest('/login')`처럼 호출해야 합니다. `apiRequest('/api/login')`로 작성하면 `/api/api/login`이 됩니다.
+현재 로컬 `../../cheatft_api`는 실제 서버 구현체가 아니라 README 명세 문서만 있으므로, `localhost:8080`에서 별도 백엔드/더미 서버가 실행 중이지 않으면 브라우저에 `Failed to fetch`가 표시됩니다.
+
+## 2026-07-10 배포 더미 API 확인
+
+- `GET /summary`의 `recentChecks`는 현재 1개입니다.
+- `POST /checks`는 현재 `checkId: 452`를 반환합니다.
+- `GET /checks/452`의 `articles` 배열은 현재 1개입니다.
+- 같은 응답에서 `totalArticles`와 `pagination.totalItems`는 12로 표시됩니다.
+- 따라서 현재 프런트 화면에 실제 카드로 렌더링되는 검증 기사 수는 1개이고, 총합 메타데이터는 12개로 표시될 수 있습니다.
 
 ## 2026-07-05 프론트 연동 작업 기록
 
@@ -133,4 +145,11 @@
 - 백엔드가 꺼져 있거나 `.env.local`이 없을 때 화면이 깨지지 않도록 기존 목업을 fallback으로 유지했다.
 - 로그인은 accessToken 필수, 회원가입은 성공 후 로그인 화면 이동으로 정리했다.
 - 커뮤니티/리포트 목록 필터 query parameter와 마이페이지 profile 하위 필드를 추가 반영했다.
+- 검증 결과: `npm run lint`, `npm test`, 번들 Node 기반 `vite build` 통과.
+
+## 2026-07-10 프론트 연동 작업 기록
+
+- `.env.local`과 `.env.example`의 API 기본 URL을 `https://cheatft.leegeon.com/api`로 갱신했다.
+- 검증하기 화면에서 API 응답과 프론트 fallback 목업을 사용자가 구분할 수 있도록 안내/배지를 추가했다.
+- API 성공 후 `articles`가 비어 있을 때 기존 KBS/뉴스1 예시를 섞지 않고 빈 상태를 보여주도록 정리했다.
 - 검증 결과: `npm run lint`, `npm test`, 번들 Node 기반 `vite build` 통과.

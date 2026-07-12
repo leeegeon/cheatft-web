@@ -39,6 +39,7 @@ export default function ReportView() {
   const [expandedId, setExpandedId] = useState(4); // Default to the 4th item expanded as in the design
   const [innerTab, setInnerTab] = useState('related'); // 'related' | 'unrelated' | 'summary'
   const [reportData, setReportData] = useState(null);
+  const [reportStatus, setReportStatus] = useState('loading');
   const [apiError, setApiError] = useState('');
   const [keyword, setKeyword] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -56,11 +57,18 @@ export default function ReportView() {
       limit: 10,
     })
       .then((data) => {
-        if (!ignore) setReportData(data);
+        if (!ignore) {
+          setReportData(data || {});
+          setReportStatus('done');
+        }
       })
       .catch((error) => {
         if (!ignore && error.code !== 'API_NOT_CONFIGURED') {
           setApiError(error.message || '리포트를 불러오지 못했습니다.');
+        }
+        if (!ignore) {
+          setReportData(null);
+          setReportStatus('fallback');
         }
       });
 
@@ -97,6 +105,19 @@ export default function ReportView() {
     mainHeader: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' },
     mainTitle: { fontSize: '24px', fontWeight: 'bold', color: '#202124' },
     mainDesc: { fontSize: '14px', color: '#5f6368' },
+    sourceNotice: (source) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      color: source === 'api' ? '#174ea6' : source === 'loading' ? '#80868b' : '#5f6368',
+      backgroundColor: source === 'api' ? '#e8f0fe' : '#f8f9fa',
+      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+      marginTop: '6px',
+    }),
     
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' },
     statCard: { backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' },
@@ -112,6 +133,7 @@ export default function ReportView() {
     
     // List Item
     listContainer: { display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '40px' },
+    emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
     reportCard: (isExpanded) => ({ backgroundColor: '#ffffff', border: isExpanded ? '1px solid #1a73e8' : '1px solid #e0e0e0', borderRadius: '12px', padding: '24px', transition: 'all 0.2s', boxShadow: isExpanded ? '0 4px 12px rgba(26, 115, 232, 0.1)' : 'none' }),
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
     cardTitleRow: { display: 'flex', alignItems: 'center', gap: '12px' },
@@ -170,12 +192,25 @@ export default function ReportView() {
     ], extraCount: 7, summaryDesc: '전문가들은 AI가 일부 일자리를 대체할 수 있지만 새로운 일자리 창출도 동시에 일어날 것이라고 전망합니다.' },
   ];
 
-  const displayReports = reportData?.reports?.length ? reportData.reports.map(mapApiReport) : reports;
-  const totalStats = reportData?.totalStats || {
+  const hasApiReports = reportStatus === 'done';
+  const displayReports = hasApiReports
+    ? (Array.isArray(reportData?.reports) ? reportData.reports.map(mapApiReport) : [])
+    : reports;
+  const totalStats = hasApiReports ? {
+    searchedTopics: reportData?.totalStats?.searchedTopics ?? 0,
+    analyzedArticles: reportData?.totalStats?.analyzedArticles ?? 0,
+    averageReliability: reportData?.totalStats?.averageReliability ?? 0,
+  } : {
     searchedTopics: 18,
     analyzedArticles: 216,
     averageReliability: 3.2,
   };
+  const sourceState = reportStatus === 'loading' ? 'loading' : hasApiReports ? 'api' : 'fallback';
+  const sourceText = sourceState === 'api'
+    ? '백엔드 API 응답 표시 중'
+    : sourceState === 'loading'
+      ? '백엔드 API 응답 대기 중'
+      : '프론트 목업 fallback 표시 중';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -243,6 +278,7 @@ export default function ReportView() {
           <div style={styles.mainHeader}>
             <div style={styles.mainTitle}>전체 리포트</div>
             <div style={styles.mainDesc}>지금까지 검색하고 분석한 모든 주제와 기사들을 확인하세요.</div>
+            <div style={styles.sourceNotice(sourceState)}>{sourceText}</div>
           </div>
 
           <div style={styles.statsGrid}>
@@ -295,7 +331,12 @@ export default function ReportView() {
 
           <div style={styles.listContainer}>
             {apiError && <div className="form-error" role="alert">{apiError}</div>}
-            {displayReports.map((report) => {
+            {displayReports.length === 0 ? (
+              <div style={styles.emptyState}>
+                백엔드에서 받은 리포트 목록이 비어 있습니다.<br/>
+                프론트 예시 데이터는 섞지 않았습니다.
+              </div>
+            ) : displayReports.map((report) => {
               const isExpanded = expandedId === report.id;
               
               return (
