@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import HomeView from './components/views/HomeView.jsx';
 import VerificationView from './components/views/VerificationView.jsx';
-import MyPageView from './components/views/MyPageView.jsx';
 import CommunityView from './components/views/CommunityView.jsx';
 import DetailView from './components/views/DetailView.jsx';
 import AlgoView from './components/views/AlgoView.jsx';
@@ -24,6 +23,13 @@ export default function App() {
     navigate(buildSearchPath(query));
   };
 
+  const handleArticleOpen = (id = 1, article = null) => {
+    if (article) {
+      sessionStorage.setItem(`cheat-ft-article-${id}`, JSON.stringify(article));
+    }
+    navigate(`/article/${id}`, { state: { article } });
+  };
+
   const handleLogin = () => {
     setIsLoggedIn(true);
   };
@@ -31,7 +37,7 @@ export default function App() {
   const handleLogout = () => {
     clearAccessToken();
     setIsLoggedIn(false);
-    if (location.pathname === '/mypage' || location.pathname === '/community/write' || location.pathname === '/algo') {
+    if (location.pathname === '/community/write' || location.pathname === '/algo') {
       navigate('/');
     }
   };
@@ -59,10 +65,9 @@ export default function App() {
   const navItems = [
     { path: '/', label: '홈' },
     { path: '/search', label: '검증하기' },
-    { path: '/algo', label: '알고리즘 분석' },
+    { path: '/algo', label: '신뢰도 분석' },
     { path: '/report', label: '팩트체크 리포트' },
-    { path: '/community', label: '교육 & 정보' },
-    { path: '/mypage', label: '마이페이지' },
+    { path: '/community', label: '커뮤니티' },
   ];
 
   return (
@@ -100,15 +105,9 @@ export default function App() {
               <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
             </svg>
           </button>
-          {location.pathname === '/mypage' ? (
-            <>
-               <button type="button" style={styles.iconBtn} aria-label="알림" disabled title="알림 API 연동 후 활성화됩니다"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg></button>
-               <button style={styles.signupBtn} onClick={() => navigate('/community/write')}>검증 기록</button>
-            </>
-          ) : location.pathname.startsWith('/community') ? (
+          {location.pathname.startsWith('/community') ? (
              <>
                <button type="button" style={styles.iconBtn} aria-label="알림" disabled title="알림 API 연동 후 활성화됩니다"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg></button>
-               <button type="button" style={styles.iconBtn} aria-label="마이페이지" onClick={() => navigate('/mypage')}><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></button>
                <button type="button" style={styles.signupBtn} onClick={() => navigate('/community/write')}>글 작성하기</button>
              </>
           ) : location.pathname === '/report' ? (
@@ -121,7 +120,6 @@ export default function App() {
             </>
           ) : isLoggedIn ? (
             <>
-              <button style={styles.iconBtn} onClick={() => navigate('/mypage')}><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></button>
               <button style={{...styles.loginBtn, color: '#ea4335', borderColor: '#ea4335'}} onClick={handleLogout}>로그아웃</button>
             </>
           ) : (
@@ -136,12 +134,11 @@ export default function App() {
       <main className="app-main" style={styles.main}>
         <Routes>
           <Route path="/" element={<HomeView onNavigate={(path) => navigate(`/${path}`)} onSearch={handleSearch} />} />
-          <Route path="/search" element={<VerificationView key={location.search} onSearch={handleSearch} onArticleClick={(id = 1) => navigate(`/article/${id}`)} />} />
+          <Route path="/search" element={<VerificationView key={location.search} onSearch={handleSearch} onArticleClick={handleArticleOpen} />} />
           <Route path="/article/:id" element={<DetailView type="뉴스" />} />
           <Route path="/community" element={<CommunityView onPostClick={(id = 1) => navigate(`/community/${id}`)} />} />
           <Route path="/community/write" element={requireLogin(<CommunityWriteView />)} />
           <Route path="/community/:id" element={<DetailView type="커뮤니티" />} />
-          <Route path="/mypage" element={requireLogin(<MyPageView />)} />
           <Route path="/algo" element={requireLogin(<AlgoView />)} />
           <Route path="/report" element={<ReportView />} />
           <Route path="/login" element={<LoginView onLogin={handleLogin} />} />

@@ -1,6 +1,6 @@
 # Cheat F/T frontend
 
-가짜뉴스 검증, 출처 신빙성 확인, 추천 알고리즘 편향 분석을 위한 React 프런트엔드입니다. 현재 백엔드 배포 더미 API를 우선 호출합니다. 조회 화면은 API가 없거나 실패하면 기존 목업 데이터로 유지되고, 로그인/회원가입/게시글 등록처럼 서버 반영이 필요한 동작은 실패 시 오류를 보여줍니다.
+가짜뉴스 검증, 출처 신빙성 확인, 추천 알고리즘 편향 분석을 위한 React 프런트엔드입니다. 현재 배포 API를 우선 호출합니다. 조회 화면은 API가 없거나 실패하면 기존 목업 데이터로 유지되고, 로그인/회원가입/게시글 등록처럼 서버 반영이 필요한 동작은 실패 시 오류를 보여줍니다.
 
 ## 실행 환경
 
@@ -45,19 +45,19 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 
 환경변수가 있으면 백엔드 API를 우선 호출합니다. 조회 화면은 API가 없거나 실패하면 기존 목업 데이터로 유지되고, 로그인/회원가입/게시글 등록은 실패 시 오류를 보여줍니다. API 호출 공통 처리는 `src/services/apiClient.js`, 도메인별 호출 함수는 `src/services/cheatftApi.js`에 있습니다.
 
-주의: 현재 `../cheatft_api`는 실제 실행 서버가 아니라 API 명세 문서입니다. `http://localhost:8080/api`에서 별도 백엔드 또는 더미 서버가 실행 중이지 않으면 브라우저에서 `Failed to fetch`가 발생합니다. 현재 배포 더미 API는 `https://cheatft.leegeon.com/api`입니다.
+주의: 현재 `../cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체와 API 명세를 함께 포함합니다. 로컬 실행에는 PostgreSQL 접속 정보, JWT secret, 네이버 API 키 등 환경변수가 필요합니다. 프론트 로컬 개발의 기본 API 주소는 `https://cheatft.leegeon.com/api`입니다.
 
-백엔드 담당자 안내상 현재 배포 API는 README의 dummy data를 반환하며, parameter 처리는 아직 구현되지 않았습니다. 따라서 입력값을 바꿔도 같은 응답이 보일 수 있습니다.
+현재 백엔드는 `summary/reports/posts/profile` 계열은 dummy controller 응답이고, `auth/checks/analysis` 계열은 실제 라우트/서비스/DB 흐름을 사용합니다. 배포 API 기준 로그인은 `UserModel.findByEmail is not a function` 오류가 관측되어 인증 흐름이 정상 동작하지 않을 수 있습니다.
 
 ## API 연동 상태
 
-2026-07-10 기준 다음 화면은 백엔드 명세 경로를 호출합니다.
+2026-07-15 기준 다음 화면은 백엔드 명세 경로를 호출합니다.
 
 | 화면 | 호출 API | fallback |
 |---|---|---|
 | 홈 | `GET /summary` | 기존 홈 통계/최신 팩트체크 목업 |
 | 검증하기 | `POST /checks`, `GET /checks/{id}`, 기본 화면 `GET /summary` | API/목업 출처 배지 표시, API 성공 시 기사 배열만 사용, 실패 시 기존 검색 결과/최신 팩트체크 목업 |
-| 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 기존 분석 결과 목업 |
+| 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 기존 분석 결과 목업 |
 | 리포트 | `GET /reports?keyword=&date=&score=&page=&limit=` | 기존 리포트 목록 목업 |
 | 커뮤니티 | `GET /posts?category=&keyword=&page=&limit=` | 기존 게시글/참여 현황 목업 |
 | 글 작성 | `POST /posts` | 실패 시 오류, 임시 저장 가능 |
@@ -81,22 +81,22 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 - `/`: 홈
 - `/search?q=검색어`: 팩트체크 검색
 - `/article/:id`: 뉴스 상세
-- `/algo`: 알고리즘 분석
+- `/algo`: 알고리즘 분석, 로그인 필요
 - `/report`: 검증 리포트
 - `/community`: 커뮤니티
 - `/community/write`: 글 작성 및 탭 단위 임시 저장
 - `/community/:id`: 게시글 상세
 - `/login`, `/signup`, `/mypage`: 사용자 화면
 
-백엔드 협의 전에 `docs/backend-handoff.md`와 루트 `../docs/backend-contract.md`를 확인하세요.
+백엔드 협의 전에 `docs/backend-contract.md`를 우선 확인하고, 초기 제안 메모가 필요할 때만 `docs/backend-handoff.md`를 확인하세요.
 
 ## 현재 제약
 
 - 홈, 검증하기, 알고리즘 분석, 리포트, 커뮤니티, 마이페이지는 API 응답을 우선 사용하고 실패 시 목업으로 fallback합니다.
 - 홈 최신 팩트체크와 검증하기 기본 화면의 최신 팩트체크는 `GET /summary`의 `recentChecks`를 사용합니다.
 - 검증하기 결과는 `백엔드 API` 또는 `프론트 목업` 배지로 데이터 출처를 표시합니다.
-- 검증하기 API 요청이 성공하면 API의 `articles` 배열만 사용합니다. `articles`가 비어 있으면 프론트 예시를 섞지 않고 빈 상태를 표시합니다.
-- 2026-07-10 확인 기준 `GET /summary`의 `recentChecks`는 1개이고, `GET /checks/452`의 `articles` 배열은 1개입니다. 단, 응답의 `totalArticles`와 pagination 총합은 12로 표시됩니다.
+- 검증하기 API 요청이 성공하면 API의 `articles` 배열만 사용합니다. `articles`가 비어 있으면 프론트 예시를 섞지 않고 빈 상태를 표시합니다. 다른 조회 화면도 API 성공 후 빈 배열을 목업으로 덮지 않습니다.
+- 2026-07-15 확인 기준 `GET /summary`와 `GET /profile`은 200 응답이 관측되었습니다. 기존 더미 `GET /checks/452`는 새 DB 기반 라우트에서는 404가 관측되었습니다.
 - 리포트 목록은 `keyword`, `date`, `score`, `page`, `limit` query parameter를 `GET /reports`에 전달합니다.
 - 커뮤니티 목록은 `category`, `keyword`, `page`, `limit` query parameter를 `GET /posts`에 전달합니다.
 - 로그인은 `/login` 응답의 accessToken을 `localStorage`에 저장하고, 이후 API 요청에 Bearer 토큰으로 첨부합니다. accessToken이 없으면 실패로 처리합니다.

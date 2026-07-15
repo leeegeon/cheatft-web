@@ -1,43 +1,54 @@
 # Handoff
 
 마지막 갱신: 2026-07-15
-마지막 전체 프로젝트 스캔: 2026-07-05
+마지막 전체 프로젝트 스캔: 2026-07-15
 
-새 채팅에서 이어받을 때는 이 파일을 먼저 읽고, 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다. `cheatft_web`과 `cheatft_api`는 2026-07-05 기준 전체 텍스트 소스/문서를 확인해 문서들에 요약해 두었고, 2026-07-15에는 실제 백엔드 Node/Express 코드 반영, 프론트 영향 수정, 배포 오류 관측, 언론사 매핑 정리 내용을 갱신했다.
+새 채팅에서 이어받을 때는 이 파일을 먼저 읽고, 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다. `cheatft_web`과 `cheatft_api`는 2026-07-15 기준 전체 텍스트 소스/문서를 다시 확인해 문서들에 요약해 두었다. 같은 날 `understand` 스킬 pre-flight/scan을 실행해 92개 파일을 스캔했고, `.understand-anything/` 분석 산출물 폴더가 생성됐다.
 
 ## 현재 상태
 
 - 프로젝트 기준 폴더는 `C:\Users\eunhy\Desktop\동아리`이다.
-- 루트 폴더에는 `.git` 디렉터리가 있지만, 작업 기준은 여전히 하위 프로젝트별로 본다.
+- 루트 폴더에는 `.git` 디렉터리가 보이지만 `HEAD`가 없어 루트 git 저장소로 동작하지 않는다. 작업 기준은 여전히 하위 프로젝트별로 본다.
 - 핵심 개발 대상은 `cheatft_web` React/Vite 프론트엔드이다.
 - 로컬 `cheatft_api`는 이제 Express/PostgreSQL/JWT 기반 Node 백엔드 코드와 API 명세 `README.md`를 포함한다.
 - `cheatft_api`는 확인/분석을 위해 읽을 수 있다. 단, 백엔드 수정은 사용자가 명시적으로 요청하기 전까지 하지 않는다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다. 일부 라우트는 실제 DB/토큰/네이버 뉴스 검색 흐름이고, `summary/reports/posts/profile`은 아직 더미 컨트롤러 중심이다.
 - `cheatft_web`과 `cheatft_api`는 각각 `.git`이 있지만 Codex sandbox 사용자 기준으로 `dubious ownership`가 발생한다. Git 상태 확인이 필요하면 safe.directory 설정 여부를 먼저 확인한다.
 - `cheatft_web`에는 `node_modules/`와 `dist/`가 이미 있으나 생성물/의존성 폴더이므로 일반 맥락 파악 때는 다시 훑지 않는다.
+- `.understand-anything/`은 2026-07-15 전체 스캔용 산출물이다. 일반 맥락 파악 때는 다시 훑지 않는다.
 
 ## 빠른 시작 절차
 
 1. `cheatft_web/docs/handoff.md`를 읽는다.
-2. 코드 위치나 화면 구조가 필요하면 `cheatft_web/docs/code-map.md`를 읽는다.
-3. API 연동이나 백엔드와의 계약 확인이 필요하면 `cheatft_web/docs/backend-contract.md`와 `cheatft_web/docs/api-integration-log.md`를 읽는다.
-4. 프론트 실행/환경변수 중심이면 `cheatft_web/README.md`도 읽는다.
-5. 실제 구현 확인이 필요한 파일만 추가로 연다.
-6. 백엔드 확인이 필요하면 `cheatft_api`의 관련 파일을 읽는다. 수정은 별도 요청 없이는 하지 않는다.
+2. 문서 역할을 먼저 확인해야 하면 `cheatft_web/docs/README.md`를 읽는다.
+3. 코드 위치나 화면 구조가 필요하면 `cheatft_web/docs/code-map.md`를 읽는다.
+4. API 연동이나 백엔드와의 계약 확인이 필요하면 `cheatft_web/docs/backend-contract.md`와 `cheatft_web/docs/api-integration-log.md`를 읽는다.
+5. 프론트 실행/환경변수 중심이면 `cheatft_web/README.md`도 읽는다.
+6. 실제 구현 확인이 필요한 파일만 추가로 연다.
+7. 백엔드 확인이 필요하면 `cheatft_api`의 관련 파일을 읽는다. 수정은 별도 요청 없이는 하지 않는다.
 
 ## 프론트엔드 요약
 
 - 실행 위치: `C:\Users\eunhy\Desktop\동아리\cheatft_web`
 - 권장 Node: `.nvmrc` 기준 Node 22
 - 프레임워크: React 19, React Router 7, Vite 8
-- 화면 데이터: 조회 화면은 백엔드 API 응답을 우선 사용하고, 실패하거나 환경변수가 없으면 기존 목업으로 fallback
-- API 응답이 성공했지만 배열이 비어 있으면 해당 빈 상태를 그대로 보여주며 프론트 목업을 섞지 않는다. 검증하기 검색 결과도 API 성공 시 백엔드 결과만 보여주고, 실패할 때만 프론트 더미데이터로 fallback한다.
+- 화면 데이터: 홈/검증하기는 프론트 더미 fallback을 제거하고 백엔드 API 응답만 표시한다. 리포트/커뮤니티/알고리즘 분석 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다.
+- API 응답이 성공했지만 배열이 비어 있으면 해당 빈 상태를 그대로 보여주며 프론트 목업을 섞지 않는다. 검증하기 검색 결과는 API 실패 시에도 프론트 더미데이터를 섞지 않고 오류/빈 상태를 보여준다.
 - 현재 API 기본 URL: `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
-- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/mypage`, `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다.
+- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다.
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-07-15 전체 스캔/문서 최신화
+
+- `understand` 스킬의 pre-flight를 실행했고, 플러그인 core 빌드를 위해 `pnpm install`, `pnpm approve-builds --all`, `pnpm --filter @understand-anything/core build`를 수행했다.
+- `.understand-anything/.understandignore`와 `intermediate/scan-result.json`, `intermediate/batches.json`이 생성됐다.
+- scan 결과는 92개 파일, 8개 semantic batch였다. `node_modules`, `.git`, `dist`, lock/minified 파일은 기본 ignore 대상이다.
+- 스캔에는 `세미나/claude/__MACOSX` 압축 부산물과 `회의록` 변환본도 포함됐다. 문서 최신화 기준으로는 `cheatft_web`, `cheatft_api`, `cheatft_web/docs`를 우선 신뢰한다.
+- 루트 `.git`은 실제 저장소로 동작하지 않고, 하위 프로젝트 git은 `dubious ownership`가 재현됐다.
+- `cheatft_web/README.md`의 오래된 “cheatft_api는 명세 문서뿐” 설명과 이동 전 docs 경로를 최신 상태로 수정했다.
 
 ## 2026-07-15 백엔드 코드 반영/프론트 조정
 
@@ -52,12 +63,39 @@
   - `/api/me`는 토큰 없으면 401.
   - `/api/login`은 현재 `UserModel.findByEmail is not a function` 메시지와 함께 401 응답. 로컬 `cheatft_api/src/models/user.model.js`가 사용자 모델이 아니라 checks 모델 내용으로 들어간 상태와 일치한다.
   - `/api/checks/452`는 새 DB 기반 API에서는 기존 더미 id가 없어 404.
+  - `/api/health`는 서버 상태 확인 라우트로 로컬 코드에 존재한다.
 - 배포 프론트 `https://cheatft.leegeon.com/`는 현재 Vite dev server 형태로 소스를 서빙한다. 확인 시 `#root`가 비어 있었고 배포 소스는 `/algo`가 아직 보호 라우트가 아닌 이전 프론트였다.
 - 프론트 변경:
   - `src/App.jsx`: `/algo`를 보호 라우트로 변경하고, 로그아웃 시 `/algo`에서도 홈으로 이동.
   - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기준 언론사 매핑 공용 유틸 추가.
   - `VerificationView.jsx`: 네이버 전체 officeList 순번 매핑 제거, 백엔드 press 표 기준 분류만 사용, API 성공 시 프론트 더미 섞기 제거, 정렬 변경 때 `POST /checks` 재요청하던 동작 제거, `description/date/pubDate/pub_date` 수신 보강.
   - `AlgoView.jsx`: 같은 press 유틸을 사용하고 `description/date` 후보를 받도록 보강.
+- 검증:
+  - `npm run lint` 통과
+  - `npm test` 통과
+  - Codex 번들 Node 기반 `vite build` 통과
+
+## 2026-07-15 이번 창 UI/실데이터 전환 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 배포 실패 원인 확인:
+  - `https://cheatft.leegeon.com/`은 Vite dev HTML(`/@vite/client`, `/src/main.jsx`)을 서빙한다.
+  - 배포된 `/src/App.jsx`는 `/src/services/apiClient.js`를 import하지만 서버에서 해당 파일이 404라 현재 프론트 배포 산출물이 불완전하다.
+  - `/api/summary`, `/api/health`, `/api/checks`는 응답하므로 주된 실패 원인은 백엔드 전체 중단이 아니라 프론트 배포 방식/파일 누락이다.
+  - `/api/login`은 여전히 `UserModel.findByEmail is not a function` 오류를 반환한다.
+- UI 문구/구조 변경:
+  - 사이트 전반의 `알고리즘 편향성` 표현을 `신뢰도` 중심 표현으로 바꿨다.
+  - 뉴스 상세의 `편향성 지수`를 `신뢰도`로 바꾸고, 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역을 제거했다.
+  - `교육 & 정보` 탭 이름을 `커뮤니티`로 바꾸고 공지사항, 가이드, 튜토리얼 항목을 제거했다.
+  - 마이페이지 라우트/nav/import/컴포넌트를 제거했고 `MyPageView.jsx`를 삭제했다.
+  - 홈 프로모션 배너의 `Cheat F/T 소개 보기 >` 버튼만 제거했다.
+- 홈/검증하기 실데이터 전환:
+  - `HomeView.jsx`와 `VerificationView.jsx`에서 프론트 더미 데이터와 fallback 결과를 제거했다.
+  - 홈 최신 팩트체크는 `recentChecks.slice(0, 3)` 제한 없이 백엔드가 주는 항목을 모두 표시한다. 현재 배포 `/api/summary`가 `recentChecks` 1개만 주면 화면에도 1개만 나온다.
+  - 검증하기는 텍스트 검색만 남기고 URL 링크 검색 탭을 제거했다.
+  - 검색 결과는 `POST /checks` 후 `GET /checks/{id}`의 `articles`만 표시한다. 현재 실제 응답 필드는 `articleId`, `press`, `title`, `description`, `date`, `url` 중심이다.
+  - 검증하기 초기 화면의 최신 팩트체크 카드와 검색 결과 카드는 제목 재검색이 아니라 뉴스 상세로 이동한다.
+  - `DetailView.jsx`는 클릭한 기사 객체를 route state와 `sessionStorage`로 받아 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 표시한다. 직접 URL 진입이나 새로고침 후 저장된 기사 정보가 없으면 상세를 복원할 백엔드 API가 아직 없다.
 - 검증:
   - `npm run lint` 통과
   - `npm test` 통과
@@ -82,8 +120,8 @@
   - 글 작성: `POST /posts`
   - 로그인: `POST /login`, `accessToken` 필수
   - 회원가입: `POST /signup`, 성공 후 로그인 화면 이동
-  - 마이페이지: `GET /profile`, 성향 분포/신뢰도 분포/관심 주제/뱃지/최근 활동/월간 요약까지 반영
-- 조회 화면은 API가 없거나 실패하면 기존 목업 데이터를 사용하도록 fallback을 유지했다. 로그인, 회원가입, 게시글 등록은 실패 시 오류를 보여준다.
+  - 마이페이지: 당시에는 `GET /profile`을 연결했으나 2026-07-15 이후 화면/라우트가 제거됐다.
+- 당시 조회 화면은 API가 없거나 실패하면 기존 목업 데이터를 사용하도록 fallback을 유지했다. 2026-07-15 이후 홈/검증하기는 프론트 더미 fallback을 제거했다. 로그인, 회원가입, 게시글 등록은 실패 시 오류를 보여준다.
 - 검증: `npm run lint`, `npm test`, 번들 Node로 `vite build` 통과.
 - 일반 `npm run build`는 현재 셸 Node 24.13.0에서 기존 Vite 네이티브 종료 이슈가 재현될 수 있다. Node 22 LTS 또는 Codex 번들 Node에서는 빌드가 통과했다.
 
@@ -108,7 +146,7 @@
 - `AlgoView.jsx`는 `POST /analysis` 후 `GET /analysis/{id}` 응답의 `relatedArticles`, `counterArticles`, `insights`, `summaryStats`를 API 성공 상태와 fallback 상태로 분리한다. API 성공 후 배열이 비면 빈 상태를 보여준다.
 - `ReportView.jsx`는 `GET /reports` 성공 시 `reports`가 비어 있으면 빈 리포트 상태를 보여주고, 실패할 때만 기존 리포트 목업을 쓴다.
 - `CommunityView.jsx`는 `GET /posts` 성공 시 `posts`가 비어 있으면 빈 게시글 상태를 보여주고, 실패할 때만 기존 커뮤니티 목업을 쓴다.
-- `MyPageView.jsx`는 `GET /profile`의 중첩 객체(`personalDashboard`, `infoConsumptionBias`, `reliabilityDistribution`, `monthlySummary` 등)가 부분적으로 빠져도 화면이 깨지지 않도록 프론트 기본값과 병합한다. 배열 필드는 API가 빈 배열을 주면 빈 배열을 유지한다.
+- 당시 `MyPageView.jsx`는 `GET /profile`의 중첩 객체(`personalDashboard`, `infoConsumptionBias`, `reliabilityDistribution`, `monthlySummary` 등)가 부분적으로 빠져도 화면이 깨지지 않도록 프론트 기본값과 병합했다. 2026-07-15 이후 마이페이지 화면/라우트는 제거됐다.
 - 조회 화면 일부에 `백엔드 API 응답 표시 중`, `프론트 목업 fallback 표시 중` 같은 출처 안내가 추가되었다.
 - 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
 - 일반 `npm run build`는 현재 기본 셸 Node/Vite 네이티브 이슈로 `38 modules transformed` 이후 exit 1이 재현되었다. Codex 번들 Node에서는 빌드가 통과했다.
@@ -137,11 +175,11 @@
 
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
 - 아래 항목은 2026-07-12 당시 작업 기록이다. 현재 동작은 2026-07-15 백엔드 반영으로 일부 대체됐다.
-- 현재 `VerificationView.jsx`는 API가 성공하면 백엔드 API 결과만 보여주고, 프론트 더미데이터는 API 실패/미설정 fallback으로만 표시한다.
-- 카드에는 `백엔드 API` 또는 `프론트 더미` 배지와 출처 분류, 조회수, 연관도 값을 표시한다.
+- 이 섹션의 기록 당시 `VerificationView.jsx`는 API가 성공하면 백엔드 API 결과만 보여주고, 프론트 더미데이터는 API 실패/미설정 fallback으로만 표시했다. 2026-07-15 이번 창 작업 이후 검증하기의 프론트 더미 fallback은 제거됐다.
+- 이 섹션의 기록 당시 카드에는 `백엔드 API` 또는 `프론트 더미` 배지와 출처 분류, 조회수, 연관도 값을 표시했다. 현재 검증하기 카드의 프론트 더미 배지는 제거됐다.
 - 정렬 select는 `최신순`, `조회수순`, `연관도순`을 제공한다. 현재 API 요청에는 `sort`를 보내지 않고, 프론트에서 현재 수신 결과를 정렬한다.
 - `article.press`가 백엔드 `PRESS_MAPPING`의 oid 또는 언론사명으로 오면 `src/utils/press.js`에서 언론사명과 분류로 변환한다.
-- 화면 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`, `프론트 더미`이다.
+- 이 섹션의 기록 당시 화면 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`, `프론트 더미`였다. 현재 검증하기 필터에서는 `프론트 더미`가 제거됐다.
 - `언론사(047)`처럼 백엔드 fallback 문자열에 oid가 들어간 경우도 백엔드 표로 보정한다.
 - `press`, `pressName`, `publisher`, `mediaName` 필드 후보를 순서대로 확인해 언론사명과 분류를 만든다.
 - 검증: `npm run lint` 통과.
@@ -153,7 +191,7 @@
 - 로그인 성공 시 `location.state.from`이 있으면 원래 접근하려던 경로로 복귀하고, 없으면 홈으로 이동한다.
 - `SignupView.jsx`는 이메일 형식, 닉네임 2~20자, 비밀번호 8자 이상, 비밀번호 확인 일치 검증을 추가했다.
 - 회원가입 실패 시 `409`는 이메일/닉네임 중복 안내로 표시하고, 성공 시 로그인 화면으로 이동한다.
-- `App.jsx`는 `/mypage`, `/community/write`를 보호 경로로 처리한다. 비로그인 접근은 `/login`으로 이동하고, 보호 경로에서 로그아웃하면 홈으로 이동한다.
+- 당시 `App.jsx`는 `/mypage`, `/community/write`를 보호 경로로 처리했다. 2026-07-15 이후 `/mypage`는 제거됐고 `/community/write`, `/algo`가 보호 경로로 남아 있다.
 - 검증: `npm run lint`, `npm test` 통과.
 
 검증 명령:
@@ -168,13 +206,13 @@ npm run check
 
 `README.md`와 기존 메모에 따르면 Node 24 계열에서는 Vite 프로덕션 빌드가 네이티브 예외로 종료된 이력이 있다. Node 22 LTS에서 검증하는 것을 우선한다.
 
-연동 확인은 브라우저 개발자도구 Network 탭에서 `summary`, `checks`, `analysis`, `reports`, `posts`, `profile`, `login`, `signup` 요청이 나가는지 확인한다. 조회 화면은 fallback 때문에 API 실패 시에도 목업으로 보일 수 있다. 로그인, 회원가입, 게시글 등록은 실패 시 오류가 보인다.
+연동 확인은 브라우저 개발자도구 Network 탭에서 `summary`, `checks`, `analysis`, `reports`, `posts`, `login`, `signup` 요청이 나가는지 확인한다. 홈/검증하기는 API 실패 시 더미 결과를 섞지 않으므로 오류/빈 상태를 확인한다. 리포트/커뮤니티/알고리즘 분석 등 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류가 보인다.
 
 ## 백엔드/API 요약
 
-- 위치: `C:\Users\eunhy\Desktop\동아리\cheatft_api\README.md`
-- 성격: 공통 응답 포맷과 더미 데이터 형태를 포함한 API 명세
-- 작업 원칙: `cheatft_api`는 절대 수정 금지. API 명세 확인이 필요할 때만 `README.md`를 읽기 전용으로 참고한다.
+- 위치: `C:\Users\eunhy\Desktop\동아리\cheatft_api`
+- 성격: Express/PostgreSQL/JWT 백엔드 구현체와 공통 응답 포맷/더미 데이터 형태를 포함한 API 명세
+- 작업 원칙: `cheatft_api`는 사용자가 명시적으로 요청하기 전까지 수정하지 않는다. 구현 확인이 필요하면 관련 파일만 읽기 전용으로 참고한다.
 - 공통 응답: `{ "status": number, "message": string, "data": ... }`
 - 현재 명세 경로:
   - `GET /api/summary`
@@ -188,16 +226,19 @@ npm run check
   - `GET /api/posts`
   - `POST /api/posts`
   - `GET /api/profile`
+  - `GET /api/me`
+  - `GET /api/health`
 
 프론트의 `cheatft_web/docs/backend-handoff.md`는 원래 회의용 제안 문서였고, 실제 `cheatft_api` 구현/README와 일부 경로가 다르다. 최신 매핑은 `cheatft_web/docs/backend-contract.md`를 우선 본다.
 
 ## 다음 작업 후보
 
 - `cheatft_web`의 남은 목업 배열을 `src/mocks/` 또는 `src/data/`로 분리
-- 기사 상세, 커뮤니티 상세, 댓글처럼 현재 API 명세에 없는 화면 계약 추가
+- 기사 상세 직접 조회, 커뮤니티 상세, 댓글처럼 현재 API 명세에 없는 화면 계약 추가
 - 백엔드 담당자와 인증 방식, 오류 응답, 토큰 만료/갱신, 페이지네이션, 비동기 분석 상태 조회 방식 확정
 - 검증하기의 조회수/연관도/언론사 필드명을 백엔드 실제 응답과 최종 확정
 - 실제 백엔드 응답 필드가 더 풍부해지면 화면별 변환 로직 정리
+- 남은 프론트 목업 배열은 리포트/알고리즘 분석/커뮤니티 등 필요한 화면별로 분리하거나 제거
 
 ## 자료 폴더 주의
 

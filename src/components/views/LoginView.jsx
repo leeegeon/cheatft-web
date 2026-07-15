@@ -72,7 +72,7 @@ export default function LoginView({ onLogin }) {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.title}>Cheat F/T 로그인</div>
-        <div style={styles.subtitle}>편향 없는 진실의 시작, 환영합니다.</div>
+        <div style={styles.subtitle}>신뢰할 수 있는 진실의 시작, 환영합니다.</div>
         
         {location.state?.signupMessage && <div className="integration-notice" role="status">{location.state.signupMessage}</div>}
         <form onSubmit={handleSubmit}>

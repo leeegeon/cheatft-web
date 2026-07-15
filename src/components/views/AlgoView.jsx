@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { runAnalysis } from '../../services/cheatftApi.js';
 import { getPressLabel } from '../../utils/press.js';
 
-function mapAnalysisArticle(article, index, fallbackBadge = '중도') {
+function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
   const pressLabel = getPressLabel(article.press ?? article.pressName ?? article.publisher ?? article.mediaName);
 
   return {
@@ -13,7 +13,7 @@ function mapAnalysisArticle(article, index, fallbackBadge = '중도') {
     desc: article.summary || article.description || '백엔드 분석 결과에서 반환된 기사입니다.',
     date: article.publishedAt || article.createdAt || article.date || '분석 결과',
     views: '-',
-    badge: article.stance || fallbackBadge,
+    badge: article.reliabilityLabel || article.reliability || fallbackBadge,
   };
 }
 
@@ -103,8 +103,8 @@ export default function AlgoView() {
     newsFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' },
     newsMeta: { fontSize: '12px', color: '#80868b', display: 'flex', alignItems: 'center', gap: '8px' },
     badge: (type) => {
-      const colors = { '긍정': { bg: '#e6f4ea', text: '#137333' }, '중도': { bg: '#e8f0fe', text: '#1a73e8' }, '중립': { bg: '#fef7e0', text: '#b06000' }, '부정': { bg: '#fce8e6', text: '#c5221f' }, '반박': { bg: '#fce8e6', text: '#c5221f' } };
-      const color = colors[type] || colors['중도'];
+      const colors = { '높음': { bg: '#e6f4ea', text: '#137333' }, '보통': { bg: '#e8f0fe', text: '#1a73e8' }, '주의': { bg: '#fef7e0', text: '#b06000' }, '낮음': { bg: '#fce8e6', text: '#c5221f' }, '반박': { bg: '#fce8e6', text: '#c5221f' } };
+      const color = colors[type] || colors['보통'];
       return { padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', backgroundColor: color.bg, color: color.text };
     },
     moreBtn: { width: '100%', padding: '16px', backgroundColor: '#ffffff', border: '1px solid #dadce0', borderRadius: '12px', color: '#0056d2', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', textAlign: 'center' },
@@ -139,10 +139,10 @@ export default function AlgoView() {
   };
 
   const relatedList = [
-    { id: 1, logo: '#1a2b49', logoText: 'KBS', title: '질병청 "백신 접종 후 사망 사례, 인과성 확인 안돼"', desc: '질병관리청은 최근 제기된 백신 접종 후 사망 급증 주장에 대해 현재까지 인과성이 확인된 사례는 없다고 밝혔습니다.', date: '2024.05.20', views: '12,345', badge: '중도' },
-    { id: 2, logo: '#1a73e8', logoText: '연합뉴스', title: '전문가 "백신과 사망 간 연관성 매우 낮아"', desc: '의료 전문가들은 백신 접종과 사망 간의 연관성을 입증할 과학적 근거가 부족하다고 설명했습니다.', date: '2024.05.20', views: '9,876', badge: '긍정' },
-    { id: 3, logo: '#e65100', logoText: 'n', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라', desc: '전국 일부 지역에서 백신 접종 후 사망 신고가 잇따르고 있어 당국이 조사에 나섰습니다.', date: '2024.05.19', views: '8,234', badge: '중립' },
-    { id: 4, logo: '#ffffff', logoBorder: '#1a73e8', logoText: 'OO일보', title: '백신 부작용으로 인한 사망자 수 급증 추세', desc: '백신 접종 이후 예상치 못한 사망 사례가 빠르게 늘어나고 있다는 주장이 제기되고 있습니다.', date: '2024.05.19', views: '6,543', badge: '긍정' },
+    { id: 1, logo: '#1a2b49', logoText: 'KBS', title: '질병청 "백신 접종 후 사망 사례, 인과성 확인 안돼"', desc: '질병관리청은 최근 제기된 백신 접종 후 사망 급증 주장에 대해 현재까지 인과성이 확인된 사례는 없다고 밝혔습니다.', date: '2024.05.20', views: '12,345', badge: '높음' },
+    { id: 2, logo: '#1a73e8', logoText: '연합뉴스', title: '전문가 "백신과 사망 간 연관성 매우 낮아"', desc: '의료 전문가들은 백신 접종과 사망 간의 연관성을 입증할 과학적 근거가 부족하다고 설명했습니다.', date: '2024.05.20', views: '9,876', badge: '높음' },
+    { id: 3, logo: '#e65100', logoText: 'n', title: '일부 지자체서 백신 접종 후 사망 신고 잇따라', desc: '전국 일부 지역에서 백신 접종 후 사망 신고가 잇따르고 있어 당국이 조사에 나섰습니다.', date: '2024.05.19', views: '8,234', badge: '보통' },
+    { id: 4, logo: '#ffffff', logoBorder: '#1a73e8', logoText: 'OO일보', title: '백신 부작용으로 인한 사망자 수 급증 추세', desc: '백신 접종 이후 예상치 못한 사망 사례가 빠르게 늘어나고 있다는 주장이 제기되고 있습니다.', date: '2024.05.19', views: '6,543', badge: '주의' },
   ];
 
   const unrelatedList = [
@@ -156,7 +156,7 @@ export default function AlgoView() {
   const bias = analysisData?.biasAnalysis;
   const displayKeyword = analysisData?.keyword || `"${keyword}"`;
   const displayRelatedList = hasApiAnalysis
-    ? (Array.isArray(analysisData?.relatedArticles) ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '긍정')) : [])
+    ? (Array.isArray(analysisData?.relatedArticles) ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '높음')) : [])
     : relatedList;
   const displayCounterList = hasApiAnalysis
     ? (Array.isArray(analysisData?.counterArticles) ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '반박')) : [])
@@ -164,7 +164,7 @@ export default function AlgoView() {
   const displayInsights = hasApiAnalysis
     ? (Array.isArray(analysisData?.insights) ? analysisData.insights : [])
     : [
-        '관련 뉴스 중 긍정/중도 성향의 기사가 다수를 차지합니다.',
+        '관련 뉴스 중 신뢰도 보통 이상으로 분류된 기사가 다수를 차지합니다.',
         "반박 기사는 주로 '인과성 부족'과 '기저질환 영향'을 근거로 반박하고 있습니다.",
         '다양한 관점을 확인하여 균형 잡힌 시각을 가지는 것이 중요합니다.',
       ];
@@ -210,7 +210,7 @@ export default function AlgoView() {
 
         <div style={styles.card}>
           <div style={styles.gaugeHeader}>
-            <div style={{...styles.cardTitle, margin:0, fontSize:'16px', fontWeight:'bold'}}>나의 성향 분석 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
+            <div style={{...styles.cardTitle, margin:0, fontSize:'16px', fontWeight:'bold'}}>정보 신뢰도 분석 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
             <div style={{fontSize:'12px', color:'#80868b'}}>최근 30일 기준</div>
           </div>
           
@@ -226,13 +226,13 @@ export default function AlgoView() {
               <path d="M 20 100 A 80 80 0 0 1 60 30" fill="none" stroke="#34a853" strokeWidth="16" strokeLinecap="round" />
               
               {/* Labels on arcs */}
-              <text x="30" y="60" fontSize="12" fill="#137333" fontWeight="bold" textAnchor="middle">긍정</text>
+              <text x="30" y="60" fontSize="12" fill="#137333" fontWeight="bold" textAnchor="middle">높음</text>
               <text x="30" y="76" fontSize="12" fill="#137333" textAnchor="middle">{bias?.positiveCount ?? 10}건</text>
               
-              <text x="100" y="20" fontSize="12" fill="#b06000" fontWeight="bold" textAnchor="middle">중도</text>
+              <text x="100" y="20" fontSize="12" fill="#b06000" fontWeight="bold" textAnchor="middle">보통</text>
               <text x="100" y="36" fontSize="12" fill="#b06000" textAnchor="middle">{bias?.neutralCount ?? 2}건</text>
               
-              <text x="170" y="60" fontSize="12" fill="#c5221f" fontWeight="bold" textAnchor="middle">부정</text>
+              <text x="170" y="60" fontSize="12" fill="#c5221f" fontWeight="bold" textAnchor="middle">낮음</text>
               <text x="170" y="76" fontSize="12" fill="#c5221f" textAnchor="middle">{bias?.negativeCount ?? 0}건</text>
 
               {/* Needle pointing to positive */}
@@ -242,26 +242,26 @@ export default function AlgoView() {
               </g>
             </svg>
             <div style={{marginTop: '-10px'}}>
-              <div style={{fontSize: '13px', color: '#5f6368', fontWeight: 'bold'}}>편향 지수</div>
+              <div style={{fontSize: '13px', color: '#5f6368', fontWeight: 'bold'}}>신뢰도</div>
               <div style={styles.gaugeScore}>{bias?.biasScore ?? 80} <span style={styles.gaugeScoreSub}>/ 100</span></div>
             </div>
           </div>
 
           <div style={styles.warningBox}>
-            <div style={styles.warningTitle}><span style={{fontSize:'16px'}}>!</span> 현재 사용자의 정보 소비는<br/>한쪽 의견에 치우쳐 있을 수 있습니다.</div>
-            <div style={styles.warningDesc}>다양한 관점을 접해보세요.</div>
+            <div style={styles.warningTitle}><span style={{fontSize:'16px'}}>!</span> 현재 분석된 정보는<br/>추가 확인이 필요할 수 있습니다.</div>
+            <div style={styles.warningDesc}>원문 출처와 교차 근거를 함께 확인해보세요.</div>
           </div>
 
           <div style={styles.legendBox}>
-            <strong style={{display:'block', marginBottom:'8px', color:'#3c4043'}}>성향 분석 기준</strong>
+            <strong style={{display:'block', marginBottom:'8px', color:'#3c4043'}}>신뢰도 분석 기준</strong>
             <ul style={{margin:0, paddingLeft:'16px', display:'flex', flexDirection:'column', gap:'4px'}}>
-              <li><strong style={{color:'#34a853'}}>긍정:</strong> 해당 주제에 긍정적이거나 지지하는 내용</li>
-              <li><strong style={{color:'#fbbc04'}}>중도:</strong> 중립적이거나 양쪽 의견을 균형있게 다룬 내용</li>
-              <li><strong style={{color:'#ea4335'}}>부정:</strong> 해당 주제에 부정적이거나 반대하는 내용</li>
+              <li><strong style={{color:'#34a853'}}>높음:</strong> 출처와 근거가 명확하고 교차 확인이 쉬운 내용</li>
+              <li><strong style={{color:'#fbbc04'}}>보통:</strong> 근거는 있으나 추가 확인이 필요한 내용</li>
+              <li><strong style={{color:'#ea4335'}}>낮음:</strong> 출처가 불분명하거나 검증 근거가 부족한 내용</li>
             </ul>
           </div>
 
-          <button style={styles.outlineBtn}>성향 분석 자세히 보기 ↗</button>
+          <button style={styles.outlineBtn}>신뢰도 분석 자세히 보기 ↗</button>
         </div>
       </div>
 
@@ -271,7 +271,7 @@ export default function AlgoView() {
           <div style={styles.mainHeader}>
              <div>
                <div style={styles.mainTitle}>{displayKeyword} 분석 결과 <span style={{color:'#80868b', fontSize:'18px', fontWeight:'normal'}}>ⓘ</span></div>
-               <div style={styles.mainDesc}>알고리즘이 수집한 뉴스 정보를 다양한 관점에서 분석해드립니다.</div>
+               <div style={styles.mainDesc}>수집한 뉴스의 출처와 근거를 바탕으로 신뢰도를 분석해드립니다.</div>
                <div style={{ marginTop: '12px' }}><span style={styles.sourceNotice(sourceState)}>{sourceText}</span></div>
              </div>
              <div style={styles.metaInfo}>
@@ -345,7 +345,7 @@ export default function AlgoView() {
           </div>
           
           <div style={styles.summaryBox}>
-             <div style={{...styles.insightTitle, color:'#1a73e8'}}>알고리즘 분석 요약</div>
+             <div style={{...styles.insightTitle, color:'#1a73e8'}}>신뢰도 분석 요약</div>
              <div style={styles.summaryRow}>
                <div style={styles.statItem}>
                  <div style={styles.statLabel}>수집 기사 수</div>

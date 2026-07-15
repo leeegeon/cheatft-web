@@ -6,11 +6,11 @@
 
 ## 작업 목적
 
-`cheatft_api/README.md`에 정리된 더미 API 명세와 배포 더미 API를 기준으로 `cheatft_web` 주요 화면이 실제 API를 우선 호출하도록 연결했다. 조회 화면은 API 서버가 없거나 요청이 실패하면 기존 목업 데이터로 화면을 유지한다. 로그인, 회원가입, 게시글 등록처럼 서버 반영이 필요한 동작은 실패 시 오류를 보여준다.
+`cheatft_api/README.md`에 정리된 더미 API 명세와 배포 더미 API를 기준으로 `cheatft_web` 주요 화면이 실제 API를 우선 호출하도록 연결했다. 초기 연동 당시 조회 화면은 API 서버가 없거나 요청이 실패하면 기존 목업 데이터로 화면을 유지했다. 2026-07-15 이후 홈/검증하기는 프론트 더미 fallback을 제거하고 백엔드 API 응답만 표시한다. 로그인, 회원가입, 게시글 등록처럼 서버 반영이 필요한 동작은 실패 시 오류를 보여준다.
 
 2026-07-12 추가 작업으로 검증하기 검색 결과는 백엔드 API 결과와 프론트 더미데이터를 구분해서 함께 보여주도록 바뀌었다. 로그인/회원가입은 입력 검증과 보호 라우트 흐름을 보강했다.
 
-2026-07-15 추가 작업으로 실제 백엔드 코드의 `PRESS_MAPPING`, 인증 요구사항, 배포 API 관측값을 반영해 프론트 검증/알고리즘 화면을 다시 조정했다. API 성공 시에는 프론트 더미 결과를 섞지 않고, API 실패/미설정일 때만 fallback한다.
+2026-07-15 추가 작업으로 실제 백엔드 코드의 `PRESS_MAPPING`, 인증 요구사항, 배포 API 관측값을 반영해 프론트 검증/알고리즘 화면을 다시 조정했다. 이후 이번 창에서 홈/검증하기의 프론트 더미 fallback, URL 링크 검색, 마이페이지 화면을 제거했고, 검증하기 카드 클릭은 뉴스 상세로 연결했다.
 
 ## 핵심 설계
 
@@ -20,16 +20,17 @@
 - 백엔드 응답 래핑 `{ status, message, data }`는 `apiData()`에서 `data` 중심으로 푼다.
 - 로그인 accessToken은 `localStorage`의 `cheat-ft-access-token`에 저장한다.
 - 저장된 토큰은 이후 요청에 `Authorization: Bearer ...`로 첨부한다.
-- `/mypage`, `/community/write`는 로그인 필요 화면으로 처리한다.
+- `/community/write`, `/algo`는 로그인 필요 화면으로 처리한다. `/mypage` 화면/라우트는 2026-07-15에 제거됐다.
 - 로컬 `cheatft_api`는 현재 Express/PostgreSQL/JWT 기반 백엔드 구현체이다. 프론트 작업 중에는 확인 가능하지만 수정하지 않는다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다.
+- `summary/reports/posts/profile`은 dummy controller 응답이고, `checks/analysis/auth`는 실제 라우트/서비스/DB 흐름을 사용한다.
 
 ## 추가/수정 파일
 
 - `cheatft_web/src/services/apiClient.js`: `apiData`, accessToken 저장/조회/삭제, Bearer 토큰 자동 첨부 추가.
 - `cheatft_web/src/services/cheatftApi.js`: 명세 기반 도메인 API 함수 신규 추가.
-- `cheatft_web/src/App.jsx`: 저장된 accessToken 기반 로그인 초기 상태, 로그아웃 시 토큰 삭제, 상세 이동 id 반영.
-- `cheatft_web/src/components/views/*.jsx`: 홈, 검증하기, 알고리즘 분석, 리포트, 커뮤니티, 글 작성, 로그인, 회원가입, 마이페이지에 API 우선 호출 적용.
+- `cheatft_web/src/App.jsx`: 저장된 accessToken 기반 로그인 초기 상태, 로그아웃 시 토큰 삭제, 상세 이동 id/article state 반영.
+- `cheatft_web/src/components/views/*.jsx`: 홈, 검증하기, 알고리즘 분석, 리포트, 커뮤니티, 글 작성, 로그인, 회원가입에 API 우선 호출 적용. 마이페이지는 이후 제거됨.
 - `cheatft_web/.env.local`: 로컬 개발용 `VITE_API_BASE_URL=https://cheatft.leegeon.com/api` 설정.
 - `cheatft_web/.env.example`: 예시 API URL을 배포 더미 API로 갱신.
 - `cheatft_web/src/index.css`: `.form-error` 스타일 추가.
@@ -46,7 +47,6 @@
 | 글 작성 | `CommunityWriteView.jsx` | `POST /posts` |
 | 로그인 | `LoginView.jsx` | `POST /login` |
 | 회원가입 | `SignupView.jsx` | `POST /signup` |
-| 마이페이지 | `MyPageView.jsx` | `GET /profile` |
 
 ## 2026-07-05 추가 반영
 
@@ -56,7 +56,7 @@
 - 회원가입은 `POST /signup` 성공 후 자동 로그인하지 않고 로그인 화면으로 이동한다. 현재 명세의 signup 응답에는 `accessToken`이 없기 때문이다.
 - 커뮤니티 목록은 탭/카테고리/검색어/페이지 값을 `GET /posts` query parameter로 전달한다.
 - 리포트 목록은 검색어/날짜/신뢰도 필터 값을 `GET /reports` query parameter로 전달한다.
-- 마이페이지는 `/profile` 응답의 `infoConsumptionBias`, `reliabilityDistribution`, `interestTopicsTop5`, `earnedBadges`, `recentActivities`, `monthlySummary`까지 화면에 반영한다.
+- 당시 마이페이지는 `/profile` 응답의 `infoConsumptionBias`, `reliabilityDistribution`, `interestTopicsTop5`, `earnedBadges`, `recentActivities`, `monthlySummary`까지 화면에 반영했다. 2026-07-15 이후 마이페이지 화면/라우트는 제거됐다.
 
 ## 2026-07-10 추가 반영
 
@@ -92,7 +92,7 @@
 - 알고리즘 분석: API 성공/로딩/fallback 상태와 출처 안내를 분리하고, `relatedArticles`, `counterArticles`, `insights`가 빈 배열이면 빈 안내를 표시한다.
 - 리포트: `GET /reports` 성공 시 `reports`가 빈 배열이면 빈 리포트 상태를 표시한다.
 - 커뮤니티: `GET /posts` 성공 시 `posts`가 빈 배열이면 빈 게시글 상태를 표시한다.
-- 마이페이지: `GET /profile`의 중첩 객체가 일부 빠져도 화면이 깨지지 않도록 기본값과 병합한다. 배열 필드는 API가 빈 배열을 주면 빈 배열을 유지한다.
+- 마이페이지: 당시 `GET /profile`의 중첩 객체가 일부 빠져도 화면이 깨지지 않도록 기본값과 병합했다. 2026-07-15 이후 마이페이지 화면/라우트는 제거됐다.
 
 ## 2026-07-12 검증하기/인증 추가 반영
 
@@ -116,7 +116,7 @@
   - 이메일 형식, 닉네임 2~20자, 비밀번호 8자 이상, 비밀번호 확인 일치 검증을 추가했다.
   - `409`는 이메일/닉네임 중복 안내로 표시한다.
 - `App.jsx`
-  - `/mypage`, `/community/write`를 보호 라우트로 처리한다.
+  - 당시 `/mypage`, `/community/write`를 보호 라우트로 처리했다. 2026-07-15 이후 `/mypage`는 제거됐고 `/community/write`, `/algo`가 보호 라우트로 남아 있다.
   - 보호 라우트에서 로그아웃하면 홈으로 이동한다.
 
 백엔드에서 추가로 확정하면 좋은 항목:
@@ -136,6 +136,7 @@
 - `checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 언론사 매핑을 정리했다.
 - 배포 프론트 `https://cheatft.leegeon.com/`은 Vite dev HTML을 서빙하고 있었고, 현재 로컬 프론트 수정사항보다 오래된 소스로 보였다.
 - 배포 API 관측상 `POST /api/login`은 `UserModel.findByEmail is not a function` 오류가 확인됐다. 로컬 `src/models/user.model.js`가 user model 함수 대신 checks model 함수를 export하는 상태로 보인다.
+- 같은 모델 불일치 때문에 `POST /api/signup`, 토큰이 있는 `GET /api/me`도 백엔드 auth service 계약을 만족하지 못할 가능성이 높다.
 
 추가/수정 파일:
 
@@ -144,10 +145,53 @@
 - `cheatft_web/src/components/views/VerificationView.jsx`
   - 기존 네이버 `officeList` 순번 매핑 제거.
   - 백엔드 oid/name 표 기반 언론사 정규화 적용.
-  - 필터를 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`, `프론트 더미`로 정리.
-  - API 성공 시 백엔드 결과만 표시하고, 실패/미설정 시에만 프론트 더미 fallback 사용.
+  - 당시 필터를 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`, `프론트 더미`로 정리했다. 2026-07-15 이번 창 작업 이후 `프론트 더미` 필터는 제거됐다.
+  - 당시 API 성공 시 백엔드 결과만 표시하고, 실패/미설정 시에만 프론트 더미 fallback을 사용했다. 2026-07-15 이번 창 작업 이후 검증하기의 프론트 더미 fallback은 제거됐다.
   - `GET /checks/{id}`에 `sort` query를 보내지 않고, 정렬 변경은 수신 결과를 로컬 정렬.
 - `cheatft_web/src/components/views/AlgoView.jsx`: `description`, `publishedAt/createdAt/date`, `press/pressName/publisher/mediaName` 후보를 반영하고 `getPressLabel()` 사용.
+- 실제 route map은 `backend-contract.md`의 "실제/더미 구분" 표를 우선 본다.
+
+## 2026-07-15 이번 창 추가 반영
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 배포 실패 원인:
+  - `https://cheatft.leegeon.com/`이 빌드 산출물이 아니라 Vite dev HTML과 `/src/main.jsx`를 서빙한다.
+  - 배포된 소스에서 필요한 `/src/services/apiClient.js`가 404라 프론트가 정상 부팅하지 못한다.
+  - `/api/summary`, `/api/health`, `/api/checks`는 응답하므로 API 서버 전체 중단보다 프론트 배포 누락/혼재가 핵심 원인이다.
+- 홈:
+  - `DEFAULT_SUMMARY`, fallback 통계/카테고리/최신 팩트체크 목업을 제거했다.
+  - `GET /summary`의 `recentChecks`를 제한 없이 모두 표시한다. 현재 배포 API가 1개만 주면 최신 팩트체크도 1개만 보인다.
+  - `알고리즘 편향성` 문구를 `신뢰도` 중심 표현으로 바꾸고 `Cheat F/T 소개 보기 >` 버튼만 제거했다.
+- 검증하기:
+  - URL 링크 검색 탭, 예시 검색 버튼, `MOCK_*`/`mockResults`, `프론트 더미` 필터/배지를 제거했다.
+  - 검색 결과는 `POST /checks` 후 `GET /checks/{id}`의 `articles`만 표시한다.
+  - 검색어 없는 초기 화면은 `GET /summary`의 `recentChecks`를 표시하고, 카드 클릭 시 제목 검색이 아니라 뉴스 상세로 이동한다.
+  - 검색 결과 카드 클릭도 뉴스 상세로 이동한다. 원문 URL 버튼은 별도로 외부 링크를 연다.
+- 뉴스 상세:
+  - 클릭한 기사 객체를 `App.jsx`의 route state와 `sessionStorage`에 저장해 `/article/:id`에서 렌더링한다.
+  - 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도 값을 클릭한 기사 데이터와 연결한다.
+  - 직접 URL 진입이나 저장 정보 없는 새로고침을 완전히 지원하려면 `GET /api/articles/{id}` 또는 동등한 상세 API가 필요하다.
+- 화면 정리:
+  - `편향성 지수`, `알고리즘 편향성` 등 표시 문구를 `신뢰도`로 바꿨다.
+  - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역을 제거했다.
+  - `교육 & 정보` 탭 이름을 `커뮤니티`로 바꾸고 공지사항, 가이드, 튜토리얼 항목을 제거했다.
+  - 마이페이지 라우트/nav/import/컴포넌트를 제거하고 `MyPageView.jsx`를 삭제했다.
+- 검증:
+  - `npm run lint`: 통과
+  - `npm test`: 통과
+  - Codex 번들 Node로 `vite build`: 통과
+
+## 2026-07-15 전체 스캔/문서 정리
+
+- `understand` 스킬을 사용해 pre-flight, ignore 생성, scan, batch 계산을 수행했다.
+- 생성 파일:
+  - `.understand-anything/.understandignore`
+  - `.understand-anything/intermediate/scan-result.json`
+  - `.understand-anything/intermediate/batches.json`
+- scan 결과: 92개 파일, 8개 batch. `node_modules`, `.git`, `dist`, lock/minified 파일은 기본 제외 대상이다.
+- 루트 `.git`은 `HEAD`가 없어 git 저장소로 동작하지 않고, `cheatft_web`/`cheatft_api`는 Codex sandbox 사용자 기준 `dubious ownership`가 재현됐다.
+- `cheatft_web/README.md`의 오래된 백엔드 설명과 이동 전 docs 경로를 최신화했다.
+- `backend-handoff.md`는 최신 계약 문서가 아니라 초기 백엔드 협의 제안/역사 문서로 명시했다.
 
 ## 확인 방법
 
@@ -174,11 +218,10 @@ npm run dev
 - `analysis`
 - `reports`
 - `posts`
-- `profile`
 - `login`
 - `signup`
 
-조회 화면은 API 실패 시에도 목업으로 fallback할 수 있으므로, 실제 연동 성공 여부는 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류 메시지를 보여준다.
+홈/검증하기는 API 실패 시 프론트 더미 결과를 섞지 않는다. 리포트/커뮤니티/알고리즘 분석 등 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류 메시지를 보여준다.
 
 ## 검증 결과
 
@@ -210,10 +253,14 @@ npm run dev
 
 - 기사 상세 API 명세 추가 또는 `GET /checks/{id}` 응답에 상세 필드 포함 여부 확정
 - 백엔드 `src/models/user.model.js`가 auth service의 `findByEmail/createUser/findById` 계약을 만족하도록 수정 필요
+- `/profile`을 계속 둘 경우 공개 dummy dashboard로 둘지, 인증 사용자 profile API로 바꿀지 확정. 현재 프론트 마이페이지는 제거됨.
+- `GET /checks/{id}`, `GET /analysis/{id}`의 owner check 필요 여부 확정
+- `checks/analysis/reports/posts`의 query parameter 지원 범위 확정
+- 백엔드 `checks.service.js`가 전역 `fetch`를 사용하므로 Node 18 이상 실행 전제 문서화
 - 커뮤니티 게시글 상세/댓글 API 명세 추가
 - 로그아웃, refresh token, 토큰 만료 처리 방식 확정
 - 로그인/회원가입 실제 DB 저장, 비밀번호 검증, accessToken 발급 방식 구현 여부 확인
-- 검증 결과 정렬/필터용 `press`, `viewCount`, `relevanceScore` 필드 확정
+- 검증 결과 현재 실제 필드는 `articleId`, `press`, `title`, `description`, `date`, `url`이다. 정렬/필터용 `viewCount`, `relevanceScore`, 상세용 `summary/publishedAt` 필드 확정
 - 리포트/분석 다운로드 API 명세 추가
-- 화면 내부 목업 배열을 `src/mocks/` 또는 `src/data/`로 분리
+- 남은 화면 내부 목업 배열을 `src/mocks/` 또는 `src/data/`로 분리하거나 제거
 - 실제 백엔드 응답 필드가 확정되면 변환 로직 정리

@@ -2,31 +2,6 @@ import { useEffect, useState } from 'react';
 import { getSummary } from '../../services/cheatftApi.js';
 import homeFactScale from '../../assets/home-fact-scale.png';
 
-const DEFAULT_SUMMARY = {
-  todayStats: {
-    requests: 1248,
-    completed: 842,
-    accuracyRate: 91,
-  },
-  recentChecks: [
-    { id: 1, title: '"OOO 백신 부작용 사망자 급증?"', result: 'FALSE', timeAgo: '2시간 전' },
-    { id: 2, title: '"지구온난화는 인위적인 조작이다?"', result: 'TRUE', timeAgo: '5시간 전' },
-    { id: 3, title: '"OOO 식품이 암을 치료한다?"', result: 'FALSE', timeAgo: '1일 전' },
-  ],
-  biasStatus: {
-    overallScore: 32,
-    categories: [
-      { name: '정치', score: 28, level: '보통' },
-      { name: '사회', score: 45, level: '다소 높음' },
-      { name: '경제', score: 31, level: '보통' },
-      { name: '과학', score: 22, level: '낮음' },
-      { name: '문화', score: 18, level: '낮음' },
-    ],
-  },
-};
-
-const CHECK_ICONS = ['💊', '🌍', '🍲'];
-
 function getCheckTitle(check) {
   return check?.title || check?.query || check?.content || '제목 없음';
 }
@@ -35,10 +10,15 @@ function normalizeResult(result) {
   return String(result || '').toUpperCase();
 }
 
+function formatNumber(value) {
+  return value === undefined || value === null || value === '' ? '-' : Number(value).toLocaleString('ko-KR');
+}
+
 export default function HomeView({ onSearch, onNavigate }) {
   const [query, setQuery] = useState('');
-  const [summary, setSummary] = useState(DEFAULT_SUMMARY);
+  const [summary, setSummary] = useState(null);
   const [summaryStatus, setSummaryStatus] = useState('loading');
+  const [summaryError, setSummaryError] = useState('');
 
   useEffect(() => {
     let ignore = false;
@@ -46,14 +26,16 @@ export default function HomeView({ onSearch, onNavigate }) {
     getSummary()
       .then((data) => {
         if (!ignore) {
-          setSummary({ ...DEFAULT_SUMMARY, ...data });
+          setSummary(data || {});
           setSummaryStatus('done');
+          setSummaryError('');
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!ignore) {
-          setSummary(DEFAULT_SUMMARY);
-          setSummaryStatus('fallback');
+          setSummary(null);
+          setSummaryStatus('error');
+          setSummaryError(error.message || '홈 데이터를 불러오지 못했습니다.');
         }
       });
 
@@ -63,14 +45,11 @@ export default function HomeView({ onSearch, onNavigate }) {
   }, []);
 
   const isApiSummary = summaryStatus === 'done';
-  const recentChecks = isApiSummary
-    ? (Array.isArray(summary.recentChecks) ? summary.recentChecks : [])
-    : DEFAULT_SUMMARY.recentChecks;
-  const todayStats = summary.todayStats || DEFAULT_SUMMARY.todayStats;
-  const biasStatus = summary.biasStatus || DEFAULT_SUMMARY.biasStatus;
-  const biasCategories = isApiSummary
-    ? (Array.isArray(biasStatus.categories) ? biasStatus.categories : [])
-    : DEFAULT_SUMMARY.biasStatus.categories;
+  const isSummaryLoading = summaryStatus === 'loading';
+  const recentChecks = Array.isArray(summary?.recentChecks) ? summary.recentChecks : [];
+  const todayStats = summary?.todayStats || {};
+  const reliabilityStatus = summary?.reliabilityStatus || summary?.biasStatus || {};
+  const reliabilityCategories = Array.isArray(reliabilityStatus.categories) ? reliabilityStatus.categories : [];
 
   const styles = {
     container: { padding: '0', backgroundColor: '#f8f9fa', minHeight: '100%', fontFamily: 'sans-serif', color: '#202124' },
@@ -111,8 +90,8 @@ export default function HomeView({ onSearch, onNavigate }) {
       borderRadius: '999px',
       fontSize: '12px',
       fontWeight: 'bold',
-      color: isApiSummary ? '#174ea6' : '#5f6368',
-      backgroundColor: isApiSummary ? '#e8f0fe' : '#f1f3f4',
+      color: isApiSummary ? '#174ea6' : '#80868b',
+      backgroundColor: isApiSummary ? '#e8f0fe' : '#ffffff',
       border: isApiSummary ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
     },
     emptyState: { padding: '32px 20px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
@@ -139,13 +118,13 @@ export default function HomeView({ onSearch, onNavigate }) {
       <div className="home-hero-wrapper" style={styles.heroWrapper}>
         <div className="home-hero-content" style={styles.heroContent}>
           <div className="home-hero-left" style={styles.heroLeft}>
-            <div className="korean-copy" style={styles.heroSubText}>가짜뉴스를 잡고, 편향 없는 정보를 함께 만들어요</div>
+            <div className="korean-copy" style={styles.heroSubText}>가짜뉴스를 잡고, 신뢰할 수 있는 정보를 함께 만들어요</div>
             <div className="hero-title-copy" style={styles.heroTitle}>
               <span className="phrase-keep">진실은 <span style={styles.heroTitleHighlight}>검증</span>으로,</span>{' '}
               <span className="phrase-keep">정보는 <span style={styles.heroTitleHighlight}>공정하게.</span></span>
             </div>
             <div className="korean-copy hero-desc-copy" style={styles.heroDesc}>
-              Cheat F/T는 가짜뉴스를 판별하고 알고리즘의 편향성을 줄여 더 나은 정보를 만듭니다.
+              Cheat F/T는 가짜뉴스를 판별하고 정보의 신뢰도를 높여 더 나은 판단을 돕습니다.
             </div>
             <div className="home-search-box" style={styles.searchBox}>
               <input 
@@ -161,7 +140,7 @@ export default function HomeView({ onSearch, onNavigate }) {
                 검증하기
               </button>
             </div>
-            <div style={styles.searchHint}>예시: "OOO 백신 부작용 사망자 급증?"</div>
+            <div style={styles.searchHint}>검증할 뉴스 제목이나 본문을 입력해보세요.</div>
           </div>
           <div className="home-hero-visual" style={styles.heroRight}>
             <img
@@ -189,8 +168,8 @@ export default function HomeView({ onSearch, onNavigate }) {
               <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2 0v8.99l7.76-4.47A9.957 9.957 0 0 0 13 2zm0 10.99V22c5.07-.5 9-4.79 9-10 0-1.7-.42-3.29-1.16-4.68z"/></svg>
             </div>
             <div className="home-feature-copy">
-              <div className="home-feature-title" style={styles.featureTitle}>알고리즘 편향성 분석</div>
-              <div className="home-feature-desc" style={styles.featureDesc}>추천 알고리즘의 편향성을 분석하고 균형 잡힌 정보 소비를 돕습니다.</div>
+              <div className="home-feature-title" style={styles.featureTitle}>신뢰도 분석</div>
+              <div className="home-feature-desc" style={styles.featureDesc}>기사와 출처의 신뢰도를 분석하고 근거가 분명한 정보 소비를 돕습니다.</div>
               <div className="home-feature-link" style={styles.featureLink} onClick={() => onNavigate('algo')}>분석해보기 &gt;</div>
             </div>
           </div>
@@ -200,7 +179,7 @@ export default function HomeView({ onSearch, onNavigate }) {
             </div>
             <div className="home-feature-copy">
               <div className="home-feature-title" style={styles.featureTitle}>함께 만드는 건강한 정보 생태계</div>
-              <div className="home-feature-desc" style={styles.featureDesc}>사용자의 참여로 더 정확한 검증과 공정한 알고리즘 환경을 만듭니다.</div>
+              <div className="home-feature-desc" style={styles.featureDesc}>사용자의 참여로 더 정확한 검증과 신뢰할 수 있는 정보 환경을 만듭니다.</div>
               <div className="home-feature-link" style={styles.featureLink} onClick={() => onNavigate('community')}>참여하기 &gt;</div>
             </div>
           </div>
@@ -211,16 +190,24 @@ export default function HomeView({ onSearch, onNavigate }) {
               <div style={{...styles.sectionHeader, cursor: 'pointer'}} onClick={() => onNavigate('search')}>
                 <div style={styles.sectionTitle}>최신 팩트체크</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={styles.sourceBadge}>{isApiSummary ? '백엔드 API' : '프론트 목업'}</span>
+                  <span style={styles.sourceBadge}>{isSummaryLoading ? '불러오는 중' : isApiSummary ? '백엔드 API' : '연결 오류'}</span>
                   <div style={styles.sectionMore}>더보기 &gt;</div>
                 </div>
               </div>
-              {recentChecks.length === 0 ? (
+              {isSummaryLoading ? (
+                <div style={styles.emptyState}>
+                  최신 팩트체크를 불러오는 중입니다.
+                </div>
+              ) : summaryStatus === 'error' ? (
+                <div style={styles.emptyState}>
+                  {summaryError}
+                </div>
+              ) : recentChecks.length === 0 ? (
                 <div style={styles.emptyState}>
                   백엔드에서 받은 최신 팩트체크 목록이 비어 있습니다.<br/>
-                  프론트 예시 데이터는 섞지 않았습니다.
+                  표시할 항목이 없습니다.
                 </div>
-              ) : recentChecks.slice(0, 3).map((check, index) => {
+              ) : recentChecks.map((check, index) => {
                 const title = getCheckTitle(check);
                 const result = normalizeResult(check.result);
                 return (
@@ -237,7 +224,7 @@ export default function HomeView({ onSearch, onNavigate }) {
                       }
                     }}
                   >
-                    <div style={styles.factImagePlaceholder}>{CHECK_ICONS[index] || '📰'}</div>
+                    <div style={styles.factImagePlaceholder}>📰</div>
                     <div style={{ flex: 1 }}>
                       <div style={styles.factBadge(result === 'TRUE')}>{result || '확인중'}</div>
                       <div style={styles.factTitle}>{title}</div>
@@ -258,13 +245,6 @@ export default function HomeView({ onSearch, onNavigate }) {
                   <div style={{ fontSize: '15px', opacity: '0.9' }}>Cheat F/T와 함께 더 나은 디지털 세상을 만들어가요.</div>
                 </div>
               </div>
-              <button
-                className="home-promo-button"
-                style={{ padding: '14px 24px', backgroundColor: '#ffffff', color: '#3b5bdb', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', whiteSpace: 'nowrap' }}
-                onClick={() => onNavigate(`community?tab=${encodeURIComponent('가이드 & 튜토리얼')}`)}
-              >
-                Cheat F/T 소개 보기 &gt;
-              </button>
             </div>
           </div>
           <div>
@@ -277,37 +257,41 @@ export default function HomeView({ onSearch, onNavigate }) {
                   <div style={{ ...styles.statLabel, gap: '6px' }}>
                     <div style={{ width: '14px', height: '18px', backgroundColor: '#e8f0fe', borderRadius: '3px', border: '1px solid #1a73e8' }}></div> 검증 요청
                   </div>
-                  <div style={styles.statValue}>{todayStats.requests?.toLocaleString?.() ?? todayStats.requests}</div>
+                  <div style={styles.statValue}>{formatNumber(todayStats.requests)}</div>
                 </div>
                 <div style={styles.statItem}>
                   <div style={{ ...styles.statLabel, gap: '6px' }}>
                     <div style={{ width: '20px', height: '20px', backgroundColor: '#e6f4ea', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="14" height="14" fill="#34a853" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div> 검증 완료
                   </div>
-                  <div style={styles.statValue}>{todayStats.completed?.toLocaleString?.() ?? todayStats.completed}</div>
+                  <div style={styles.statValue}>{formatNumber(todayStats.completed)}</div>
                 </div>
                 <div style={styles.statItem}>
                   <div style={{ ...styles.statLabel, gap: '6px' }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="#9334e6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> 정확도
                   </div>
-                  <div style={styles.statValue}>{todayStats.accuracyRate}%</div>
+                  <div style={styles.statValue}>{todayStats.accuracyRate === undefined || todayStats.accuracyRate === null ? '-' : `${todayStats.accuracyRate}%`}</div>
                 </div>
               </div>
             </div>
             <div style={styles.sectionCard}>
               <div style={styles.sectionHeader}>
-                <div style={styles.sectionTitle}>알고리즘 편향성 현황 ⓘ</div>
+                <div style={styles.sectionTitle}>신뢰도 현황 ⓘ</div>
                 <div style={styles.sectionMore}>자세히 보기 &gt;</div>
               </div>
               <div style={styles.algoGaugeContainer}>
                 <div style={styles.algoGauge}>
                   <div style={styles.algoGaugeInner}>
-                    <div style={{ fontSize: '12px', color: '#5f6368', marginBottom: '2px' }}>편향 지수</div>
-                    <div style={styles.algoGaugeScore}>{biasStatus.overallScore}</div>
-                    <div style={styles.algoGaugeLabel}>보통</div>
+                    <div style={{ fontSize: '12px', color: '#5f6368', marginBottom: '2px' }}>신뢰도</div>
+                    <div style={styles.algoGaugeScore}>{reliabilityStatus.overallScore ?? '-'}</div>
+                    <div style={styles.algoGaugeLabel}>{reliabilityStatus.level || '확인중'}</div>
                   </div>
                 </div>
                 <div style={{ flex: 1 }}>
-                  {biasCategories.slice(0, 5).map(item => (
+                  {reliabilityCategories.length === 0 ? (
+                    <div style={styles.emptyState}>
+                      백엔드에서 받은 신뢰도 현황이 비어 있습니다.
+                    </div>
+                  ) : reliabilityCategories.slice(0, 5).map(item => (
                     <div key={item.name} style={styles.algoBarRow}>
                       <div style={styles.algoBarLabel}>{item.name}</div>
                       <div style={styles.algoBarTrack}>

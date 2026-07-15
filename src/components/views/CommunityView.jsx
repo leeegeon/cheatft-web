@@ -34,8 +34,9 @@ const CATEGORY_PARAM_BY_TAB = {
   '정보 공유 커뮤니티': '정보 공유',
   '정정 요청': '정정 요청',
   '토론 게시판': '토론',
-  '공지사항': '공지',
 };
+
+const COMMUNITY_TABS = ['정보 공유 커뮤니티', '정정 요청', '토론 게시판'];
 
 export default function CommunityView({ onPostClick }) {
   const location = useLocation();
@@ -47,7 +48,8 @@ export default function CommunityView({ onPostClick }) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [page, setPage] = useState(1);
   
-  const activeTab = new URLSearchParams(location.search).get('tab') || '정보 공유 커뮤니티';
+  const requestedTab = new URLSearchParams(location.search).get('tab');
+  const activeTab = COMMUNITY_TABS.includes(requestedTab) ? requestedTab : '정보 공유 커뮤니티';
   const categoryParam = selectedCategory || CATEGORY_PARAM_BY_TAB[activeTab] || '';
   
   const setActiveTab = (tab) => {
@@ -162,8 +164,6 @@ export default function CommunityView({ onPostClick }) {
   };
 
   const posts = [
-    { type: '공지', title: '커뮤니티 이용 가이드라인 안내', desc: '', author: '', date: '2024.05.10', views: '', comments: '', bg: '' },
-    { type: '공지', title: '정정 요청 처리 프로세스 업데이트 안내', desc: '', author: '', date: '2024.05.02', views: '', comments: '', bg: '' },
     { type: '정보 공유', title: '백신 부작용 사망자 급증? 관련 추가 자료 공유합니다.', desc: '최근 백신 부작용과 관련된 통계 자료와 해외 사례들을 정리해 보았습니다.', author: 'user_123', date: '2024.05.20 14:30', views: '1,245', comments: '23', bg: '#4285f4', icon: '💉' },
     { type: '정정 요청', title: '"일본 후쿠시마 오염수 방류 안전하다" 기사 내용 정정 요청합니다.', desc: '해당 기사에서 인용한 수치에 오류가 있는 것 같습니다. 확인 부탁드립니다.', author: 'green_leaf', date: '2024.05.20 11:15', views: '892', comments: '18', bg: '#34a853', icon: '🏭' },
     { type: '토론', title: 'AI가 일자리를 대체하는 것은 피할 수 없는 미래일까?', desc: 'AI 기술 발전에 따른 일자리 변화에 대해 다양한 관점에서 이야기 나눠요.', author: 'think_together', date: '2024.05.19 20:45', views: '642', comments: '37', bg: '#1a2b49', icon: 'AI' },
@@ -194,7 +194,7 @@ export default function CommunityView({ onPostClick }) {
   return (
     <div style={styles.container}>
       <div style={styles.subnav}>
-        {['정보 공유 커뮤니티', '정정 요청', '토론 게시판', '공지사항', '가이드 & 튜토리얼'].map(tab => (
+        {COMMUNITY_TABS.map(tab => (
           <div key={tab} style={styles.subnavItem(activeTab === tab)} onClick={() => setActiveTab(tab)}>
             {tab}
           </div>
@@ -250,8 +250,6 @@ export default function CommunityView({ onPostClick }) {
             <div style={styles.menuItem(activeTab === '정보 공유 커뮤니티')} onClick={() => setActiveTab('정보 공유 커뮤니티')}>📄 정보 공유 커뮤니티</div>
             <div style={styles.menuItem(activeTab === '정정 요청')} onClick={() => setActiveTab('정정 요청')}>✏️ 정정 요청</div>
             <div style={styles.menuItem(activeTab === '토론 게시판')} onClick={() => setActiveTab('토론 게시판')}>🗣️ 토론 게시판</div>
-            <div style={styles.menuItem(activeTab === '공지사항')} onClick={() => setActiveTab('공지사항')}>📢 공지사항</div>
-            <div style={styles.menuItem(activeTab === '가이드 & 튜토리얼')} onClick={() => setActiveTab('가이드 & 튜토리얼')}>💡 가이드 & 튜토리얼</div>
           </div>
           
           <div style={styles.menuSection}>
@@ -266,16 +264,6 @@ export default function CommunityView({ onPostClick }) {
               <span style={styles.tag}>#사회</span>
               <span style={styles.tag}>#국제</span>
             </div>
-          </div>
-          
-          <div style={styles.guideBox}>
-            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#202124', marginBottom: '12px' }}>커뮤니티 가이드</div>
-            <ul style={styles.guideList}>
-              <li>사실에 기반한 의견을 남겨주세요.</li>
-              <li>다른 사람을 존중하는 태도를 지켜주세요.</li>
-              <li>개인정보 및 허위 정보 공유는 금지됩니다.</li>
-            </ul>
-            <div style={{ textAlign: 'center', color: '#0056d2', fontSize: '13px', fontWeight: 'bold', marginTop: '16px', cursor: 'pointer' }}>자세히 보기 &gt;</div>
           </div>
         </div>
 
@@ -299,7 +287,6 @@ export default function CommunityView({ onPostClick }) {
                 <option value="정보 공유">정보 공유</option>
                 <option value="정정 요청">정정 요청</option>
                 <option value="토론">토론</option>
-                <option value="공지">공지</option>
                 <option value="질문">질문</option>
               </select>
               <div style={styles.inputWrapper}>
@@ -374,7 +361,7 @@ export default function CommunityView({ onPostClick }) {
           </>
           ) : (
             <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e0e0e0', padding: '60px', textAlign: 'center', color: '#5f6368', fontSize: '16px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{activeTab === '가이드 & 튜토리얼' ? '📖' : (activeTab === '공지사항' ? '📢' : '💬')}</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>💬</div>
               <div style={{ fontWeight: 'bold', fontSize: '20px', color: '#202124', marginBottom: '8px' }}>{activeTab} 화면 준비중입니다.</div>
               <div>해당 기능은 현재 개발 진행 중이며, 곧 만나보실 수 있습니다.</div>
             </div>

@@ -1,7 +1,7 @@
 # 코드맵
 
 마지막 갱신: 2026-07-15
-마지막 전체 프로젝트 스캔: 2026-07-05
+마지막 전체 프로젝트 스캔: 2026-07-15
 
 이 문서는 새 채팅에서 전체 코드를 다시 훑지 않도록 만든 지도이다. 정확한 구현 확인이 필요할 때만 해당 파일을 직접 연다.
 
@@ -15,20 +15,23 @@ C:\Users\eunhy\Desktop\동아리
 ├─ 자료/            기획안, 가이드 PDF
 ├─ 파일/            이미지와 기타 자료
 ├─ 세미나/          Claude 설정/스킬 관련 압축 자료
-└─ cheatft_web/docs/ Codex 온보딩, 코드맵, API 계약 요약
+├─ cheatft_web/docs/ Codex 온보딩, 코드맵, API 계약 요약
+└─ .understand-anything/ 2026-07-15 understand 스캔 산출물
 ```
 
 ## docs
 
 - `cheatft_web/docs/handoff.md`: 다음 세션 시작용 요약. 먼저 읽을 파일.
+- `cheatft_web/docs/README.md`: 문서 색인과 최신/역사 문서 구분.
 - `cheatft_web/docs/code-map.md`: 현재 파일. 프로젝트 구조와 파일별 역할.
 - `cheatft_web/docs/backend-contract.md`: 프론트 화면과 백엔드 API 구현의 최신 매핑.
 - `cheatft_web/docs/api-integration-log.md`: API 연동 작업 기록과 확인 방법.
 - `cheatft_web/docs/AGENTS.md`: Codex 작업 안내 백업/문서화본.
+- `cheatft_web/docs/backend-handoff.md`: 초기 백엔드 협의 제안 메모. 최신 계약 문서가 아니라 역사/협의용으로 본다.
 
 ## cheatft_web 개요
 
-Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 추천 알고리즘 편향 분석, 커뮤니티, 개인 분석 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출하고, API 기본 URL이 없거나 요청이 실패하면 기존 목업 화면으로 fallback한다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, 프론트 작업 중에는 읽기 전용으로 확인한다.
+Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 리포트/커뮤니티/알고리즘 분석 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, 프론트 작업 중에는 명시 요청 없이는 수정하지 않는다.
 
 기술 스택:
 
@@ -59,19 +62,20 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `node_modules/`: 재스캔 제외
 - `dist/`: 빌드 산출물, 재스캔 제외
 - `build.log`, `build_utf8.log`: 과거 Vite build 로그. `build_utf8.log`는 21 modules transformed까지 확인됨.
+- `.understand-anything/`: 2026-07-15 전체 스캔 산출물. 일반 코드 맥락 파악 때는 제외.
 
 ## cheatft_web 주요 파일
 
 - `package.json`: 실행/검증 스크립트와 의존성.
-- `vite.config.js`: React plugin만 사용하는 기본 Vite 설정.
+- `vite.config.js`: React plugin, dev server `port: 3001`, `allowedHosts: ["cheatft.leegeon.com"]` 설정.
 - `eslint.config.js`: JS recommended, React Hooks, React Refresh 설정. `dist`는 ignore.
 - `index.html`: Vite HTML 진입점.
 - `src/main.jsx`: `BrowserRouter`로 `App`을 감싸서 렌더링.
-- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태, 보호 라우팅, 검색 URL 이동의 중심.
+- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심.
 - `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일.
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부 처리.
-- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수.
+- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
 - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화와 화면 필터 분류.
 - `src/utils/search.js`: 검색어 trim과 `/search?q=...` URL 생성.
 - `tests/search.test.js`: `normalizeSearchQuery`, `buildSearchPath` 단위 테스트.
@@ -83,10 +87,10 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 | 경로 | 컴포넌트 | 현재 동작 |
 |---|---|---|
-| `/` | `HomeView` | 홈, `GET /summary` 우선, 실패 시 최신 팩트체크/통계 목업. API 성공 후 빈 최신 팩트체크는 빈 상태 표시 |
-| `/search?q=...` | `VerificationView` | 검색어가 있으면 `POST /checks` 후 `GET /checks/{id}` 우선, API 성공 시 API 결과만 표시, 실패 시 프론트 더미 fallback, 백엔드 언론사 매핑 기반 출처 필터/정렬 제공 |
-| `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시, 실패 시 목업 |
-| `/article/:id` | `DetailView type="뉴스"` | 뉴스 상세 placeholder |
+| `/` | `HomeView` | 홈, `GET /summary` 응답만 표시. 프론트 더미 fallback 없음. 최신 팩트체크는 백엔드 `recentChecks` 전체 표시 |
+| `/search?q=...` | `VerificationView` | 검색어가 있으면 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
+| `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
+| `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 표시. 직접 조회 API 없음 |
 | `/algo` | `AlgoView` | 보호 라우트. 분석 버튼에서 `POST /analysis` 후 `GET /analysis/{id}`, API/목업 출처 안내, 실패 시 목업 |
 | `/report` | `ReportView` | `GET /reports` 우선, `keyword/date/score/page/limit` 전달, API/목업 출처 안내, 실패 시 리포트 목록/상세 목업 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
@@ -94,15 +98,15 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 | `/community/:id` | `DetailView type="커뮤니티"` | 게시글 상세 placeholder |
 | `/login` | `LoginView` | `/login` 호출, accessToken 저장, accessToken 없는 응답은 실패 처리, 보호 라우트에서 온 경우 로그인 후 원래 경로 복귀 |
 | `/signup` | `SignupView` | `/signup` 호출, 입력 검증 후 성공 시 로그인 화면 이동 |
-| `/mypage` | `MyPageView` | 보호 라우트. `/profile` 호출, profile 하위 분석/활동/뱃지/월간 요약 반영, 실패 시 개인 분석 목업 |
 | `*` | `NotFoundView` | 404 |
 
 ## 화면별 메모
 
 - `HomeView.jsx`
   - 검색 입력을 `onSearch`로 전달한다.
-  - `getSummary()`로 홈 요약을 가져오고 실패 시 기본 목업을 사용한다.
-  - API 성공 시 `recentChecks` 또는 `biasStatus.categories`가 빈 배열이어도 기본 목업으로 덮지 않고 빈 상태를 유지한다.
+  - `getSummary()`로 홈 요약을 가져오고 API 응답만 표시한다. 실패 시 프론트 더미 fallback을 사용하지 않는다.
+  - API 성공 시 `recentChecks` 또는 `biasStatus/reliabilityStatus.categories`가 빈 배열이어도 기본 목업으로 덮지 않고 빈 상태를 유지한다.
+  - 최신 팩트체크는 `slice(0, 3)` 제한 없이 백엔드가 주는 `recentChecks` 전체를 표시한다.
   - 최신 팩트체크 항목을 누르면 해당 제목으로 검색/검증 화면으로 이동한다.
   - 백엔드 명세: `GET /api/summary`.
 
@@ -110,17 +114,18 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `useSearchParams`로 `q`를 읽고, 검색어가 있으면 결과 목록을 보여준다.
   - `runFactCheck()`로 `POST /checks`와 `GET /checks/{id}`를 순차 호출한다. 현재 결과 조회에는 `page=1&limit=10`만 전달하고, 정렬값은 백엔드로 보내지 않는다.
   - 검색어 없이 들어오면 `getSummary()`로 최신 팩트체크 목록을 표시한다.
-  - 검색 결과는 API 성공 시 백엔드 결과만 표시한다. API 실패 시에만 프론트 더미데이터 fallback을 표시한다.
-  - API 응답 결과에는 `백엔드 API`, 더미 결과에는 `프론트 더미` 배지를 표시한다.
-  - 결과 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`, `프론트 더미`를 제공한다.
+  - 검색 결과는 백엔드 API 결과만 표시한다. 프론트 더미데이터 fallback, 예시 검색 버튼, URL 링크 검색 탭은 제거됐다.
+  - 결과 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`를 제공한다.
   - `src/utils/press.js`를 통해 백엔드 `PRESS_MAPPING`의 oid/name 표를 언론사명으로 변환한다. `언론사(047)` 같은 fallback 문자열도 처리한다.
-  - 정렬은 `최신순`, `조회수순`, `연관도순`을 제공한다. 백엔드 응답 필드가 있으면 `viewCount/views/readCount`, `relevanceScore/relevance/similarity`를 사용하고, 프론트 더미데이터는 임시 점수를 사용한다.
-  - 기사 클릭은 API의 `articleId`가 있으면 해당 id로 이동한다.
+  - 정렬은 `최신순`, `조회수순`, `연관도순`을 제공한다. 백엔드 응답 필드가 있으면 `viewCount/views/readCount`, `relevanceScore/relevance/similarity`를 사용한다.
+  - 검색어 없는 초기 화면 카드와 검색 결과 카드 클릭은 제목 재검색이 아니라 `onArticleClick()`을 통해 `/article/:id` 뉴스 상세로 이동한다.
 
 - `DetailView.jsx`
   - 뉴스 상세와 커뮤니티 상세을 `type` prop으로 구분한다.
-  - 실제 id 조회 없음. 본문, 댓글, 관련 뉴스는 placeholder.
-  - 백엔드 후보: 기사 상세 API가 현재 `cheatft_api`에는 없음. 커뮤니티 상세/댓글 API도 없음.
+  - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽어 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 표시한다.
+  - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역은 제거됐다.
+  - 직접 id 조회 API는 아직 없다. 저장된 기사 정보가 없으면 선택한 뉴스 정보를 찾을 수 없다는 상태를 보여준다.
+  - 커뮤니티 상세은 아직 placeholder 성격이 남아 있다. 커뮤니티 상세/댓글 API도 없음.
 
 - `AlgoView.jsx`
   - `activeTab`으로 관련 뉴스/반박 기사 탭 전환.
@@ -164,12 +169,6 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - 현재 명세에는 accessToken이 없어 성공 후 로그인 화면으로 이동한다.
   - `409`는 이메일/닉네임 중복 안내로 표시하고, 제출 중에는 입력과 버튼을 비활성화한다.
 
-- `MyPageView.jsx`
-  - `getProfile()`로 사용자 정보, 기여 현황, 연속 활동, 상단 대시보드, 성향 분포, 신뢰도 분포, 최근 활동, 관심 주제, 획득 뱃지, 월간 요약을 가져온다.
-  - 백엔드 예시 구조처럼 중첩 객체가 부분적으로 빠져도 화면이 깨지지 않도록 프론트 기본값과 병합한다.
-  - 배열 필드는 API가 빈 배열을 주면 빈 배열을 유지하고, 배열이 아닌 경우에만 기본 목업 배열을 사용한다.
-  - 실패 시 개인 분석 목업을 사용한다.
-
 - `NotFoundView.jsx`
   - 전역 CSS의 status-page 스타일을 사용하는 404.
 
@@ -202,22 +201,23 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `package.json`, `package-lock.json`: Express, pg, jsonwebtoken, bcrypt, axios, dotenv 등 백엔드 의존성.
 - `src/index.js`: Express 앱, CORS/JSON middleware, `/api` 라우트 연결.
 - `src/config/db.config.js`: PostgreSQL pool 설정.
-- `src/middleware/auth.middleware.js`: Bearer token 검증.
+- `src/middlewares/auth.middleware.js`: Bearer token 검증.
 - `src/routes/*.routes.js`: auth, checks, analysis, dummy 라우트.
 - `src/controllers/*.controller.js`: 요청/응답 래핑.
 - `src/services/checks.service.js`: Naver 검색 또는 fallback 기사 생성, `PRESS_MAPPING` 보유.
 - `src/services/analysis.service.js`: 분석 요청/조회 흐름.
-- `src/services/dummy.service.js`: summary, reports, posts, profile 더미 응답.
+- `src/controllers/dummy.controller.js`: summary, reports, posts, profile 더미 응답.
 - `src/models/*.model.js`: DB 접근 계층.
 
 현재 관측된 API 성격:
 
 - 공통 응답: `{ status, message, data }`.
-- `GET /api/summary`, `GET /api/reports`, `GET /api/posts`, `GET /api/profile`은 dummy controller 기반.
+- `GET /api/summary`, `GET /api/reports`, `GET /api/posts`, `POST /api/posts`, `GET /api/profile`은 dummy controller 기반이며 query/auth/DB 저장을 거의 처리하지 않는다.
 - `POST /api/checks`는 optional auth이고, Naver API 키가 있으면 검색 결과를 저장한다. 키가 없으면 fallback article을 저장한다.
 - `GET /api/checks/:id`는 DB에 저장된 check/article을 조회한다.
-- `POST /api/analysis`, `GET /api/analysis/:id`는 `verifyToken`이 필요하다.
-- `POST /api/login`은 현재 배포 기준 `UserModel.findByEmail is not a function` 오류가 확인됐다. 로컬 `src/models/user.model.js`가 user model이 아니라 checks model 코드로 되어 있는 것이 원인으로 보인다.
+- `POST /api/analysis`, `GET /api/analysis/:id`는 `verifyToken`이 필요하지만 현재 분석값/기사/인사이트는 고정 샘플을 DB에 저장하는 stub 성격이다.
+- `POST /api/login`, `POST /api/signup`, `GET /api/me`는 `auth.service.js`가 `UserModel.findByEmail/createUser/findById`를 기대하지만, 현재 `src/models/user.model.js`가 checks model 코드라 정상 동작하지 않는다.
+- `GET /api/health`는 서버 상태 확인 라우트이다.
 
 세부 화면/API 매핑과 미정 사항은 `cheatft_web/docs/backend-contract.md`에 정리했다.
 
@@ -234,7 +234,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/components/views/CommunityWriteView.jsx`: `POST /posts` 등록 연동.
 - `src/components/views/LoginView.jsx`: `POST /login` 연동, accessToken 필수 처리.
 - `src/components/views/SignupView.jsx`: `POST /signup` 연동, 성공 후 로그인 화면 이동.
-- `src/components/views/MyPageView.jsx`: `GET /profile` 응답의 하위 분석/활동/뱃지/월간 요약 반영.
+- `src/components/views/MyPageView.jsx`: 당시 `GET /profile` 응답의 하위 분석/활동/뱃지/월간 요약을 반영했으나, 2026-07-15 이후 파일과 라우트가 제거됨.
 - `src/index.css`: `.form-error` 스타일 추가.
 
 검증 결과:
@@ -261,7 +261,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/components/views/AlgoView.jsx`: API 성공/로딩/fallback 상태와 출처 안내를 분리하고, 빈 `relatedArticles`/`counterArticles`/`insights`를 목업으로 덮지 않음.
 - `src/components/views/ReportView.jsx`: API 성공 후 빈 `reports`를 목업으로 덮지 않고 빈 상태 표시.
 - `src/components/views/CommunityView.jsx`: API 성공 후 빈 `posts`를 목업으로 덮지 않고 빈 상태 표시.
-- `src/components/views/MyPageView.jsx`: `profile` 하위 중첩 객체를 기본값과 안전하게 병합하고, 배열은 API 빈 배열을 유지.
+- `src/components/views/MyPageView.jsx`: 당시 `profile` 하위 중첩 객체를 기본값과 안전하게 병합했으나, 2026-07-15 이후 파일과 라우트가 제거됨.
 - 검증 결과: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
 - 현재 기본 셸 `npm run build`는 기존 Node/Vite 네이티브 종료 이슈로 `38 modules transformed` 이후 실패가 재현됨.
 
@@ -273,7 +273,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/components/views/VerificationView.jsx`: 당시 네이버 언론사 목록 순서 기반 `press` 번호 매핑, 언론사 분류 필터, 최신순/조회수순/연관도순 정렬을 추가했다.
 - `src/components/views/LoginView.jsx`: 이메일 형식 검증, 제출 중 비활성화, 인증 오류 메시지, 로그인 후 원래 경로 복귀를 추가했다.
 - `src/components/views/SignupView.jsx`: 이메일/닉네임/비밀번호 검증과 중복 오류 메시지를 보강했다.
-- `src/App.jsx`: `/mypage`, `/community/write` 보호 라우팅을 추가했다.
+- `src/App.jsx`: 당시 `/mypage`, `/community/write` 보호 라우팅을 추가했다. 2026-07-15 이후 `/mypage`는 제거됐고 `/community/write`와 `/algo`가 보호 라우트로 남아 있다.
 - 검증 결과: `npm run lint`, `npm test` 통과.
 
 ## 2026-07-15 백엔드 반영 프론트 조정
@@ -282,17 +282,52 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - 백엔드 `cheatft_api`가 README-only가 아니라 Express/PostgreSQL/JWT 구현체임을 확인했다. 백엔드는 확인 가능하지만 이번 작업에서는 수정하지 않았다.
 - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기준 언론사 oid/name 정규화와 화면 분류 유틸을 추가했다.
 - `src/components/views/VerificationView.jsx`: 기존 네이버 `officeList` 순번 매핑과 지역지/전문지/해외 통신사 필터를 제거하고, 백엔드 표 기반 분류를 사용하도록 수정했다.
-- `src/components/views/VerificationView.jsx`: API 성공 시 프론트 더미 결과를 함께 섞지 않고 백엔드 결과만 표시한다. API 실패/미설정일 때만 프론트 더미 fallback을 사용한다.
+- `src/components/views/VerificationView.jsx`: 당시 API 성공 시 프론트 더미 결과를 함께 섞지 않고 백엔드 결과만 표시했다. 2026-07-15 이번 창 작업 이후 검증하기의 프론트 더미 fallback도 제거됐다.
 - `src/components/views/VerificationView.jsx`: 정렬 변경 시 백엔드 재요청을 하지 않고 현재 수신 결과를 프론트에서 정렬한다. `GET /checks/{id}`에는 `page=1&limit=10`만 전달한다.
 - `src/components/views/AlgoView.jsx`: 백엔드 기사 필드 후보에 `description`, `publishedAt/createdAt/date`, `press/pressName/publisher/mediaName`을 반영하고 언론사명은 `getPressLabel()`로 정규화한다.
 - `src/App.jsx`: `/algo`를 보호 라우트에 포함하고, 로그아웃 시 `/algo`에서도 홈으로 이동하도록 수정했다.
+- `cheatft_web/README.md`: `cheatft_api`를 명세 문서로만 설명하던 오래된 문구와 이동 전 docs 경로를 최신화했다.
 - 배포 확인: `https://cheatft.leegeon.com/`은 200 응답이지만 Vite dev HTML(`/@vite/client`, `/src/main.jsx`)을 서빙했고, 현재 배포 프론트는 과거 소스라 `/algo`가 보호되지 않은 상태로 보였다.
 - 배포 API 확인: `/api/summary`, `/api/profile`은 200, `/api/me`는 토큰 없이 401, `/api/checks/452`는 새 DB 백엔드 기준 404, `/api/login`은 `UserModel.findByEmail is not a function` 오류를 반환했다.
 - 검증 결과: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
 
+## 2026-07-15 이번 창 UI/API 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 배포 실패 원인:
+  - `https://cheatft.leegeon.com/`은 Vite dev HTML을 서빙한다.
+  - 배포된 `/src/App.jsx`가 import하는 `/src/services/apiClient.js`가 404다.
+  - `/api/summary`, `/api/health`, `/api/checks`는 응답하므로 프론트 배포 산출물 누락/혼재가 핵심이다.
+- `src/components/views/HomeView.jsx`
+  - 프론트 기본 summary/fallback 더미 제거.
+  - `GET /summary`의 `recentChecks` 전체 표시.
+  - `알고리즘 편향성` 표현을 `신뢰도` 기준으로 변경.
+  - 프로모션 배너의 `Cheat F/T 소개 보기 >` 버튼 제거.
+- `src/components/views/VerificationView.jsx`
+  - URL 링크 검색 탭, 예시 검색 버튼, 프론트 더미 결과/필터/배지 제거.
+  - 검색 결과와 초기 최신 팩트체크 카드 클릭을 `/article/:id` 상세 이동으로 변경.
+  - 백엔드 article 필드 후보: `articleId`, `press`, `title`, `description`, `date`, `url`.
+- `src/components/views/DetailView.jsx`
+  - 뉴스 상세를 route state/sessionStorage의 클릭 기사 데이터와 연결.
+  - `편향성 지수`를 `신뢰도`로 변경.
+  - 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 제거.
+  - 직접 조회 API가 없어서 저장 정보 없는 deep link 복원은 제한적이다.
+- `src/App.jsx`
+  - `handleArticleOpen(id, article)`로 기사 데이터를 저장하고 `/article/:id`로 이동.
+  - `/mypage` 라우트/nav/import 제거.
+  - nav의 `교육 & 정보`를 `커뮤니티`로 변경하고 `알고리즘 분석`을 `신뢰도 분석`으로 변경.
+- `src/components/views/CommunityView.jsx`
+  - 공지사항, 가이드, 튜토리얼 탭/항목 제거.
+- 삭제 파일:
+  - `src/components/views/MyPageView.jsx`
+- 검증 결과:
+  - `npm run lint` 통과
+  - `npm test` 통과
+  - Codex 번들 Node 기반 `vite build` 통과
+
 ## Git 주의
 
-- 루트와 하위 프로젝트에 `.git`이 보인다.
+- 루트에는 `.git` 폴더가 보이지만 2026-07-15 확인 기준 `HEAD`가 없어 git 저장소로 동작하지 않는다.
 - Codex sandbox 사용자는 `cheatft_web`, `cheatft_api`에서 `fatal: detected dubious ownership`를 만난다.
 - Git 작업이 필요하면 safe.directory 설정을 사용자 승인 또는 명시 지시 후 처리한다.
 

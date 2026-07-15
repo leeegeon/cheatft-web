@@ -2,7 +2,7 @@
 
 이 폴더의 기준 프로젝트 루트는 `C:\Users\eunhy\Desktop\동아리`이다.
 
-새 채팅이나 새 작업을 시작할 때는 전체 파일을 무작정 스캔하지 말고, 먼저 `cheatft_web/docs/handoff.md`, 필요하면 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 읽어 맥락을 잡는다. 이후 실제 요청에 필요한 하위 폴더와 파일만 추가로 확인한다.
+새 채팅이나 새 작업을 시작할 때는 전체 파일을 무작정 스캔하지 말고, 먼저 `cheatft_web/docs/handoff.md`, 필요하면 `cheatft_web/docs/README.md`, `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 읽어 맥락을 잡는다. 이후 실제 요청에 필요한 하위 폴더와 파일만 추가로 확인한다.
 
 ## 프로젝트 성격
 
@@ -20,14 +20,15 @@
 
 ## 기본 작업 규칙
 
-- 새 채팅에서는 `cheatft_web/docs/handoff.md` → 필요한 경우 `cheatft_web/docs/code-map.md` → API 연동이면 `cheatft_web/docs/backend-contract.md`와 `cheatft_web/docs/api-integration-log.md` 순서로 읽는다.
+- 새 채팅에서는 `cheatft_web/docs/handoff.md` → 문서 역할 확인이 필요하면 `cheatft_web/docs/README.md` → 코드 구조가 필요하면 `cheatft_web/docs/code-map.md` → API 연동이면 `cheatft_web/docs/backend-contract.md`와 `cheatft_web/docs/api-integration-log.md` 순서로 읽는다.
 - 큰 파일, 압축 파일, 이미지, PDF, Word 문서는 요청과 직접 관련 있을 때만 연다.
 - `cheatft_web` 작업 전에는 `cheatft_web/README.md`와 필요한 소스 파일만 확인한다.
 - 프론트엔드-백엔드 계약은 먼저 `cheatft_web/docs/backend-contract.md`를 보고, 실제 구현 확인이 필요하면 `cheatft_api/src`를 읽기 전용으로 확인한다.
 - 회의록이나 자료 문서는 사용자가 요청한 날짜/주제와 관련된 파일만 읽는다.
 - 기존 파일을 덮어쓰기 전에 사용자의 의도와 현재 변경 범위를 확인한다.
-- 루트 폴더는 git 저장소가 아닐 수 있으므로, git 명령은 해당 하위 프로젝트가 저장소인지 먼저 확인한다.
+- 루트에는 `.git` 폴더가 보이지만 2026-07-15 확인 기준 `HEAD`가 없어 루트 git 저장소로 동작하지 않는다. `cheatft_web`, `cheatft_api`는 각각 git 저장소이지만 Codex sandbox 사용자 기준 `dubious ownership`가 발생하므로 git 명령이 필요하면 safe.directory 설정 여부를 먼저 확인한다.
 - `cheatft_web/node_modules`, `cheatft_web/dist`, `package-lock.json`은 의존성 변경이나 빌드 문제 분석이 필요할 때만 확인한다.
+- `.understand-anything/`은 2026-07-15 전체 스캔용으로 생성된 분석 산출물 폴더이다. 일반 프론트 작업 맥락 파악 때는 다시 훑지 않는다.
 
 ## 프론트엔드 실행/검증
 

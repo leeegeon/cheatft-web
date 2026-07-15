@@ -1,12 +1,12 @@
 # 백엔드 협의 체크리스트
 
-마지막 갱신: 2026-07-10
+마지막 갱신: 2026-07-15
 
 이 문서는 프런트엔드에서 필요한 계약을 정리한 협의 메모입니다. 현재 백엔드 담당자 구현의 기준 위치는 `../../cheatft_api/src`이고, 프론트 화면별 최신 매핑은 `./backend-contract.md`에 정리되어 있습니다.
 
 주의: 아래 "제안 API 목록"은 초기 회의용 제안 경로를 보존한 것입니다. 실제 `cheatft_api`의 현재 경로는 `/api/login`, `/api/signup`, `/api/checks`, `/api/analysis`처럼 `/api/...` 형태입니다. 구현 전에는 `./backend-contract.md`의 차이 정리를 먼저 확인하세요.
 
-현재 배포 더미 API는 `https://cheatft.leegeon.com/api`입니다. 백엔드 담당자 안내상 README dummy data를 반환하며 parameter 처리는 아직 구현되지 않아 입력과 무관하게 같은 응답이 보일 수 있습니다.
+현재 배포 API는 `https://cheatft.leegeon.com/api`입니다. `summary/reports/posts/profile`은 dummy controller 응답이고, `auth/checks/analysis`는 실제 라우트/서비스/DB 흐름을 사용합니다. 2026-07-15 관측 기준 로그인은 `UserModel.findByEmail is not a function` 오류가 확인되었습니다.
 
 ## 먼저 결정할 항목
 
@@ -33,6 +33,8 @@
 | 게시글 목록 | GET | `/api/posts` | 커뮤니티 |
 | 게시글 작성 | POST | `/api/posts` | 글 작성 |
 | 프로필 | GET | `/api/profile` | 마이페이지 |
+| 내 정보 | GET | `/api/me` | 인증 사용자 정보 |
+| 헬스체크 | GET | `/api/health` | 서버 상태 확인 |
 
 현재 명세에 아직 없는 화면 요구사항:
 
