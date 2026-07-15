@@ -31,7 +31,7 @@ export default function App() {
   const handleLogout = () => {
     clearAccessToken();
     setIsLoggedIn(false);
-    if (location.pathname === '/mypage' || location.pathname === '/community/write') {
+    if (location.pathname === '/mypage' || location.pathname === '/community/write' || location.pathname === '/algo') {
       navigate('/');
     }
   };
@@ -142,7 +142,7 @@ export default function App() {
           <Route path="/community/write" element={requireLogin(<CommunityWriteView />)} />
           <Route path="/community/:id" element={<DetailView type="커뮤니티" />} />
           <Route path="/mypage" element={requireLogin(<MyPageView />)} />
-          <Route path="/algo" element={<AlgoView />} />
+          <Route path="/algo" element={requireLogin(<AlgoView />)} />
           <Route path="/report" element={<ReportView />} />
           <Route path="/login" element={<LoginView onLogin={handleLogin} />} />
           <Route path="/signup" element={<SignupView />} />

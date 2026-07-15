@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getSummary, runFactCheck } from '../../services/cheatftApi.js';
+import { getPressCategory, getPressLabel } from '../../utils/press.js';
 
 const PRESS_COLORS = ['#1a73e8', '#00c4b4', '#ea4335', '#8ab4f8', '#202124'];
 const SORT_LABELS = {
@@ -17,149 +18,9 @@ const SOURCE_FILTERS = [
   { value: '종합지', label: '종합지' },
   { value: '경제지', label: '경제지' },
   { value: '인터넷/IT지', label: '인터넷/IT지' },
-  { value: '지역지', label: '지역지' },
-  { value: '전문지/매거진', label: '전문지/매거진' },
-  { value: '해외 통신사', label: '해외 통신사' },
+  { value: '기타 출처', label: '기타 출처' },
   { value: 'mock', label: '프론트 더미' },
 ];
-const NAVER_PRESS_CATEGORY_RANGES = [
-  { end: 9, category: '종합지' },
-  { end: 23, category: '방송/통신사' },
-  { end: 34, category: '경제지' },
-  { end: 47, category: '인터넷/IT지' },
-  { end: 71, category: '전문지/매거진' },
-  { end: 83, category: '지역지' },
-  { end: 86, category: '해외 통신사' },
-];
-const PRESS_NAME_ALIASES = {
-  'KBS 뉴스': 'KBS',
-  'MBC 뉴스': 'MBC',
-  'SBS 뉴스': 'SBS',
-  'YTN 뉴스': 'YTN',
-  'TV조선 뉴스': 'TV조선',
-};
-const NAVER_PRESS_NAMES = [
-  '경향신문',
-  '국민일보',
-  '동아일보',
-  '문화일보',
-  '서울신문',
-  '세계일보',
-  '조선일보',
-  '중앙일보',
-  '한겨레',
-  '한국일보',
-  '뉴스1',
-  '뉴시스',
-  '연합뉴스',
-  '연합뉴스TV',
-  '채널A',
-  '한국경제TV',
-  'JTBC',
-  'KBS',
-  'MBC',
-  'MBN',
-  'SBS',
-  'SBS Biz',
-  'TV조선',
-  'YTN',
-  '매일경제',
-  '머니투데이',
-  '비즈워치',
-  '서울경제',
-  '아시아경제',
-  '이데일리',
-  '조선비즈',
-  '조세일보',
-  '파이낸셜뉴스',
-  '한국경제',
-  '헤럴드경제',
-  '노컷뉴스',
-  '더팩트',
-  '데일리안',
-  '동행미디어 시대',
-  '미디어오늘',
-  '아이뉴스24',
-  '오마이뉴스',
-  '프레시안',
-  '디지털데일리',
-  '디지털타임스',
-  '블로터',
-  '전자신문',
-  '지디넷코리아',
-  '더스쿠프',
-  '레이디경향',
-  '매경이코노미',
-  '시사IN',
-  '시사저널',
-  '신동아',
-  '월간 산',
-  '이코노미스트',
-  '주간경향',
-  '주간동아',
-  '주간조선',
-  '중앙SUNDAY',
-  '한겨레21',
-  '한경비즈니스',
-  '기자협회보',
-  '농민신문',
-  '뉴스타파',
-  '동아사이언스',
-  '여성신문',
-  '일다',
-  '코리아중앙데일리',
-  '코리아헤럴드',
-  '코메디닷컴',
-  '헬스조선',
-  '강원도민일보',
-  '강원일보',
-  '경기일보',
-  '국제신문',
-  '대구MBC',
-  '대전일보',
-  '매일신문',
-  '부산일보',
-  '전주MBC',
-  'CJB청주방송',
-  'JIBS',
-  'kbc광주방송',
-  '신화사 연합뉴스',
-  'AP연합뉴스',
-  'EPA연합뉴스',
-];
-
-function normalizePressName(value) {
-  return String(value || '').replace(/\s+/g, '').toLowerCase();
-}
-
-function getPressIndex(press) {
-  if (typeof press === 'number' || (typeof press === 'string' && press.trim() !== '' && Number.isInteger(Number(press)))) {
-    const pressIndex = Number(press);
-    return pressIndex >= 0 && pressIndex < NAVER_PRESS_NAMES.length ? pressIndex : -1;
-  }
-
-  const pressName = String(press || '').trim();
-  const aliasName = PRESS_NAME_ALIASES[pressName] || pressName.replace(/\s+뉴스$/, '');
-  const exactIndex = NAVER_PRESS_NAMES.indexOf(aliasName);
-  if (exactIndex >= 0) return exactIndex;
-
-  const normalizedName = normalizePressName(aliasName);
-  return NAVER_PRESS_NAMES.findIndex((name) => normalizePressName(name) === normalizedName);
-}
-
-function getPressLabel(press) {
-  const pressIndex = getPressIndex(press);
-  if (pressIndex >= 0) return NAVER_PRESS_NAMES[pressIndex];
-  if (typeof press === 'number' || (typeof press === 'string' && press.trim() !== '' && Number.isInteger(Number(press)))) return `언론사 ${Number(press)}`;
-  return press || '출처 확인중';
-}
-
-function getPressCategory(press) {
-  const pressIndex = getPressIndex(press);
-  const matchedRange = NAVER_PRESS_CATEGORY_RANGES.find((range) => pressIndex <= range.end);
-  return pressIndex >= 0 && matchedRange ? matchedRange.category : '기타 출처';
-}
-
 function matchesSourceFilter(item, sourceFilter) {
   if (sourceFilter === 'all') return true;
   if (sourceFilter === 'mock') return item.sourceLabel === '프론트 더미';
@@ -221,6 +82,7 @@ function mapApiArticle(article, index) {
   const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
   const pressLabel = getPressLabel(pressValue);
   const scoreValue = Math.max(1, 5 - Math.min(index, 4));
+  const articleDate = article.publishedAt || article.createdAt || article.date || article.pubDate || article.pub_date;
 
   return {
     articleId: article.articleId,
@@ -232,9 +94,9 @@ function mapApiArticle(article, index) {
     pub: pressLabel,
     logo: String(pressLabel).slice(0, 2),
     color: PRESS_COLORS[index % PRESS_COLORS.length],
-    date: formatDate(article.publishedAt || article.createdAt),
+    date: formatDate(articleDate),
     title: article.title,
-    desc: article.summary || article.url || '백엔드에서 반환한 기사입니다. 상세 요약 필드가 확정되면 이 영역에 표시됩니다.',
+    desc: article.summary || article.description || article.content || article.url || '백엔드에서 반환한 기사입니다. 상세 요약 필드가 확정되면 이 영역에 표시됩니다.',
     scoreText: scoreValue >= 4 ? '신뢰 가능' : scoreValue >= 3 ? '보통' : '주의',
     score: `${scoreValue} / 5`,
     scoreColor: scoreValue >= 4 ? '#8bc34a' : scoreValue >= 3 ? '#fbbc04' : '#ff9800',
@@ -297,10 +159,6 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
   function handleSortChange(nextSortBy) {
     setSortBy(nextSortBy);
-    if (query) {
-      setApiStatus('loading');
-      setApiError('');
-    }
   }
 
   useEffect(() => {
@@ -310,7 +168,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
     let ignore = false;
 
-    runFactCheck(query, { page: 1, limit: 10, sort: sortBy })
+    runFactCheck(query, { page: 1, limit: 10 })
       .then((data) => {
         if (!ignore) {
           setCheckResult(data);
@@ -329,7 +187,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     return () => {
       ignore = true;
     };
-  }, [query, sortBy]);
+  }, [query]);
 
   useEffect(() => {
     if (query) {
@@ -470,15 +328,13 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const isLoading = query && apiStatus === 'loading';
   const isLatestLoading = !query && latestStatus === 'loading';
   const displayResults = query
-    ? (hasApiCheckResult ? [...filteredApiResults, ...filteredMockResults] : filteredMockResults)
+    ? (hasApiCheckResult ? filteredApiResults : filteredMockResults)
     : (hasApiLatestResult ? filteredLatestResults : filteredMockResults);
   const dataSource = query
-    ? (isLoading ? 'loading' : hasApiCheckResult ? 'mixed' : 'fallback')
+    ? (isLoading ? 'loading' : hasApiCheckResult ? 'api' : 'fallback')
     : (isLatestLoading ? 'loading' : hasApiLatestResult ? 'api' : 'fallback');
   const dataSourceText = dataSource === 'api'
     ? '백엔드 API 응답 표시 중'
-    : dataSource === 'mixed'
-      ? '백엔드 API와 프론트 더미데이터 함께 표시 중'
     : dataSource === 'fallback'
       ? '프론트 더미데이터 표시 중'
       : '백엔드 API 응답 대기 중';
@@ -486,7 +342,6 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const queryResultGroups = hasApiCheckResult
     ? [
         { key: 'api', label: `백엔드 API 결과 ${filteredApiResults.length}건`, source: 'api', items: filteredApiResults },
-        { key: 'mock', label: `프론트 더미데이터 ${filteredMockResults.length}건`, source: 'mock', items: filteredMockResults },
       ]
     : [
         { key: 'mock', label: `프론트 더미데이터 ${filteredMockResults.length}건`, source: 'mock', items: filteredMockResults },
@@ -545,9 +400,9 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                   {isLoading
                     ? '백엔드 검증 결과를 불러오는 중입니다.'
                     : hasApiCheckResult && apiResults.length === 0
-                      ? `백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다. 아래에 프론트 더미데이터 ${mockResults.length}건을 함께 표시합니다.`
+                      ? '백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다.'
                       : hasApiCheckResult
-                        ? `백엔드 API 기준 ${totalArticles}건, 화면 표시용 프론트 더미데이터 ${mockResults.length}건을 함께 보여줍니다.`
+                        ? `백엔드 API 기준 ${totalArticles}건을 표시합니다.`
                         : `프론트 더미데이터 ${mockResults.length}건을 표시합니다.`}
                   {apiError && <span style={{ color: '#ea4335', marginLeft: '8px' }}>{apiError}</span>}
                 </div>
@@ -584,7 +439,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
             {queryResultGroups.every((group) => group.items.length === 0) ? (
               <div style={styles.emptyState}>
-                표시할 백엔드 API 결과와 프론트 더미데이터가 없습니다.
+                표시할 검색 결과가 없습니다.
               </div>
             ) : queryResultGroups.map((group) => (
               <div key={group.key}>

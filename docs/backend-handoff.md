@@ -2,9 +2,9 @@
 
 마지막 갱신: 2026-07-10
 
-이 문서는 프런트엔드에서 필요한 계약을 정리한 협의 메모입니다. 현재 백엔드 담당자 명세의 기준 파일은 `../../cheatft_api/README.md`이고, 프론트 화면별 최신 매핑은 `../../docs/backend-contract.md`에 정리되어 있습니다.
+이 문서는 프런트엔드에서 필요한 계약을 정리한 협의 메모입니다. 현재 백엔드 담당자 구현의 기준 위치는 `../../cheatft_api/src`이고, 프론트 화면별 최신 매핑은 `./backend-contract.md`에 정리되어 있습니다.
 
-주의: 아래 "제안 API 목록"은 초기 회의용 제안 경로를 보존한 것입니다. 실제 `cheatft_api/README.md`의 현재 경로는 `/api/login`, `/api/signup`, `/api/checks`, `/api/analysis`처럼 `/api/...` 형태입니다. 구현 전에는 `../../docs/backend-contract.md`의 차이 정리를 먼저 확인하세요.
+주의: 아래 "제안 API 목록"은 초기 회의용 제안 경로를 보존한 것입니다. 실제 `cheatft_api`의 현재 경로는 `/api/login`, `/api/signup`, `/api/checks`, `/api/analysis`처럼 `/api/...` 형태입니다. 구현 전에는 `./backend-contract.md`의 차이 정리를 먼저 확인하세요.
 
 현재 배포 더미 API는 `https://cheatft.leegeon.com/api`입니다. 백엔드 담당자 안내상 README dummy data를 반환하며 parameter 처리는 아직 구현되지 않아 입력과 무관하게 같은 응답이 보일 수 있습니다.
 
@@ -126,7 +126,7 @@
 - 목업 데이터는 추후 `src/mocks/` 또는 `src/data/`로 분리 예정
 
 `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`처럼 `/api`까지 포함하면 프론트 서비스 함수는 `apiRequest('/login')`처럼 호출해야 합니다. `apiRequest('/api/login')`로 작성하면 `/api/api/login`이 됩니다.
-현재 로컬 `../../cheatft_api`는 실제 서버 구현체가 아니라 README 명세 문서만 있으므로, `localhost:8080`에서 별도 백엔드/더미 서버가 실행 중이지 않으면 브라우저에 `Failed to fetch`가 표시됩니다.
+2026-07-15 현재 로컬 `../../cheatft_api`는 Express/PostgreSQL/JWT 기반 실제 백엔드 구현체입니다. 다만 실행에는 의존성, 환경변수, PostgreSQL 연결이 필요하고, 프론트 작업 중에는 명시 요청 없이는 수정하지 않습니다. 최신 실제 관측값과 프론트 반영 내용은 `./backend-contract.md`를 우선 확인하세요.
 
 ## 2026-07-10 배포 더미 API 확인
 

@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { runAnalysis } from '../../services/cheatftApi.js';
+import { getPressLabel } from '../../utils/press.js';
 
 function mapAnalysisArticle(article, index, fallbackBadge = '중도') {
-  const pressLabel = typeof article.press === 'number' ? `언론사 ${article.press}` : article.press || '출처 확인중';
+  const pressLabel = getPressLabel(article.press ?? article.pressName ?? article.publisher ?? article.mediaName);
 
   return {
     id: article.articleId ?? index,
     logo: ['#1a2b49', '#1a73e8', '#e65100', '#00c4b4'][index % 4],
     logoText: String(pressLabel).slice(0, 4),
     title: article.title,
-    desc: article.summary || '백엔드 분석 결과에서 반환된 기사입니다.',
-    date: article.publishedAt || '분석 결과',
+    desc: article.summary || article.description || '백엔드 분석 결과에서 반환된 기사입니다.',
+    date: article.publishedAt || article.createdAt || article.date || '분석 결과',
     views: '-',
     badge: article.stance || fallbackBadge,
   };
