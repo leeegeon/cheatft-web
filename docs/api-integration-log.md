@@ -181,6 +181,34 @@
   - `npm test`: 통과
   - Codex 번들 Node로 `vite build`: 통과
 
+## 2026-07-15 언론사 로고/관측 저장/텍스트 디코딩 추가 반영
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `cheatft_web/src/utils/press.js`
+  - 백엔드 `PRESS_MAPPING` 18개 oid에 대해 네이버 언론사 홈 `office_logo` CDN URL을 추가했다.
+  - `getPressOid()`, `getPressLogoUrl()`, `recordObservedPress()`를 추가했다.
+  - `언론사(021)`처럼 fallback 문자열로 내려오는 미매핑 oid는 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 누적한다.
+  - 개발자도구 Console 헬퍼:
+    - `cheatFtPressList()`: `021 - 언론사(021)` 형태의 줄바꿈 문자열 반환
+    - `cheatFtPressMap()`: 저장 객체 반환
+    - `cheatFtClearPressList()`: 저장값 삭제
+  - 저장은 `localStorage`라 창을 닫아도 유지되며, origin별로 분리된다. `http://localhost:3001`, `http://localhost:5173`, 배포 도메인은 서로 다른 저장소를 사용한다.
+- `VerificationView.jsx`, `AlgoView.jsx`, `ReportView.jsx`
+  - 언론사 배지는 `logoUrl`이 있으면 네이버 `office_logo` 이미지를 표시하고, 이미지 로드 실패 시 기존 텍스트 배지로 fallback한다.
+  - API 결과 매핑 시 `recordObservedPress()`를 호출해 백엔드 담당자에게 전달할 미매핑 oid 목록을 누적한다.
+- `cheatft_web/src/utils/text.js`
+  - `decodeHtmlEntities()`, `cleanDisplayText()`를 추가했다.
+  - API 문자열의 `&quot;`, `&amp;`, `&#39;`, `&apos;`, `&lt;`, `&gt;`, `&nbsp;`를 표시 전에 디코딩하고 남은 HTML 태그를 제거한다.
+- `HomeView.jsx`, `VerificationView.jsx`, `AlgoView.jsx`, `ReportView.jsx`, `CommunityView.jsx`, `DetailView.jsx`
+  - API에서 온 제목/요약/게시글/상세 표시 문자열에 `cleanDisplayText()`를 적용했다.
+- 로그인/회원가입 상태 확인:
+  - 프론트 UI/호출 흐름은 구현되어 있으나, 실제 인증 완성은 백엔드 user model 복구가 필요하다.
+  - 현재 알려진 배포 오류는 `/api/login`의 `UserModel.findByEmail is not a function`이다.
+- 검증:
+  - `npm run lint`: 통과
+  - `npm test`: 통과
+  - Codex 번들 Node로 `npm run build`: 통과
+
 ## 2026-07-15 전체 스캔/문서 정리
 
 - `understand` 스킬을 사용해 pre-flight, ignore 생성, scan, batch 계산을 수행했다.

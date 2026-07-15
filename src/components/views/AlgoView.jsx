@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { runAnalysis } from '../../services/cheatftApi.js';
-import { getPressLabel } from '../../utils/press.js';
+import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { cleanDisplayText } from '../../utils/text.js';
 
 function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
-  const pressLabel = getPressLabel(article.press ?? article.pressName ?? article.publisher ?? article.mediaName);
+  const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
+  recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
+  const pressLabel = getPressLabel(pressValue);
 
   return {
     id: article.articleId ?? index,
     logo: ['#1a2b49', '#1a73e8', '#e65100', '#00c4b4'][index % 4],
     logoText: String(pressLabel).slice(0, 4),
-    title: article.title,
-    desc: article.summary || article.description || '백엔드 분석 결과에서 반환된 기사입니다.',
+    logoUrl: getPressLogoUrl(pressValue),
+    title: cleanDisplayText(article.title, '제목 없음'),
+    desc: cleanDisplayText(article.summary || article.description, '백엔드 분석 결과에서 반환된 기사입니다.'),
     date: article.publishedAt || article.createdAt || article.date || '분석 결과',
     views: '-',
     badge: article.reliabilityLabel || article.reliability || fallbackBadge,
@@ -96,7 +100,8 @@ export default function AlgoView() {
     listTitle: { fontSize: '15px', fontWeight: 'bold', color: '#3c4043' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px', marginBottom: '24px' },
     newsCard: { backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e0e0e0', display: 'flex', gap: '16px', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer', ':hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' } },
-    newsLogo: (bg) => ({ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold', flexShrink: 0 }),
+    newsLogo: (bg) => ({ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, position: 'relative', overflow: 'hidden' }),
+    newsLogoImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#ffffff', borderRadius: '50%' },
     newsContent: { flex: 1, display: 'flex', flexDirection: 'column' },
     newsTitle: { fontSize: '16px', fontWeight: 'bold', color: '#202124', marginBottom: '8px', lineHeight: '1.4' },
     newsDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
@@ -312,6 +317,7 @@ export default function AlgoView() {
               <div key={item.id} style={styles.newsCard}>
                 <div style={{...styles.newsLogo(item.logo), color: item.logoBorder ? '#000' : '#fff', border: item.logoBorder ? `1px solid ${item.logoBorder}` : 'none', whiteSpace: 'pre-wrap', textAlign: 'center', lineHeight: '1.2'}}>
                   {item.logoText}
+                  {item.logoUrl && <img src={item.logoUrl} alt={`${item.logoText} 로고`} style={styles.newsLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
                 </div>
                 <div style={styles.newsContent}>
                   <div style={styles.newsTitle}>{item.title}</div>

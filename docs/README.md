@@ -21,5 +21,6 @@
 - `cheatft_api`는 Express/PostgreSQL/JWT 백엔드 구현체이지만, 사용자가 명시적으로 요청하기 전에는 수정하지 않는다.
 - `summary/reports/posts/profile`은 dummy controller 응답이고, `auth/checks/analysis`는 실제 라우트/서비스/DB 흐름을 사용한다.
 - `/api/login`, `/api/signup`, `/api/me`는 현재 `src/models/user.model.js`가 auth service 계약과 맞지 않아 정상 동작하지 않을 가능성이 높다.
+- 2026-07-15 최신 프론트 보강: 언론사 로고 표시, `언론사(021)` 같은 미매핑 oid의 `localStorage` 관측 저장, API 문자열 HTML entity 디코딩은 `handoff.md`, `code-map.md`, `backend-contract.md`, `api-integration-log.md` 최신 섹션에 정리돼 있다.
 - 루트 `.git`은 2026-07-15 확인 기준 git 저장소로 동작하지 않는다. `cheatft_web`, `cheatft_api`의 git 명령은 Codex sandbox 사용자 기준 `dubious ownership`가 발생할 수 있다.
 - `.understand-anything/`은 2026-07-15 전체 스캔 산출물이며 일반 맥락 파악 때는 다시 훑지 않는다.

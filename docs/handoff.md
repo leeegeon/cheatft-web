@@ -38,6 +38,8 @@
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
 - 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다.
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
+- 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
+- API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
 
@@ -193,6 +195,42 @@
 - 회원가입 실패 시 `409`는 이메일/닉네임 중복 안내로 표시하고, 성공 시 로그인 화면으로 이동한다.
 - 당시 `App.jsx`는 `/mypage`, `/community/write`를 보호 경로로 처리했다. 2026-07-15 이후 `/mypage`는 제거됐고 `/community/write`, `/algo`가 보호 경로로 남아 있다.
 - 검증: `npm run lint`, `npm test` 통과.
+
+## 2026-07-15 이번 창 언론사 로고/텍스트 표시 보강
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 사용자가 전체 스캔을 원하지 않아 실제 작업에 필요한 프론트 파일과 지정 문서만 확인했다.
+- `src/utils/press.js`
+  - 백엔드 `PRESS_MAPPING` 18개 oid에 대해 네이버 언론사 홈 `office_logo` CDN URL을 매핑했다.
+  - `getPressOid()`, `getPressLogoUrl()`, `recordObservedPress()`를 추가했다.
+  - `언론사(021)`처럼 미매핑 fallback 문자열이 화면 데이터에 등장하면 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 `021: "언론사(021)"` 형태로 누적 저장한다.
+  - 이미 아는 oid는 `056: "KBS"`처럼 저장한다. 같은 응답에 `pressName/publisher/mediaName` 후보가 있으면 이름 후보를 함께 저장할 수 있다.
+  - 개발자도구 Console 헬퍼: `cheatFtPressList()`는 `021 - 언론사(021)` 같은 복사용 문자열을 반환, `cheatFtPressMap()`은 객체 반환, `cheatFtClearPressList()`는 저장값 삭제.
+  - 저장은 `localStorage`라 창을 닫아도 유지되지만 origin별로 분리된다. 예: `http://localhost:3001`, `http://localhost:5173`, `https://cheatft.leegeon.com`은 서로 다른 저장소를 쓴다.
+- `VerificationView.jsx`, `AlgoView.jsx`, `ReportView.jsx`
+  - 언론사 원형 텍스트 배지에 로고 이미지 fallback을 추가했다. `logoUrl`이 있으면 `<img>`를 표시하고 이미지 로드 실패 시 기존 앞글자 텍스트가 보인다.
+  - API 기사/분석/리포트 매핑 시 `recordObservedPress()`를 호출해 미매핑 언론사 번호를 누적한다.
+- `src/utils/text.js`
+  - `decodeHtmlEntities()`, `cleanDisplayText()`를 추가했다.
+  - `&quot;SK하이닉스&quot;`처럼 보이던 제목/요약을 `"SK하이닉스"`처럼 표시하도록 HTML entity를 디코딩한다.
+- `HomeView.jsx`, `VerificationView.jsx`, `AlgoView.jsx`, `ReportView.jsx`, `CommunityView.jsx`, `DetailView.jsx`
+  - API에서 온 제목/요약/게시글/상세 표시 문자열에 `cleanDisplayText()`를 적용했다.
+- 인증 메모:
+  - 프론트 로그인/회원가입 UI와 API 호출 흐름은 있다.
+  - 실제 동작을 완성하려면 백엔드 `cheatft_api/src/models/user.model.js`를 user model로 복구하고 `findByEmail/createUser/findById`, DB users 테이블, bcrypt/JWT 흐름을 맞춰야 한다. 현재 배포 `/api/login`은 `UserModel.findByEmail is not a function` 오류가 알려져 있다.
+- 검증:
+  - `npm run lint` 통과
+  - `npm test` 통과
+  - Codex 번들 Node 기반 `npm run build` 통과
+
+다음 창 시작 명령 예시:
+
+```text
+cheatft_web/docs/handoff.md 먼저 읽고, 필요하면 cheatft_web/docs/README.md, code-map.md, backend-contract.md, api-integration-log.md만 추가로 읽어서 현재 맥락 잡아줘.
+이번엔 전체 스캔하지 말고, 실제 작업에 필요한 파일만 열어봐.
+cheatft_api는 확인 가능하지만 내가 명시적으로 요청하기 전에는 수정하지 마.
+이전 창 마지막 작업은 언론사 로고 표시, 미매핑 언론사 번호 localStorage 누적 저장, HTML entity 디코딩 보강이야.
+```
 
 검증 명령:
 

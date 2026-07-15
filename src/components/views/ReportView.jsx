@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getReports } from '../../services/cheatftApi.js';
+import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { cleanDisplayText } from '../../utils/text.js';
 
 function formatDateTime(value) {
   if (!value) return '2024.05.20 14:30';
@@ -19,19 +21,25 @@ function mapApiReport(report, index) {
 
   return {
     id: report.id ?? index + 1,
-    title: report.topic,
+    title: cleanDisplayText(report.topic, '제목 없음'),
     date: formatDateTime(report.searchTime),
     status: report.status || '분석 완료',
     relatedCount: report.relatedCount ?? 0,
     unrelatedCount: report.counterCount ?? 0,
     score: report.averageReliability ?? 0,
-    sources: presses.slice(0, 3).map((press, pressIndex) => ({
-      name: typeof press === 'number' ? `언론사 ${press}` : String(press),
-      logo: ['#1a2b49', '#1a73e8', '#ea4335'][pressIndex % 3],
-      score: report.averageReliability ? `${report.averageReliability}/5` : null,
-    })),
+    sources: presses.slice(0, 3).map((press, pressIndex) => {
+      recordObservedPress(press);
+      const pressLabel = getPressLabel(press);
+
+      return {
+        name: typeof press === 'number' && pressLabel === String(press) ? `언론사 ${press}` : pressLabel,
+        logo: ['#1a2b49', '#1a73e8', '#ea4335'][pressIndex % 3],
+        logoUrl: getPressLogoUrl(press),
+        score: report.averageReliability ? `${report.averageReliability}/5` : null,
+      };
+    }),
     extraCount: Math.max(0, presses.length - 3),
-    summaryDesc: report.summary || '백엔드 리포트 요약이 여기에 표시됩니다.',
+    summaryDesc: cleanDisplayText(report.summary, '백엔드 리포트 요약이 여기에 표시됩니다.'),
   };
 }
 
@@ -149,7 +157,8 @@ export default function ReportView() {
     
     sourceGroup: { display: 'flex', alignItems: 'center', gap: '12px', flex: 1 },
     sourceItem: { display: 'flex', alignItems: 'center', gap: '8px' },
-    sourceLogo: (bg) => ({ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: bg, color: '#fff', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+    sourceLogo: (bg) => ({ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: bg, color: '#fff', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0 }),
+    sourceLogoImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#ffffff', borderRadius: '50%' },
     sourceScore: { fontSize: '13px', fontWeight: 'bold', color: '#3c4043' },
     
     detailBtn: { padding: '8px 16px', border: '1px solid #dadce0', borderRadius: '20px', backgroundColor: '#ffffff', color: '#1a73e8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' },
@@ -374,7 +383,10 @@ export default function ReportView() {
                       <div style={styles.sourceGroup}>
                         {report.sources.map((src, i) => (
                           <div key={i} style={styles.sourceItem}>
-                            <div style={styles.sourceLogo(src.logo)}>{src.name.charAt(0)}</div>
+                            <div style={styles.sourceLogo(src.logo)}>
+                              {src.name.charAt(0)}
+                              {src.logoUrl && <img src={src.logoUrl} alt={`${src.name} 로고`} style={styles.sourceLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
+                            </div>
                             <span style={{fontSize:'12px', color:'#3c4043'}}>{src.name}</span>
                             {src.score && <span style={{fontSize:'12px', fontWeight:'bold', color:'#34a853', display:'flex', alignItems:'center'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> {src.score}</span>}
                           </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getSummary, runFactCheck } from '../../services/cheatftApi.js';
-import { getPressCategory, getPressLabel } from '../../utils/press.js';
+import { getPressCategory, getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { cleanDisplayText } from '../../utils/text.js';
 
 const PRESS_COLORS = ['#1a73e8', '#00c4b4', '#ea4335', '#8ab4f8', '#202124'];
 const SORT_LABELS = {
@@ -101,6 +102,7 @@ function formatDateTime(value) {
 
 function mapApiArticle(article, index) {
   const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
+  recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
   const pressLabel = getPressLabel(pressValue);
   const articleDate = article.publishedAt || article.createdAt || article.date || article.pubDate || article.pub_date;
   const scoreValue = normalizeReliabilityScore(
@@ -120,10 +122,11 @@ function mapApiArticle(article, index) {
     relevanceScore: getNumericValue(article.relevanceScore, article.relevance, article.similarity),
     pub: pressLabel,
     logo: String(pressLabel).slice(0, 2),
+    logoUrl: getPressLogoUrl(pressValue),
     color: PRESS_COLORS[index % PRESS_COLORS.length],
     date: formatDate(articleDate),
-    title: article.title || article.headline || '제목 없음',
-    desc: article.summary || article.description || article.content || article.url || '요약이 제공되지 않았습니다.',
+    title: cleanDisplayText(article.title || article.headline, '제목 없음'),
+    desc: cleanDisplayText(article.summary || article.description || article.content || article.url, '요약이 제공되지 않았습니다.'),
     scoreText: article.reliabilityLabel || article.credibilityLabel || getScoreText(scoreValue),
     score: scoreValue === null ? '-' : `${scoreValue.toFixed(1).replace(/\.0$/, '')} / 5`,
     scoreColor: getScoreColor(scoreValue),
@@ -141,7 +144,7 @@ function normalizeCheckResult(result) {
 }
 
 function getRecentCheckTitle(check) {
-  return check?.title || check?.query || check?.content || '제목 없음';
+  return cleanDisplayText(check?.title || check?.query || check?.content, '제목 없음');
 }
 
 function mapRecentCheck(check, index) {
@@ -165,10 +168,11 @@ function mapRecentCheck(check, index) {
     relevanceScore: getNumericValue(check.relevanceScore, check.relevance, check.similarity),
     pub: 'Cheat F/T',
     logo: 'FT',
+    logoUrl: '',
     color: PRESS_COLORS[index % PRESS_COLORS.length],
     date: check.timeAgo || '방금 전',
     title,
-    desc: check.summary || check.description || `검증 결과: ${result || '확인중'}`,
+    desc: cleanDisplayText(check.summary || check.description, `검증 결과: ${result || '확인중'}`),
     scoreText: check.reliabilityLabel || check.credibilityLabel || getScoreText(scoreValue),
     score: scoreValue === null ? '-' : `${scoreValue.toFixed(1).replace(/\.0$/, '')} / 5`,
     scoreColor: getScoreColor(scoreValue),
@@ -282,7 +286,8 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     filters: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
     articleCard: { backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', cursor: 'pointer', transition: 'box-shadow 0.2s', ':hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.05)' } },
     articleMeta: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' },
-    publisherLogo: (color) => ({ width: '28px', height: '28px', backgroundColor: color, borderRadius: '50%', color: '#fff', textAlign: 'center', lineHeight: '28px', fontSize: '11px', fontWeight: 'bold' }),
+    publisherLogo: (color) => ({ width: '28px', height: '28px', backgroundColor: color, borderRadius: '50%', color: '#fff', textAlign: 'center', lineHeight: '28px', fontSize: '11px', fontWeight: 'bold', position: 'relative', overflow: 'hidden', flexShrink: 0 }),
+    publisherLogoImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#ffffff', borderRadius: '50%' },
     publisher: { fontWeight: 'bold', fontSize: '15px', color: '#202124' },
     date: { color: '#80868b', fontSize: '13px' },
     articleTitle: { fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#202124' },
@@ -455,7 +460,10 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                   <div key={`${group.key}-${res.articleId ?? res.title ?? i}`} style={styles.articleCard} onClick={() => onArticleClick(res.articleId ?? i + 1, res)}>
                     <div style={{ flex: 1, paddingRight: '40px' }}>
                       <div style={styles.articleMeta}>
-                        <div style={styles.publisherLogo(res.color)}>{res.logo}</div>
+                        <div style={styles.publisherLogo(res.color)}>
+                          {res.logo}
+                          {res.logoUrl && <img src={res.logoUrl} alt={`${res.pub} 로고`} style={styles.publisherLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
+                        </div>
                         <span style={styles.publisher}>{res.pub}</span>
                         <span style={styles.date}>{res.date}</span>
                         <span style={styles.sourceBadge(res.sourceLabel)}>{res.sourceLabel}</span>
@@ -567,7 +575,10 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               >
                 <div style={{ flex: 1, paddingRight: '40px' }}>
                   <div style={styles.articleMeta}>
-                    <div style={styles.publisherLogo(res.color)}>{res.logo}</div>
+                    <div style={styles.publisherLogo(res.color)}>
+                      {res.logo}
+                      {res.logoUrl && <img src={res.logoUrl} alt={`${res.pub} 로고`} style={styles.publisherLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
+                    </div>
                     <span style={styles.publisher}>{res.pub}</span>
                     <span style={styles.date}>{res.date}</span>
                     <span style={styles.sourceBadge(res.sourceLabel)}>{res.sourceLabel}</span>

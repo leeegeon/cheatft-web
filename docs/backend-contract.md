@@ -17,6 +17,7 @@
 - 프론트는 API 성공 후 빈 배열을 받으면 프론트 목업을 섞지 않고 빈 상태를 보여주는 방향으로 보강했다.
 - 검증하기 검색 결과는 API 성공 시 백엔드 결과만 표시한다. 2026-07-15 이후 검증하기의 API 실패/미설정 프론트 더미데이터 fallback도 제거됐다.
 - 검증하기 언론사 표기는 백엔드 `src/services/checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 `src/utils/press.js`에서 정규화한다.
+- 2026-07-15 추가 보강으로 프론트는 알려진 oid에 네이버 `office_logo` 로고 URL을 매핑하고, `언론사(021)` 같은 미매핑 fallback 문자열은 브라우저 `localStorage`에 관측 목록으로 누적한다. 이는 백엔드에 전달할 보완 목록 수집용이며 서버 저장은 아니다.
 - `/algo`는 보호 라우트로 변경했다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
 - 배포 기준 `POST /api/login`은 현재 `UserModel.findByEmail is not a function` 오류가 확인됐다. 로컬 `src/models/user.model.js`가 user model이 아니라 checks model 코드로 되어 있는 것이 원인으로 보인다. 같은 이유로 `POST /api/signup`, 토큰이 있는 `GET /api/me`도 정상 사용자 모델 계약을 만족하지 못할 가능성이 높다.
@@ -82,6 +83,8 @@
 - `VerificationView.jsx`는 `GET /checks/{id}` 결과의 `articles` 항목에서 언론사 필드를 다음 후보 순서로 읽는다: `press`, `pressName`, `publisher`, `mediaName`.
 - 2026-07-15 이후 `press`가 숫자 또는 숫자 문자열이면 백엔드 `PRESS_MAPPING`의 oid 기준으로 매핑한다. 예: `056` -> `KBS`, `047` -> `오마이뉴스`.
 - `언론사(047)`처럼 백엔드 fallback 문자열에 oid가 들어간 경우도 같은 표로 보정한다.
+- `언론사(021)`처럼 프론트 표에 없는 fallback 문자열이 실제 화면 데이터에 등장하면 `recordObservedPress()`가 `localStorage` key `cheat-ft-observed-press-map`에 `021: "언론사(021)"` 형태로 저장한다. 백엔드 담당자에게 전달할 때는 브라우저 Console에서 `cheatFtPressList()`를 실행해 `021 - 언론사(021)` 형태로 복사한다.
+- 이 저장은 `http://localhost:3001`, `http://localhost:5173`, 배포 도메인처럼 origin별로 분리된다. `localStorage`이므로 일반 창을 닫아도 유지되지만, 시크릿 모드 종료/사이트 데이터 삭제/`cheatFtClearPressList()` 실행 시 사라진다.
 - 화면 필터 매핑:
   - `방송/통신사`: 연합뉴스, 뉴시스, 뉴스1, KBS, MBC, SBS, YTN
   - `종합지`: 한겨레, 경향신문, 조선일보, 중앙일보, 동아일보
@@ -164,6 +167,22 @@
 - 화면 구조:
   - `교육 & 정보`는 `커뮤니티`로 이름이 바뀌었고 공지사항/가이드/튜토리얼 항목은 제거됐다.
   - 마이페이지 화면과 `/mypage` 라우트는 제거됐다.
+
+## 2026-07-15 표시/로고 보강 계약 메모
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 프론트는 알려진 언론사 oid에 대해 네이버 언론사 홈의 `office_logo` CDN URL을 사용한다. 예: `056` -> KBS 로고, `047` -> 오마이뉴스 로고.
+- 장기 계약 권장:
+  - 백엔드가 `pressId` 또는 `oid`를 명시 반환한다.
+  - 가능하면 `pressName`, `pressId`, `pressLogoUrl`을 함께 반환한다.
+  - 프론트가 이름별 수동 매핑을 늘리지 않아도 되도록 `press`에는 정규화된 언론사명 또는 oid 문자열 중 하나를 안정적으로 제공한다.
+- 단기 프론트 동작:
+  - `press/pressName/publisher/mediaName` 후보에서 oid/name을 정규화한다.
+  - 로고 URL이 있으면 이미지를 표시하고, 이미지 로드 실패 또는 미매핑이면 기존 텍스트 배지를 표시한다.
+  - 미매핑 fallback oid는 `localStorage`에 관측 목록으로 저장한다.
+- API 문자열 표시:
+  - 네이버/백엔드 응답에 HTML entity가 남아 `&quot;`처럼 보일 수 있어 프론트 `cleanDisplayText()`가 표시 전에 디코딩한다.
+  - 백엔드에서도 가능하면 `title`, `description`, `summary`, `content`는 HTML entity와 태그를 제거한 plain text로 내려주는 것을 권장한다.
   - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역은 제거됐다.
 
 ## 공통 응답

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getSummary } from '../../services/cheatftApi.js';
+import { cleanDisplayText } from '../../utils/text.js';
 import homeFactScale from '../../assets/home-fact-scale.png';
 
 function getCheckTitle(check) {
-  return check?.title || check?.query || check?.content || '제목 없음';
+  return cleanDisplayText(check?.title || check?.query || check?.content, '제목 없음');
 }
 
 function normalizeResult(result) {

@@ -1,4 +1,5 @@
 import { useLocation, useParams } from 'react-router-dom';
+import { cleanDisplayText } from '../../utils/text.js';
 
 function getStoredArticle(id) {
   try {
@@ -21,11 +22,11 @@ function getDisplayArticle(article, isNews) {
   }
 
   return {
-    title: article?.title || '선택한 뉴스 정보를 찾을 수 없습니다.',
-    author: article?.pub || article?.press || article?.publisher || '언론사 미상',
+    title: cleanDisplayText(article?.title, '선택한 뉴스 정보를 찾을 수 없습니다.'),
+    author: cleanDisplayText(article?.pub || article?.press || article?.publisher, '언론사 미상'),
     date: article?.date || '날짜 미상',
     views: article?.viewCount ? article.viewCount.toLocaleString('ko-KR') : '-',
-    body: article?.desc || article?.summary || article?.description || '목록에서 전달된 기사 요약이 없습니다.',
+    body: cleanDisplayText(article?.desc || article?.summary || article?.description, '목록에서 전달된 기사 요약이 없습니다.'),
     url: article?.url,
     score: article?.score || '-',
     scoreText: article?.scoreText || '확인중',

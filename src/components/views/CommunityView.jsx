@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getPosts } from '../../services/cheatftApi.js';
+import { cleanDisplayText } from '../../utils/text.js';
 
 function formatDateTime(value) {
   if (!value) return '';
@@ -18,10 +19,10 @@ function formatDateTime(value) {
 function mapApiPost(post) {
   return {
     id: post.id,
-    type: post.category || '정보 공유',
-    title: post.title,
-    desc: post.content || '백엔드에서 반환한 커뮤니티 게시글입니다. 상세 본문 API가 확정되면 본문 요약을 표시합니다.',
-    author: post.author,
+    type: cleanDisplayText(post.category, '정보 공유'),
+    title: cleanDisplayText(post.title, '제목 없음'),
+    desc: cleanDisplayText(post.content, '백엔드에서 반환한 커뮤니티 게시글입니다. 상세 본문 API가 확정되면 본문 요약을 표시합니다.'),
+    author: cleanDisplayText(post.author, '작성자 미상'),
     date: formatDateTime(post.createdAt),
     views: Number(post.views ?? 0).toLocaleString(),
     comments: Number(post.commentCount ?? 0).toLocaleString(),

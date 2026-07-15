@@ -76,8 +76,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부 처리.
 - `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
-- `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화와 화면 필터 분류.
+- `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, 화면 필터 분류, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적.
 - `src/utils/search.js`: 검색어 trim과 `/search?q=...` URL 생성.
+- `src/utils/text.js`: API 표시 문자열의 HTML entity 디코딩과 HTML 태그 제거.
 - `tests/search.test.js`: `normalizeSearchQuery`, `buildSearchPath` 단위 테스트.
 - `cheatft_web/docs/backend-handoff.md`: 프론트 관점 백엔드 협의 메모. 실제 최신 매핑은 `cheatft_web/docs/backend-contract.md`와 함께 볼 것.
 
@@ -117,12 +118,16 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - 검색 결과는 백엔드 API 결과만 표시한다. 프론트 더미데이터 fallback, 예시 검색 버튼, URL 링크 검색 탭은 제거됐다.
   - 결과 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`를 제공한다.
   - `src/utils/press.js`를 통해 백엔드 `PRESS_MAPPING`의 oid/name 표를 언론사명으로 변환한다. `언론사(047)` 같은 fallback 문자열도 처리한다.
+  - 언론사 로고 URL이 있으면 네이버 `office_logo` 이미지를 표시하고, 실패하면 기존 텍스트 배지를 표시한다.
+  - `언론사(021)`처럼 미매핑 fallback 문자열이 등장하면 `recordObservedPress()`로 브라우저 `localStorage`에 누적한다. Console에서 `cheatFtPressList()`로 백엔드 전달용 목록을 복사한다.
+  - `cleanDisplayText()`로 `&quot;` 같은 HTML entity를 표시 전에 디코딩한다.
   - 정렬은 `최신순`, `조회수순`, `연관도순`을 제공한다. 백엔드 응답 필드가 있으면 `viewCount/views/readCount`, `relevanceScore/relevance/similarity`를 사용한다.
   - 검색어 없는 초기 화면 카드와 검색 결과 카드 클릭은 제목 재검색이 아니라 `onArticleClick()`을 통해 `/article/:id` 뉴스 상세로 이동한다.
 
 - `DetailView.jsx`
   - 뉴스 상세와 커뮤니티 상세을 `type` prop으로 구분한다.
   - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽어 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 표시한다.
+  - 뉴스 상세 제목/본문은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역은 제거됐다.
   - 직접 id 조회 API는 아직 없다. 저장된 기사 정보가 없으면 선택한 뉴스 정보를 찾을 수 없다는 상태를 보여준다.
   - 커뮤니티 상세은 아직 placeholder 성격이 남아 있다. 커뮤니티 상세/댓글 API도 없음.
@@ -132,7 +137,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - 분석 버튼에서 `runAnalysis()`로 `POST /analysis`와 `GET /analysis/{id}`를 호출한다.
   - `relatedArticles`, `counterArticles`, `insights`, `summaryStats`를 우선 사용하고 실패 시 목업을 사용한다.
   - 기사 변환에서 `description`, `publishedAt/createdAt/date`, `press/pressName/publisher/mediaName` 후보를 처리한다.
-  - 언론사는 `src/utils/press.js`의 `getPressLabel()`로 백엔드 oid/name 표에 맞춰 정규화한다.
+  - 언론사는 `src/utils/press.js`의 `getPressLabel()`로 백엔드 oid/name 표에 맞춰 정규화하고, `getPressLogoUrl()` 로고 이미지와 `recordObservedPress()` 미매핑 oid 관측 저장을 사용한다.
+  - API 기사 제목/설명은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 관련/반박 기사 또는 인사이트 배열이 비어 있으면 목업을 섞지 않고 빈 상태/빈 안내를 표시한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 상단 안내로 구분한다.
 
@@ -140,6 +146,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `expandedId`, `innerTab`으로 리포트 펼침/요약 탭 제어.
   - `getReports()`로 `totalStats`, `reports`, `pagination`을 가져오고 실패 시 기존 목업을 사용한다.
   - 검색어, 날짜 필터, 신뢰도 필터를 `keyword`, `date`, `score` query parameter로 전달한다.
+  - 주요 출처는 `getPressLabel()`, `getPressLogoUrl()`, `recordObservedPress()`를 사용한다. API 리포트 제목/요약은 `cleanDisplayText()`로 디코딩한다.
   - API 성공 후 `reports`가 비어 있으면 빈 리포트 상태를 표시하고, 실패 시에만 기존 리포트 목업을 사용한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 상단 안내로 구분한다.
 
@@ -147,6 +154,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `tab` query param으로 상단/사이드 탭 상태를 공유한다.
   - `getPosts()`로 게시글과 `communityStats`를 가져오고 실패 시 기존 목업을 사용한다.
   - 탭/카테고리/검색어/페이지를 `category`, `keyword`, `page`, `limit` query parameter로 전달한다.
+  - API 게시글 제목/본문/작성자/카테고리는 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 `posts`가 비어 있으면 빈 게시글 상태를 표시하고, 실패 시에만 기존 커뮤니티 목업을 사용한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 목록 상단 안내로 구분한다.
   - 정보 공유 탭 외에는 준비중 placeholder.
@@ -324,6 +332,27 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `npm run lint` 통과
   - `npm test` 통과
   - Codex 번들 Node 기반 `vite build` 통과
+
+## 2026-07-15 이번 창 언론사 로고/표시 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `src/utils/press.js`
+  - 네이버 언론사 홈에서 확인한 `office_logo` CDN URL을 백엔드 `PRESS_MAPPING` 18개 oid에 매핑했다.
+  - `getPressOid()`, `getPressLogoUrl()`, `recordObservedPress()`를 추가했다.
+  - `언론사(021)`처럼 미매핑 fallback 문자열이 API 데이터에 나타나면 `localStorage` key `cheat-ft-observed-press-map`에 누적한다.
+  - Console 헬퍼 `cheatFtPressList()`, `cheatFtPressMap()`, `cheatFtClearPressList()`를 노출한다.
+- `src/components/views/VerificationView.jsx`, `AlgoView.jsx`, `ReportView.jsx`
+  - 언론사 배지에 로고 이미지 표시를 추가하고, 실패 시 기존 텍스트 배지를 유지한다.
+  - API 결과 매핑 중 `recordObservedPress()`로 미매핑 oid를 저장한다.
+- `src/utils/text.js`
+  - API 문자열 표시용 `decodeHtmlEntities()`, `cleanDisplayText()`를 추가했다.
+  - `&quot;`, `&amp;`, `&#39;`, `&apos;`, `&lt;`, `&gt;`, `&nbsp;`를 디코딩하고 남은 HTML 태그를 제거한다.
+- `src/components/views/HomeView.jsx`, `VerificationView.jsx`, `AlgoView.jsx`, `ReportView.jsx`, `CommunityView.jsx`, `DetailView.jsx`
+  - API 제목/요약/본문/상세 표시 문자열에 `cleanDisplayText()`를 적용했다.
+- 검증 결과:
+  - `npm run lint` 통과
+  - `npm test` 통과
+  - Codex 번들 Node 기반 `npm run build` 통과
 
 ## Git 주의
 
