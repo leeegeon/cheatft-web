@@ -1,0 +1,34 @@
+name: Frontend Auto Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v7
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: '24.18.0' # 서버의 노드 버전에 따라 수정
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Create .env file for build
+      run: |
+        echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env.local
+
+    - name: Build Project
+      run: npm run build
+
+    - name: Deploy and Restart PM2
+      run: |
+        rsync -a --delete dist/ /home/leegeon/cheatft/cheatft-web/dist/
+        pm2 restart cheat-ft
