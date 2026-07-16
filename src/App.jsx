@@ -10,13 +10,14 @@ import LoginView from './components/views/LoginView.jsx';
 import SignupView from './components/views/SignupView.jsx';
 import CommunityWriteView from './components/views/CommunityWriteView.jsx';
 import NotFoundView from './components/views/NotFoundView.jsx';
-import { clearAccessToken, getAccessToken } from './services/apiClient.js';
+import { clearAccessToken, clearCurrentUser, getAccessToken, getCurrentUser } from './services/apiClient.js';
 import { buildSearchPath, normalizeSearchQuery } from './utils/search.js';
 import cheatftLogo from './assets/cheatft-logo.png';
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(getAccessToken()));
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
 
   const handleSearch = (query) => {
     if (!normalizeSearchQuery(query)) return;
@@ -30,17 +31,29 @@ export default function App() {
     navigate(`/article/${id}`, { state: { article } });
   };
 
-  const handleLogin = () => {
+  const handleLogin = (session) => {
     setIsLoggedIn(true);
+    setCurrentUser(getCurrentUser() || {
+      id: session?.userId ?? session?.id ?? null,
+      email: session?.email ?? '',
+      nickname: session?.nickname ?? '',
+    });
   };
 
   const handleLogout = () => {
     clearAccessToken();
+    clearCurrentUser();
     setIsLoggedIn(false);
+    setCurrentUser(null);
     if (location.pathname === '/community/write' || location.pathname === '/algo') {
       navigate('/');
     }
   };
+
+  const userDisplayName = currentUser?.nickname?.trim()
+    || currentUser?.name?.trim()
+    || currentUser?.email?.split('@')[0]
+    || '사용자';
 
   const requireLogin = (element) => (
     isLoggedIn
@@ -57,6 +70,7 @@ export default function App() {
     navLinks: { display: 'flex', gap: '32px', height: '100%' },
     navRight: { display: 'flex', alignItems: 'center', gap: '16px' },
     iconBtn: { background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#5f6368', padding: '8px' },
+    userName: { maxWidth: '160px', overflow: 'hidden', color: '#202124', fontSize: '14px', fontWeight: '700', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
     loginBtn: { background: '#ffffff', border: '1px solid #dadce0', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#3c4043', fontSize: '14px', whiteSpace: 'nowrap', flexShrink: 0 },
     signupBtn: { backgroundColor: '#0056d2', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#ffffff', fontSize: '14px', whiteSpace: 'nowrap', flexShrink: 0 },
     main: { flex: 1, backgroundColor: '#ffffff', color: '#000000', overflowY: 'auto', position: 'relative' }
@@ -120,6 +134,7 @@ export default function App() {
             </>
           ) : isLoggedIn ? (
             <>
+              <span style={styles.userName} title={userDisplayName}>{userDisplayName}</span>
               <button style={{...styles.loginBtn, color: '#ea4335', borderColor: '#ea4335'}} onClick={handleLogout}>로그아웃</button>
             </>
           ) : (

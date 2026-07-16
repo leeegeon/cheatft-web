@@ -1,6 +1,7 @@
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || ''
 const API_BASE_URL = configuredBaseUrl.replace(/\/$/, '')
 const ACCESS_TOKEN_KEY = 'cheat-ft-access-token'
+const CURRENT_USER_KEY = 'cheat-ft-current-user'
 
 export class ApiError extends Error {
   constructor(message, { status = 0, code = 'UNKNOWN', details = null } = {}) {
@@ -28,6 +29,28 @@ export function setAccessToken(token) {
 
 export function clearAccessToken() {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
+}
+
+export function getCurrentUser() {
+  const storedUser = localStorage.getItem(CURRENT_USER_KEY)
+  if (!storedUser) return null
+
+  try {
+    return JSON.parse(storedUser)
+  } catch {
+    localStorage.removeItem(CURRENT_USER_KEY)
+    return null
+  }
+}
+
+export function setCurrentUser(user) {
+  if (user) {
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user))
+  }
+}
+
+export function clearCurrentUser() {
+  localStorage.removeItem(CURRENT_USER_KEY)
 }
 
 export async function apiRequest(path, options = {}) {

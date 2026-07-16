@@ -37,6 +37,11 @@
 - `cheatft_web/src/components/views/LoginView.jsx` 수정:
   - 로그인 요청 전 password 앞뒤 공백 제거
   - 프론트 로그인 성공 조건은 그대로 `data.accessToken` 존재 여부
+- `cheatft_web/src/services/apiClient.js`, `src/services/cheatftApi.js`, `src/App.jsx` 수정:
+  - 로그인 성공 시 `accessToken`과 별도로 현재 사용자 정보를 `localStorage` key `cheat-ft-current-user`에 저장한다.
+  - 저장 후보 필드는 `userId/id`, `email`, `nickname`이며, `user.nickname` 같은 중첩 응답도 받는다.
+  - 상단 nav에는 `nickname`, `name`, 이메일 앞부분, `사용자` 순서로 표시 이름을 선택해 보여준다.
+  - 로그아웃 시 `cheat-ft-access-token`과 `cheat-ft-current-user`를 함께 삭제한다.
 - 프론트 테스트용 실제 계정:
   - 이메일: `codex.test.20260716@example.com`
   - 닉네임: `Codex테스트0716`
@@ -249,7 +254,7 @@
 | 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
 | 커뮤니티 작성 | `CommunityWriteView.jsx` | `POST /api/posts` | 보호 라우트, 등록 버튼에서 API 요청 |
 | 커뮤니티 상세 | `DetailView.jsx` | 명세 없음 | `/community/:id` placeholder |
-| 로그인 | `LoginView.jsx`, `App.jsx` | `POST /api/login` | accessToken 저장 후 로그인 상태 반영, 보호 라우트에서 온 경우 원래 경로 복귀 |
+| 로그인 | `LoginView.jsx`, `App.jsx` | `POST /api/login` | accessToken과 현재 사용자 정보 저장 후 로그인 상태 반영, 상단 닉네임 표시, 보호 라우트에서 온 경우 원래 경로 복귀 |
 | 회원가입 | `SignupView.jsx` | `POST /api/signup` | 입력 검증 후 성공 시 로그인 화면으로 이동 |
 | 마이페이지 | 제거됨 | `GET /api/profile` | 프론트 화면/라우트 제거. 백엔드 endpoint 자체는 공개 dummy dashboard 응답으로 남아 있음 |
 | 내 정보 | 미사용 | `GET /api/me` | 프론트 미연결. 백엔드는 Bearer token 필요 |

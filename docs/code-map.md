@@ -69,13 +69,14 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `package.json`: 실행/검증 스크립트와 의존성.
 - `vite.config.js`: React plugin, dev server `port: 3001`, `allowedHosts: ["cheatft.leegeon.com"]` 설정.
 - `eslint.config.js`: JS recommended, React Hooks, React Refresh 설정. `dist`는 ignore.
-- `index.html`: Vite HTML 진입점.
+- `index.html`: Vite HTML 진입점. 문서 제목은 `Cheat F/T`, favicon은 `public/favicon.png`를 참조한다.
 - `src/main.jsx`: `BrowserRouter`로 `App`을 감싸서 렌더링.
-- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심.
+- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심.
 - `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일.
 - `src/App.css`: 현재 비어 있음.
-- `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부 처리.
-- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
+- `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
+- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
+- `public/favicon.png`: 브라우저 주소창/탭용 Cheat F/T 아이콘. 첨부 이미지의 흰 배경을 투명 처리한 PNG.
 - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, 화면 필터 분류, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적.
 - `src/utils/search.js`: 검색어 trim과 `/search?q=...` URL 생성.
 - `src/utils/text.js`: API 표시 문자열의 HTML entity 디코딩과 HTML 태그 제거.
@@ -198,6 +199,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 - 백엔드 명세는 `{ status, message, data }` 래핑 응답이며, 도메인 서비스 함수는 `apiData`로 `data` 중심 값을 반환한다.
 - 인증 토큰은 `localStorage`의 `cheat-ft-access-token` 키에 저장한다.
+- 현재 사용자 표시용 정보는 `localStorage`의 `cheat-ft-current-user` 키에 저장한다. `nickname`을 우선 표시하고, 없으면 `name`, 이메일 앞부분, `사용자` 순서로 fallback한다.
 - API 오류 응답의 `code`, `details`는 프론트 handoff 제안에는 있지만 `cheatft_api/README.md`에는 아직 없음.
 
 ## cheatft_api
@@ -353,6 +355,33 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `npm run lint` 통과
   - `npm test` 통과
   - Codex 번들 Node 기반 `npm run build` 통과
+
+## 2026-07-16 상단 사용자 표시/favicon 변경
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `src/services/apiClient.js`
+  - `cheat-ft-current-user` localStorage key를 추가했다.
+  - `getCurrentUser()`, `setCurrentUser()`, `clearCurrentUser()`를 추가했다.
+  - 저장값 JSON 파싱 실패 시 해당 key를 삭제하고 `null`을 반환한다.
+- `src/services/cheatftApi.js`
+  - 로그인 성공 시 `accessToken` 저장과 함께 `userId/id`, `email`, `nickname` 후보를 현재 사용자 정보로 저장한다.
+  - 백엔드가 `nickname`을 직접 주거나 `user.nickname` 형태로 주는 경우를 모두 받는다.
+- `src/App.jsx`
+  - 저장된 토큰과 현재 사용자 정보로 초기 로그인 상태를 만든다.
+  - 로그인 후 오른쪽 상단에 닉네임을 표시하고, 로그아웃 시 토큰과 현재 사용자 정보를 함께 삭제한다.
+  - 표시 이름은 `nickname`, `name`, 이메일 앞부분, `사용자` 순서로 fallback한다.
+- `index.html`
+  - `lang="ko"`로 변경했다.
+  - 브라우저 탭 제목을 `news-project`에서 `Cheat F/T`로 변경했다.
+  - favicon 참조를 `/favicon.png`로 변경했다.
+- `public/favicon.png`
+  - 사용자가 제공한 Cheat F/T 돋보기 아이콘 이미지를 주소창 아이콘용 PNG로 추가했다.
+  - 흰색/거의 흰색 배경은 투명 처리했고 512x512 캔버스에 약간의 여백을 뒀다.
+- 검증:
+  - `npm run lint`: 통과
+  - `npm test`: 통과
+  - 일반 셸 Node의 `npm run build`: 기존 Vite/Node 네이티브 종료 이슈로 `41 modules transformed` 이후 exit 1 재현
+  - Codex 번들 Node 기반 `npm run build`: 통과
 
 ## Git 주의
 

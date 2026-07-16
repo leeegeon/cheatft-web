@@ -1,4 +1,4 @@
-import { apiData, setAccessToken } from './apiClient.js'
+import { apiData, setAccessToken, setCurrentUser } from './apiClient.js'
 
 function buildPath(path, params = {}) {
   const query = new URLSearchParams()
@@ -26,6 +26,11 @@ export async function login(credentials) {
 
   if (session?.accessToken) {
     setAccessToken(session.accessToken)
+    setCurrentUser({
+      id: session.userId ?? session.id ?? session.user?.id ?? null,
+      email: session.email ?? session.user?.email ?? credentials.email,
+      nickname: session.nickname ?? session.user?.nickname ?? '',
+    })
   }
 
   return session

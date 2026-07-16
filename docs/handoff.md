@@ -36,12 +36,39 @@
 - API 응답이 성공했지만 배열이 비어 있으면 해당 빈 상태를 그대로 보여주며 프론트 목업을 섞지 않는다. 검증하기 검색 결과는 API 실패 시에도 프론트 더미데이터를 섞지 않고 오류/빈 상태를 보여준다.
 - 현재 API 기본 URL: `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
-- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다.
+- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다.
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
 - 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
 - API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-07-16 상단 사용자 표시/favicon 변경
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 백엔드 요청사항으로 로그인 후 오른쪽 상단에 현재 사용자 이름을 표시하도록 프론트만 보강했다.
+- `cheatft_web/src/services/apiClient.js`
+  - `cheat-ft-current-user` localStorage key를 추가했다.
+  - `getCurrentUser()`, `setCurrentUser()`, `clearCurrentUser()`를 추가했다.
+  - JSON 파싱 실패 시 저장값을 삭제하고 `null`을 반환한다.
+- `cheatft_web/src/services/cheatftApi.js`
+  - 로그인 성공 시 `accessToken` 저장과 함께 `userId/id`, `email`, `nickname` 후보를 현재 사용자 정보로 저장한다.
+  - `session.nickname`과 `session.user.nickname` 형태를 모두 받는다.
+- `cheatft_web/src/App.jsx`
+  - 저장된 토큰과 현재 사용자 정보로 로그인 초기 상태를 만든다.
+  - 로그인 후 nav 오른쪽에 닉네임을 표시한다.
+  - 표시 이름 fallback은 `nickname`, `name`, 이메일 앞부분, `사용자` 순서다.
+  - 로그아웃 시 accessToken과 현재 사용자 정보를 함께 삭제한다.
+- 주소창/탭 표시:
+  - `cheatft_web/index.html`의 `lang`을 `ko`, title을 `Cheat F/T`로 변경했다.
+  - favicon 참조를 `/favicon.png`로 바꿨다.
+  - `cheatft_web/public/favicon.png`는 사용자가 제공한 Cheat F/T 돋보기 아이콘 이미지의 흰 배경을 투명 처리한 512x512 PNG다.
+  - 기존 `public/favicon.svg`는 남아 있지만 현재 `index.html`에서는 사용하지 않는다.
+- 검증:
+  - `npm run lint` 통과
+  - `npm test` 통과
+  - 일반 셸 Node의 `npm run build`는 기존 Vite/Node 네이티브 종료 이슈로 `41 modules transformed` 이후 exit 1 재현
+  - Codex 번들 Node 기반 `npm run build` 통과
 
 ## 2026-07-16 배포/인증 점검 및 로그인 회원가입 보강
 

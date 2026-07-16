@@ -14,6 +14,8 @@
 
 2026-07-16 추가 작업으로 배포 프론트가 여전히 Vite dev HTML을 서빙하는 문제를 다시 확인하고, 운영 배포 점검법을 `cheatft_web/README.md`에 추가했다. 백엔드 pull 후 user model 복구를 읽기 전용으로 확인했고, 로그인/회원가입 흐름을 실제 배포 API 계정으로 검증했다. 실수로 백엔드 컨트롤러를 수정했으나 사용자 요청으로 원상복구했으며, 이후 원칙은 `cheatft_api` 절대 수정 금지다.
 
+2026-07-16 추가 작업으로 로그인 후 오른쪽 상단에 현재 사용자 닉네임을 표시하도록 프론트 세션 저장을 보강했다. 또한 브라우저 탭 제목을 `Cheat F/T`로 바꾸고, 사용자가 제공한 Cheat F/T 돋보기 이미지를 흰 배경이 투명한 `public/favicon.png`로 만들어 주소창 아이콘에 적용했다.
+
 ## 핵심 설계
 
 - `.env.local`의 `VITE_API_BASE_URL`을 API 기본 URL로 사용한다.
@@ -46,6 +48,13 @@
 - 프론트 로그인:
   - `cheatft_web/src/components/views/LoginView.jsx`에서 로그인 요청 전 password 앞뒤 공백을 trim한다.
   - 이메일은 기존처럼 trim한다.
+  - `cheatft_web/src/services/apiClient.js`에 현재 사용자 정보 저장/조회/삭제 유틸을 추가했다.
+  - `cheatft_web/src/services/cheatftApi.js`는 로그인 성공 시 `accessToken`과 함께 `nickname/email/userId` 후보를 `localStorage`에 저장한다.
+  - `cheatft_web/src/App.jsx`는 로그인 후 오른쪽 상단에 닉네임을 표시하고, 로그아웃 시 토큰과 현재 사용자 정보를 함께 삭제한다.
+- 브라우저 표시:
+  - `cheatft_web/index.html`의 title을 `news-project`에서 `Cheat F/T`로 변경하고 `lang="ko"`를 적용했다.
+  - 주소창 favicon은 `/favicon.png`를 사용한다.
+  - `cheatft_web/public/favicon.png`는 사용자가 제공한 아이콘 이미지의 흰 배경을 투명 처리한 512x512 PNG다.
 - 배포 API 테스트 계정:
   - 이메일: `codex.test.20260716@example.com`
   - 닉네임: `Codex테스트0716`
@@ -62,6 +71,7 @@
   - `cheatft_web`: `npm run lint` 통과
   - `cheatft_web`: `npm test` 통과
   - `cheatft_web`: Codex 번들 Node로 `vite build` 통과
+  - 일반 셸 Node의 `npm run build`는 기존 Vite/Node 네이티브 종료 이슈로 `41 modules transformed` 이후 exit 1 재현
 
 ## 추가/수정 파일
 

@@ -1,6 +1,6 @@
 # Cheat F/T 문서 색인
 
-마지막 갱신: 2026-07-15
+마지막 갱신: 2026-07-16
 
 이 폴더는 `cheatft_web`과 로컬 `cheatft_api`를 이어 작업할 때 보는 기준 문서 모음이다. 새 작업을 시작할 때는 전체 스캔보다 아래 순서를 우선한다.
 
@@ -20,7 +20,8 @@
 
 - `cheatft_api`는 Express/PostgreSQL/JWT 백엔드 구현체이지만, Codex는 수정하지 않는다. 필요한 경우 읽기 전용으로만 확인하고, 로그인/회원가입 구현 같은 요청도 프론트 범위에서 처리한다.
 - `summary/reports/posts/profile`은 dummy controller 응답이고, `auth/checks/analysis`는 실제 라우트/서비스/DB 흐름을 사용한다.
-- `/api/login`, `/api/signup`, `/api/me`는 현재 `src/models/user.model.js`가 auth service 계약과 맞지 않아 정상 동작하지 않을 가능성이 높다.
-- 2026-07-15 최신 프론트 보강: 언론사 로고 표시, `언론사(021)` 같은 미매핑 oid의 `localStorage` 관측 저장, API 문자열 HTML entity 디코딩은 `handoff.md`, `code-map.md`, `backend-contract.md`, `api-integration-log.md` 최신 섹션에 정리돼 있다.
+- 2026-07-16 기준 `/api/login`, `/api/signup`, `/api/me`는 백엔드 user model 복구 후 배포 API에서 테스트 계정으로 동작 확인했다.
+- 2026-07-16 최신 프론트 보강: 로그인 후 상단 사용자 닉네임 표시, 현재 사용자 정보 `localStorage` 저장, 브라우저 탭 제목과 투명 배경 favicon 교체는 `handoff.md`, `code-map.md`, `backend-contract.md`, `api-integration-log.md` 최신 섹션에 정리돼 있다.
+- 2026-07-15 프론트 보강: 언론사 로고 표시, `언론사(021)` 같은 미매핑 oid의 `localStorage` 관측 저장, API 문자열 HTML entity 디코딩은 관련 문서에 정리돼 있다.
 - 루트 `.git`은 2026-07-15 확인 기준 git 저장소로 동작하지 않는다. `cheatft_web`, `cheatft_api`의 git 명령은 Codex sandbox 사용자 기준 `dubious ownership`가 발생할 수 있다.
 - `.understand-anything/`은 2026-07-15 전체 스캔 산출물이며 일반 맥락 파악 때는 다시 훑지 않는다.
