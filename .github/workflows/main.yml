@@ -1,1 +1,30 @@
-# Later to be improvised, this is just a placeholder yet
+name: Frontend Auto Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.18.0' # 서버의 노드 버전에 따라 수정
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Build Project
+      run: npm run build
+
+    - name: Deploy and Restart PM2
+      run: |
+        rsync -a --delete dist/ /home/leegeon/cheatft/cheatft-web/dist/
+        pm2 restart cheat-ft
