@@ -3,7 +3,7 @@
 마지막 갱신: 2026-07-16
 마지막 전체 프로젝트 스캔: 2026-07-15
 
-새 채팅에서 이어받을 때는 이 파일을 먼저 읽고, 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다. `cheatft_web`과 `cheatft_api`는 2026-07-15 기준 전체 텍스트 소스/문서를 다시 확인해 문서들에 요약해 두었다. 같은 날 `understand` 스킬 pre-flight/scan을 실행해 92개 파일을 스캔했고, `.understand-anything/` 분석 산출물 폴더가 생성됐다.
+새 채팅에서 이어받을 때는 루트 `AGENTS.md` → `cheatft_web/AGENTS.md` → 이 파일 순서로 본다. 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다.
 
 ## 현재 상태
 
@@ -19,13 +19,19 @@
 
 ## 빠른 시작 절차
 
-1. `cheatft_web/docs/handoff.md`를 읽는다.
-2. 문서 역할을 먼저 확인해야 하면 `cheatft_web/docs/README.md`를 읽는다.
-3. 코드 위치나 화면 구조가 필요하면 `cheatft_web/docs/code-map.md`를 읽는다.
-4. API 연동이나 백엔드와의 계약 확인이 필요하면 `cheatft_web/docs/backend-contract.md`와 `cheatft_web/docs/api-integration-log.md`를 읽는다.
-5. 프론트 실행/환경변수 중심이면 `cheatft_web/README.md`도 읽는다.
-6. 실제 구현 확인이 필요한 파일만 추가로 연다.
-7. 백엔드 확인이 필요하면 `cheatft_api`의 관련 파일을 읽기 전용으로만 확인한다. `cheatft_api`는 수정하지 않는다.
+1. 루트 `AGENTS.md`와 `cheatft_web/AGENTS.md`의 고정 지침을 우선한다.
+2. `cheatft_web/docs/handoff.md`를 읽는다.
+3. 필요할 때만 `docs/README.md`, `code-map.md`, `backend-contract.md`, `api-integration-log.md`, `cheatft_web/README.md`를 추가로 읽는다.
+4. 실제 구현 확인이 필요한 파일만 추가로 연다.
+5. 백엔드 확인이 필요하면 `cheatft_api`의 관련 파일을 읽기 전용으로만 확인한다. `cheatft_api`는 절대 수정하지 않는다.
+
+## 문서 갱신 원칙
+
+- 프론트 동작, 라우트, 배포, 환경변수, API 연동, 인증 흐름, 주요 제약을 바꾸면 `cheatft_web/README.md`도 매번 함께 갱신한다.
+- 세부 작업 인수인계는 `cheatft_web/docs/handoff.md`, 파일 위치/구조는 `code-map.md`, API 계약은 `backend-contract.md`, 작업 검증 로그는 `api-integration-log.md`에 같이 반영한다.
+- `cheatft_web/README.md`는 외부/팀원이 바로 보는 실행·배포·현재 제약 요약이고, `cheatft_web/docs/*`는 Codex 인수인계와 세부 작업 기록으로 본다.
+- 반복 시작 프롬프트로 매번 전달하던 규칙은 `cheatft_web/AGENTS.md`에 고정한다. 규칙이 바뀌면 이 파일도 함께 갱신한다.
+- 사용자가 `종료`라고만 말하면 작업 마무리 요청으로 보고, 이번 창 변경사항을 확인한 뒤 필요한 `README.md`, `AGENTS.md`, `docs/*.md`를 최신화하고 한글 push용 제목/내용을 전달한다.
 
 ## 프론트엔드 요약
 
