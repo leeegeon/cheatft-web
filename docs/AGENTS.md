@@ -6,12 +6,12 @@
 
 ## 프로젝트 성격
 
-이 폴더는 동아리 프로젝트 작업 공간이다. 현재 핵심 개발 대상은 `cheatft_web` 프론트엔드이며, 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체이다. 백엔드는 확인 가능하지만, 명시 요청 없이는 수정하지 않는다. 현재 API 기본 주소는 `https://cheatft.leegeon.com/api`이다. 그 외 `회의록`, `자료`, `파일`, `세미나`는 회의/발표/자료 보관 성격이 강하다.
+이 폴더는 동아리 프로젝트 작업 공간이다. 현재 핵심 개발 대상은 `cheatft_web` 프론트엔드이며, 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체이다. 백엔드는 확인 가능하지만, Codex는 `cheatft_api`를 수정하지 않는다. 로그인/회원가입 구현처럼 표현이 넓은 요청도 프론트만 수정한다. 현재 API 기본 주소는 `https://cheatft.leegeon.com/api`이다. 그 외 `회의록`, `자료`, `파일`, `세미나`는 회의/발표/자료 보관 성격이 강하다.
 
 ## 주요 폴더
 
 - `cheatft_web/`: Cheat F/T React 프론트엔드. Vite 기반이며 API 우선 호출, 실패 시 목업 fallback 구조.
-- `cheatft_api/`: Express 백엔드 API 구현체. 읽기/확인은 가능하되 프론트 작업 중에는 수정하지 않는다.
+- `cheatft_api/`: Express 백엔드 API 구현체. 읽기/확인만 가능하며 수정하지 않는다.
 - `회의록/`: 회의록 문서와 변환된 Markdown 자료.
 - `자료/`: 기획안/가이드 PDF 등 참고 자료.
 - `파일/`: 사진과 기타 문서 자료.
@@ -55,5 +55,5 @@ npm run check
 
 ```text
 전체 스캔하지 말고 cheatft_web/docs/handoff.md, cheatft_web/docs/code-map.md, cheatft_web/docs/backend-contract.md, cheatft_web/docs/api-integration-log.md만 먼저 읽고 현재 맥락을 파악해줘.
-프론트 실행이나 환경변수 확인이 필요할 때만 cheatft_web/README.md도 읽고, 실제 구현 확인이 필요한 파일만 추가로 열어봐. 백엔드 cheatft_api는 확인 가능하지만, 명시 요청 없이는 수정하지 마.
+프론트 실행이나 환경변수 확인이 필요할 때만 cheatft_web/README.md도 읽고, 실제 구현 확인이 필요한 파일만 추가로 열어봐. 백엔드 cheatft_api는 확인 가능하지만 수정하지 마. 로그인/회원가입 구현처럼 말해도 프론트만 수정해.
 ```

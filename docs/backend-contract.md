@@ -1,6 +1,6 @@
 # 프론트-백엔드 계약 지도
 
-마지막 갱신: 2026-07-15
+마지막 갱신: 2026-07-16
 기준 문서: `cheatft_api/src`, `cheatft_api/README.md`, `cheatft_web/docs/backend-handoff.md`, `cheatft_web/src`
 
 이 문서는 `cheatft_web` 화면과 `cheatft_api` 구현/명세를 빠르게 맞춰보기 위한 요약이다. 실제 동작은 `cheatft_api/src`를 우선 확인하고, README는 보조 명세로 본다.
@@ -8,6 +8,7 @@
 ## 현재 결론
 
 - 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체이다.
+- Codex는 `cheatft_api`를 수정하지 않는다. 백엔드는 계약 확인을 위해 읽기 전용으로만 참고하고, 로그인/회원가입 구현 요청도 프론트 범위에서만 처리한다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다.
 - `summary/reports/posts/profile`은 여전히 dummy controller 기반 응답이며, `checks/analysis/auth`는 실제 라우트/서비스/모델 흐름을 탄다.
 - 프론트는 주요 화면에서 실제 API를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시한다.
@@ -20,9 +21,40 @@
 - 2026-07-15 추가 보강으로 프론트는 알려진 oid에 네이버 `office_logo` 로고 URL을 매핑하고, `언론사(021)` 같은 미매핑 fallback 문자열은 브라우저 `localStorage`에 관측 목록으로 누적한다. 이는 백엔드에 전달할 보완 목록 수집용이며 서버 저장은 아니다.
 - `/algo`는 보호 라우트로 변경했다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
-- 배포 기준 `POST /api/login`은 현재 `UserModel.findByEmail is not a function` 오류가 확인됐다. 로컬 `src/models/user.model.js`가 user model이 아니라 checks model 코드로 되어 있는 것이 원인으로 보인다. 같은 이유로 `POST /api/signup`, 토큰이 있는 `GET /api/me`도 정상 사용자 모델 계약을 만족하지 못할 가능성이 높다.
+- 2026-07-16 기준 `UserModel.findByEmail is not a function` 오류는 백엔드 pull 이후 로컬/배포 API에서 해결된 것으로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
 - `GET /api/health`는 서버 상태 확인 라우트로 존재한다.
 - 기존 `cheatft_web/docs/backend-handoff.md`는 회의 전 제안 문서라 `/auth/login`, `/fact-checks` 같은 다른 경로가 섞여 있었다. 현재 연결 상태와 향후 협의는 아래 매핑을 기준으로 본다.
+
+## 2026-07-16 인증/배포 계약 메모
+
+- 백엔드 pull 후 `cheatft_api/src/models/user.model.js`는 사용자 모델로 복구됐다.
+  - `findByEmail(email)`: `SELECT * FROM users WHERE email = $1`
+  - `createUser(email, password, nickname)`: bcrypt hash 저장 후 `id, email, nickname, level, user_title, created_at` 반환
+  - `findById(id)`: password를 제외한 사용자 기본 정보 반환
+- `cheatft_api/src/controllers/auth.controller.js`는 실수로 수정했다가 사용자 요청으로 즉시 원상복구했다.
+  - 최종 상태 기준 백엔드 소스 변경은 남기지 않는다.
+  - 이후 원칙: `cheatft_api`는 어떤 경우에도 수정하지 않고 읽기 전용으로만 확인한다.
+- `cheatft_web/src/components/views/LoginView.jsx` 수정:
+  - 로그인 요청 전 password 앞뒤 공백 제거
+  - 프론트 로그인 성공 조건은 그대로 `data.accessToken` 존재 여부
+- 프론트 테스트용 실제 계정:
+  - 이메일: `codex.test.20260716@example.com`
+  - 닉네임: `Codex테스트0716`
+  - 비밀번호: `Test!20260716#Codex`
+  - 배포 API에서 생성/로그인/`GET /api/me` 확인 완료
+- 배포 API 관측:
+  - `POST /api/signup`: 위 계정 생성 시 `201`
+  - `POST /api/login`: 위 계정 로그인 시 `200`, `data.accessToken`, `userId: 2`, `nickname: Codex테스트0716`
+  - `GET /api/me`: 발급 토큰으로 `200`
+  - `OPTIONS /api/login`: `204`, CORS 허용 헤더 확인
+- 배포 프론트 관측:
+  - `https://cheatft.leegeon.com/`은 아직 Vite dev HTML을 서빙한다.
+  - 정상 운영 배포는 `cheatft_web/dist` 산출물이 web root가 되어야 한다.
+  - 운영 HTML에 `/@vite/client`, `/src/main.jsx`, `/@react-refresh`가 있으면 잘못 배포된 상태다.
+  - `/assets/*.js` 또는 `/assets/*.css`가 `<!doctype html>`로 시작하면 정적 파일 대신 SPA fallback이 내려오는 상태다.
+- 검증:
+  - `cheatft_api`: `npm ci` 후 인증 모듈 로드 확인 통과
+  - `cheatft_web`: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과
 
 ## 2026-07-05 프론트 구현 요약
 
@@ -121,7 +153,7 @@
 - `analysis.routes.js`의 `POST /analysis`, `GET /analysis/:id`는 `verifyToken`을 요구한다.
 - `checks.service.js`는 `PRESS_MAPPING` 표를 갖고, Naver `link/title/description/pubDate`를 article로 저장한다. `originallink`는 현재 저장하지 않는다.
 - `dummy.controller.js`는 `summary/reports/posts/profile` 계열 응답을 제공한다.
-- `auth.service.js`는 `UserModel.findByEmail/createUser/findById`를 기대하지만, 현재 `src/models/user.model.js`는 checks model 함수만 export한다.
+- 2026-07-15 당시 `auth.service.js`는 `UserModel.findByEmail/createUser/findById`를 기대했지만, 당시 `src/models/user.model.js`는 checks model 함수만 export했다. 2026-07-16 pull 이후 user model은 복구됐다.
 - `analysis.service.js`는 실제 추천 알고리즘 분석이라기보다 고정 stats, 기사 2개, insight 2개를 DB에 저장하는 DB-backed stub이다.
 - `checks.service.js`는 Node 전역 `fetch`를 사용하므로 백엔드 실행 환경은 Node 18 이상을 전제로 한다.
 
@@ -131,7 +163,7 @@
 - `GET https://cheatft.leegeon.com/api/profile`: 200.
 - `GET https://cheatft.leegeon.com/api/me`: 토큰 없이 401.
 - `GET https://cheatft.leegeon.com/api/checks/452`: 새 DB 백엔드 기준 404.
-- `POST https://cheatft.leegeon.com/api/login`: `401 {"status":401,"message":"UserModel.findByEmail is not a function"}`.
+- 2026-07-15 당시 `POST https://cheatft.leegeon.com/api/login`: `401 {"status":401,"message":"UserModel.findByEmail is not a function"}`. 2026-07-16에는 테스트 계정 로그인 200을 확인했다.
 - `https://cheatft.leegeon.com/`은 200이지만 Vite dev HTML(`/@vite/client`, `/src/main.jsx`)을 서빙했고, 배포 프론트는 최신 로컬 프론트 수정 전 상태로 보였다.
 
 프론트 반영:

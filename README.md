@@ -35,6 +35,29 @@ npm run check
 
 `npm run check`는 ESLint, 단위 테스트, 프로덕션 빌드를 순서대로 실행합니다.
 
+## 운영 배포
+
+운영 서버에는 프로젝트 루트가 아니라 `npm run build`로 생성된 `dist/` 안의 파일을 배포합니다. 정상 배포된 첫 화면 HTML에는 `/@vite/client`, `/src/main.jsx`, `/@react-refresh`가 없어야 하며, `/assets/index-*.js`와 `/assets/index-*.css`를 참조해야 합니다.
+
+```powershell
+cd C:\Users\eunhy\Desktop\동아리\cheatft_web
+fnm use
+npm run build
+```
+
+서버의 web root 또는 nginx `root`는 `cheatft_web/dist`를 가리키게 합니다. React Router 새로고침을 위해 존재하지 않는 프론트 경로는 `dist/index.html`로 fallback하되, 실제 `/assets/*` 파일은 HTML fallback이 아니라 JS/CSS 파일로 내려와야 합니다.
+
+운영 점검 예시:
+
+```powershell
+(Invoke-WebRequest https://cheatft.leegeon.com/ -UseBasicParsing).Content
+$r = Invoke-WebRequest https://cheatft.leegeon.com/assets/index-파일명.js -UseBasicParsing
+$r.Headers['Content-Type']
+$r.Content.Substring(0, 80)
+```
+
+루트 HTML에 `/@vite/client`가 보이거나 `/assets/*.js` 응답이 `<!doctype html>`로 시작하면 개발용 HTML 또는 SPA fallback이 잘못 서빙되는 상태입니다.
+
 ## 환경변수
 
 `.env.example`을 `.env.local`로 복사한 뒤 백엔드 주소를 설정합니다.

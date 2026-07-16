@@ -31,7 +31,7 @@ C:\Users\eunhy\Desktop\동아리
 
 ## cheatft_web 개요
 
-Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 리포트/커뮤니티/알고리즘 분석 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, 프론트 작업 중에는 명시 요청 없이는 수정하지 않는다.
+Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 리포트/커뮤니티/알고리즘 분석 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
 
 기술 스택:
 
@@ -202,7 +202,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 ## cheatft_api
 
-현재 로컬 백엔드는 Express/PostgreSQL/JWT 기반 Node 프로젝트이다. 프론트 작업 중에는 읽기 전용으로 확인하고, 명시 요청 없이는 수정하지 않는다.
+현재 로컬 백엔드는 Express/PostgreSQL/JWT 기반 Node 프로젝트이다. Codex는 읽기 전용으로만 확인하고 수정하지 않는다. 로그인/회원가입 구현처럼 표현이 넓은 요청도 프론트만 수정한다.
 
 주요 구조:
 

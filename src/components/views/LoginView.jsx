@@ -50,7 +50,7 @@ export default function LoginView({ onLogin }) {
     setErrorMessage('');
 
     try {
-      const session = await login({ email: email.trim(), password });
+      const session = await login({ email: email.trim(), password: password.trim() });
       if (!session?.accessToken) {
         setErrorMessage('로그인 응답에 accessToken이 없습니다. 백엔드 응답 형식을 확인해주세요.');
         return;

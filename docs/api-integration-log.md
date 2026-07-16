@@ -1,8 +1,8 @@
 # API 연동 작업 로그
 
-마지막 갱신: 2026-07-15
+마지막 갱신: 2026-07-16
 대상: `cheatft_web`
-백엔드 폴더 수정 여부: 수정하지 않음
+백엔드 폴더 수정 여부: 최종 상태 기준 수정하지 않음. 2026-07-16 실수로 인증 컨트롤러를 수정했으나 즉시 원상복구함.
 
 ## 작업 목적
 
@@ -11,6 +11,8 @@
 2026-07-12 추가 작업으로 검증하기 검색 결과는 백엔드 API 결과와 프론트 더미데이터를 구분해서 함께 보여주도록 바뀌었다. 로그인/회원가입은 입력 검증과 보호 라우트 흐름을 보강했다.
 
 2026-07-15 추가 작업으로 실제 백엔드 코드의 `PRESS_MAPPING`, 인증 요구사항, 배포 API 관측값을 반영해 프론트 검증/알고리즘 화면을 다시 조정했다. 이후 이번 창에서 홈/검증하기의 프론트 더미 fallback, URL 링크 검색, 마이페이지 화면을 제거했고, 검증하기 카드 클릭은 뉴스 상세로 연결했다.
+
+2026-07-16 추가 작업으로 배포 프론트가 여전히 Vite dev HTML을 서빙하는 문제를 다시 확인하고, 운영 배포 점검법을 `cheatft_web/README.md`에 추가했다. 백엔드 pull 후 user model 복구를 읽기 전용으로 확인했고, 로그인/회원가입 흐름을 실제 배포 API 계정으로 검증했다. 실수로 백엔드 컨트롤러를 수정했으나 사용자 요청으로 원상복구했으며, 이후 원칙은 `cheatft_api` 절대 수정 금지다.
 
 ## 핵심 설계
 
@@ -21,9 +23,45 @@
 - 로그인 accessToken은 `localStorage`의 `cheat-ft-access-token`에 저장한다.
 - 저장된 토큰은 이후 요청에 `Authorization: Bearer ...`로 첨부한다.
 - `/community/write`, `/algo`는 로그인 필요 화면으로 처리한다. `/mypage` 화면/라우트는 2026-07-15에 제거됐다.
-- 로컬 `cheatft_api`는 현재 Express/PostgreSQL/JWT 기반 백엔드 구현체이다. 프론트 작업 중에는 확인 가능하지만 수정하지 않는다.
+- 로컬 `cheatft_api`는 현재 Express/PostgreSQL/JWT 기반 백엔드 구현체이다. 프론트 작업 중에는 읽기 전용 확인만 가능하며 수정하지 않는다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다.
 - `summary/reports/posts/profile`은 dummy controller 응답이고, `checks/analysis/auth`는 실제 라우트/서비스/DB 흐름을 사용한다.
+
+## 2026-07-16 배포/인증 추가 반영
+
+- 배포 프론트 문제:
+  - `https://cheatft.leegeon.com/`은 여전히 Vite dev HTML(`/@vite/client`, `/src/main.jsx`, `/@react-refresh`)을 서빙한다.
+  - `/src/services/apiClient.js`는 404다.
+  - `/assets/index-*.js`, `/assets/index-*.css`도 실제 정적 파일이 아니라 HTML fallback으로 내려오는 상태를 확인했다.
+  - 운영 서버는 `cheatft_web` 프로젝트 루트가 아니라 `cheatft_web/dist`를 web root로 서빙해야 한다.
+- `cheatft_web/README.md`:
+  - `운영 배포` 섹션을 추가했다.
+  - 루트 HTML에 `/@vite/client`가 보이면 개발용 HTML 배포 상태라고 명시했다.
+  - `/assets/*.js` 응답이 `<!doctype html>`로 시작하면 SPA fallback 또는 web root 설정이 잘못된 상태라고 명시했다.
+- 백엔드 인증 확인:
+  - pull 이후 `cheatft_api/src/models/user.model.js`에 `findByEmail`, `createUser`, `findById`가 복구된 것을 확인했다.
+  - 실수로 `cheatft_api/src/controllers/auth.controller.js`를 수정했으나 즉시 원상복구했다.
+  - 앞으로 `cheatft_api`는 어떤 경우에도 수정하지 않고 읽기 전용으로만 확인한다.
+  - 회원가입 성공 응답은 password hash를 노출하지 않는다.
+- 프론트 로그인:
+  - `cheatft_web/src/components/views/LoginView.jsx`에서 로그인 요청 전 password 앞뒤 공백을 trim한다.
+  - 이메일은 기존처럼 trim한다.
+- 배포 API 테스트 계정:
+  - 이메일: `codex.test.20260716@example.com`
+  - 닉네임: `Codex테스트0716`
+  - 비밀번호: `Test!20260716#Codex`
+  - 생성 응답: `201`, `userId: 2`, `level: 1`, `user_title: 신규 사용자`
+  - 로그인 응답: `200`, `data.accessToken` 수신 확인
+  - `/api/me` 응답: `200`, 사용자 정보 조회 확인
+- 로컬 프론트 확인:
+  - `http://localhost:3001/src/services/apiClient.js`에 `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`가 주입되는 것을 확인했다.
+  - 로컬 로그인 폼은 `https://cheatft.leegeon.com/api/login`으로 `{ email, password }`를 전송한다.
+  - 사용자가 실제 브라우저에서 위 테스트 계정으로 로그인 성공을 확인했다.
+- 검증:
+  - `cheatft_api`: `npm ci` 후 인증 모듈 로드 확인을 했으나, 이후 생성된 `node_modules/`를 삭제하고 백엔드 수정분을 원상복구했다.
+  - `cheatft_web`: `npm run lint` 통과
+  - `cheatft_web`: `npm test` 통과
+  - `cheatft_web`: Codex 번들 Node로 `vite build` 통과
 
 ## 추가/수정 파일
 

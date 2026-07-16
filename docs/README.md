@@ -18,7 +18,7 @@
 
 ## 현재 주의점
 
-- `cheatft_api`는 Express/PostgreSQL/JWT 백엔드 구현체이지만, 사용자가 명시적으로 요청하기 전에는 수정하지 않는다.
+- `cheatft_api`는 Express/PostgreSQL/JWT 백엔드 구현체이지만, Codex는 수정하지 않는다. 필요한 경우 읽기 전용으로만 확인하고, 로그인/회원가입 구현 같은 요청도 프론트 범위에서 처리한다.
 - `summary/reports/posts/profile`은 dummy controller 응답이고, `auth/checks/analysis`는 실제 라우트/서비스/DB 흐름을 사용한다.
 - `/api/login`, `/api/signup`, `/api/me`는 현재 `src/models/user.model.js`가 auth service 계약과 맞지 않아 정상 동작하지 않을 가능성이 높다.
 - 2026-07-15 최신 프론트 보강: 언론사 로고 표시, `언론사(021)` 같은 미매핑 oid의 `localStorage` 관측 저장, API 문자열 HTML entity 디코딩은 `handoff.md`, `code-map.md`, `backend-contract.md`, `api-integration-log.md` 최신 섹션에 정리돼 있다.

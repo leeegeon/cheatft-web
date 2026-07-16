@@ -128,7 +128,7 @@
 - 목업 데이터는 추후 `src/mocks/` 또는 `src/data/`로 분리 예정
 
 `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`처럼 `/api`까지 포함하면 프론트 서비스 함수는 `apiRequest('/login')`처럼 호출해야 합니다. `apiRequest('/api/login')`로 작성하면 `/api/api/login`이 됩니다.
-2026-07-15 현재 로컬 `../../cheatft_api`는 Express/PostgreSQL/JWT 기반 실제 백엔드 구현체입니다. 다만 실행에는 의존성, 환경변수, PostgreSQL 연결이 필요하고, 프론트 작업 중에는 명시 요청 없이는 수정하지 않습니다. 최신 실제 관측값과 프론트 반영 내용은 `./backend-contract.md`를 우선 확인하세요.
+2026-07-15 현재 로컬 `../../cheatft_api`는 Express/PostgreSQL/JWT 기반 실제 백엔드 구현체입니다. 다만 실행에는 의존성, 환경변수, PostgreSQL 연결이 필요하고, Codex는 `cheatft_api`를 수정하지 않습니다. 최신 실제 관측값과 프론트 반영 내용은 `./backend-contract.md`를 우선 확인하세요.
 
 ## 2026-07-10 배포 더미 API 확인
 
