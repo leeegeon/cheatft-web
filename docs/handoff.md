@@ -1,6 +1,6 @@
 # Handoff
 
-마지막 갱신: 2026-07-16
+마지막 갱신: 2026-07-19
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 새 채팅에서 이어받을 때는 루트 `AGENTS.md` → `cheatft_web/AGENTS.md` → 이 파일 순서로 본다. 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다.
@@ -32,6 +32,13 @@
 - `cheatft_web/README.md`는 외부/팀원이 바로 보는 실행·배포·현재 제약 요약이고, `cheatft_web/docs/*`는 Codex 인수인계와 세부 작업 기록으로 본다.
 - 반복 시작 프롬프트로 매번 전달하던 규칙은 `cheatft_web/AGENTS.md`에 고정한다. 규칙이 바뀌면 이 파일도 함께 갱신한다.
 - 사용자가 `종료`라고만 말하면 작업 마무리 요청으로 보고, 이번 창 변경사항을 확인한 뒤 필요한 `README.md`, `AGENTS.md`, `docs/*.md`를 최신화하고 한글 push용 제목/내용을 전달한다.
+- 종료 답변의 push용 내용은 파일명 나열보다 변경 의도 중심의 2~4줄로 작성한다. 점 목록으로 렌더링되지 않도록 코드블록 안에서 각 줄이 하이픈(`-`)으로 시작하게 한다.
+
+```text
+- cheatft_web/AGENTS.md에 시작/종료 처리와 백엔드 수정 금지 원칙 강화
+- docs 문서의 중복 지침을 줄이고 최신 지침 위치로 정리
+- README와 handoff에 문서 갱신 및 종료 처리 규칙 반영
+```
 
 ## 프론트엔드 요약
 
@@ -48,6 +55,28 @@
 - API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-07-19 신뢰도 분석 UI 흐름 조정
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 상단 nav에서 `/report` 진입 시 보이던 `리포트 내보내기` 버튼을 제거했다.
+- 상단 nav에서 `/community` 진입 시 보이던 알림/`글 작성하기` 전용 버튼도 제거해 `/report`와 `/community`가 다른 화면과 같은 상단바를 쓰도록 통일했다.
+- `cheatft_web/src/components/views/AlgoView.jsx`를 수정했다.
+  - 기존 단일 키워드 입력/분석 버튼 흐름을 질문 입력 → 추천 키워드 제시 → 키워드 칩 선택 시 분석 API 호출 흐름으로 바꿨다.
+  - 추천 키워드는 현재 프론트에서 질문 문장을 정리해 5개 이하로 생성한다. 실제 분석 API 호출은 사용자가 추천 키워드 칩을 누를 때만 실행한다.
+  - `POST /analysis`, `GET /analysis/{id}` API 호출 구조와 실패 시 목업 fallback 구조는 유지했다.
+  - 메인 영역에서 `AI 주요 인사이트`와 `신뢰도 분석 요약`을 관련 뉴스/반박 기사 탭보다 위로 올렸다.
+  - 관련 뉴스/반박 기사는 인사이트 아래의 서브 섹션으로 배치했다.
+- `AlgoView.jsx`의 `분석 리포트 다운로드` 버튼을 제거했다.
+- `cheatft_web/src/components/views/ReportView.jsx`를 수정했다.
+  - `총 검색 시간` 통계 카드를 제거하고 통계 그리드를 3칸으로 재정렬했다.
+  - 상세 확장 영역의 `전체 요약 다운로드` 버튼을 제거했다.
+  - 리포트 메인 영역 배경, 헤더 카드, 툴바, 리포트 카드 테두리/그림자를 정돈했다.
+- `cheatft_web/src/components/views/CommunityView.jsx`를 수정했다.
+  - 커뮤니티 `글 작성하기` 버튼을 전역 상단바에서 커뮤니티 목록 상단의 검색/필터 영역으로 옮겼다.
+  - 오른쪽 `정정 요청하기` 배너 버튼도 `/community/write`로 이동하도록 연결했다.
+  - `키뮤니티 참여 현황` 오타를 `커뮤니티 참여 현황`으로 수정했다.
+- 검증: `npm run lint` 통과.
 
 ## 2026-07-16 상단 사용자 표시/favicon 변경
 
@@ -116,6 +145,16 @@
   - 비밀번호: `Test!20260716#Codex`
   - 배포 API에서 실제 생성된 계정이며 `userId: 2`, `level: 1`, `user_title: 신규 사용자`.
   - 이 계정은 앞으로 프론트 로그인/보호 라우트 테스트에 사용한다.
+
+## 2026-07-16 문서 지침 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `cheatft_web/AGENTS.md`에 종료 답변의 push용 내용 작성 방식을 추가했다.
+  - 파일명만 나열하지 않고 실제 변경 의도를 2~4줄로 요약한다.
+  - 점 목록이 아니라 코드블록 안에서 `-`로 시작하는 줄 형태로 출력하도록 명시했다.
+- `cheatft_web/docs/AGENTS.md`는 세부 규칙을 반복하지 않고 최신 지침 위치를 안내하는 최소 문서로 정리했다.
+- `cheatft_web/docs/README.md`, `cheatft_web/README.md`, `cheatft_web/docs/handoff.md`에 문서 갱신 및 종료 처리 규칙과 push용 내용 작성 기준을 반영했다.
+- 검증: 문서만 수정했으므로 lint/test/build는 실행하지 않았다.
 
 ## 2026-07-15 전체 스캔/문서 최신화
 

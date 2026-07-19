@@ -10,6 +10,14 @@ Codex 작업 시작 시 반복해서 전달하던 규칙은 `AGENTS.md`에 고�
 
 작업을 마무리할 때 사용자가 `종료`라고만 말하면 Codex는 이번 창의 변경 내용을 정리하고, 필요한 `README.md`, `AGENTS.md`, `docs/*.md` 문서를 최신화한 뒤 한글 push용 제목과 내용을 제공합니다.
 
+종료 답변의 push용 내용은 변경 파일 목록만 쓰지 않고 실제 의도를 2~4줄로 요약합니다. 점 목록으로 렌더링되지 않도록 코드블록 안에서 각 줄을 하이픈(`-`)으로 시작하게 작성합니다.
+
+```text
+- cheatft_web/AGENTS.md에 시작/종료 처리와 백엔드 수정 금지 원칙 강화
+- docs 문서의 중복 지침을 줄이고 최신 지침 위치로 정리
+- README와 handoff에 문서 갱신 및 종료 처리 규칙 반영
+```
+
 ## 실행 환경
 
 - Node.js 22 LTS 권장 (`.nvmrc` 제공)
@@ -88,7 +96,7 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 |---|---|---|
 | 홈 | `GET /summary` | 프론트 더미 fallback 없음 |
 | 검증하기 | `POST /checks`, `GET /checks/{id}`, 기본 화면 `GET /summary` | 프론트 더미 fallback 없음 |
-| 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 기존 분석 결과 목업 |
+| 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 질문 입력 후 추천 키워드 선택 시 분석 호출, 기존 분석 결과 목업 |
 | 리포트 | `GET /reports?keyword=&date=&score=&page=&limit=` | 기존 리포트 목록 목업 |
 | 커뮤니티 | `GET /posts?category=&keyword=&page=&limit=` | 기존 게시글/참여 현황 목업 |
 | 글 작성 | `POST /posts` | 실패 시 오류, 임시 저장 가능 |
@@ -128,6 +136,9 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 - 검증하기는 텍스트 검색만 지원합니다. URL 링크 검색 탭은 제거됐습니다.
 - 검증하기 카드와 최신 팩트체크 카드는 제목 재검색이 아니라 `/article/:id` 뉴스 상세로 이동합니다.
 - 뉴스 상세는 클릭한 기사 객체를 route state와 `sessionStorage`로 받아 표시합니다. 직접 URL 진입이나 저장 정보 없는 새로고침을 완전히 지원하려면 별도 상세 API가 필요합니다.
+- 신뢰도 분석(`/algo`)은 질문을 입력하면 프론트에서 추천 키워드 칩을 제시하고, 사용자가 키워드를 선택할 때 `POST /analysis`, `GET /analysis/{id}`를 호출합니다. 화면은 AI 주요 인사이트와 분석 요약을 관련 뉴스보다 먼저 보여줍니다.
+- 팩트체크 리포트(`/report`)는 상단 리포트 내보내기, 총 검색 시간, 요약 다운로드 버튼을 표시하지 않습니다. 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 중심으로 보여줍니다.
+- 커뮤니티와 팩트체크 리포트는 전역 상단바를 다른 화면과 동일하게 사용합니다. 커뮤니티 글 작성 버튼은 상단바가 아니라 커뮤니티 목록 상단의 검색/필터 영역에 표시합니다.
 - 2026-07-16 확인 기준 `GET /summary`, `POST /login`, `GET /me`는 배포 API에서 정상 응답이 관측되었습니다. 기존 더미 `GET /checks/452`는 새 DB 기반 라우트에서는 404가 관측되었습니다.
 - 리포트 목록은 `keyword`, `date`, `score`, `page`, `limit` query parameter를 `GET /reports`에 전달합니다.
 - 커뮤니티 목록은 `category`, `keyword`, `page`, `limit` query parameter를 `GET /posts`에 전달합니다.

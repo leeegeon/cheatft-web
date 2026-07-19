@@ -21,22 +21,57 @@ function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
   };
 }
 
+function buildKeywordSuggestions(question) {
+  const normalizedQuestion = cleanDisplayText(question, '')
+    .replace(/[?!.,/#!$%^&*;:{}=\-_`~()[\]"'<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalizedQuestion) return [];
+
+  const stopWords = new Set(['그리고', '하지만', '관련', '대한', '으로', '에서', '에게', '까지', '부터', '하면', '인가', '정말', '진짜']);
+  const words = normalizedQuestion
+    .split(' ')
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 2 && !stopWords.has(word));
+
+  const suggestions = [
+    normalizedQuestion,
+    words.slice(0, 3).join(' '),
+    words.slice(0, 2).join(' '),
+    words[0] ? `${words[0]} 팩트체크` : '',
+    words[1] ? `${words[1]} 신뢰도` : '',
+    words.length > 2 ? `${words[0]} ${words[words.length - 1]}` : '',
+  ];
+
+  return [...new Set(suggestions.filter(Boolean))].slice(0, 5);
+}
+
 export default function AlgoView() {
   const [activeTab, setActiveTab] = useState('related');
-  const [keyword, setKeyword] = useState('백신 부작용 사망자 급증?');
+  const [question, setQuestion] = useState('백신 부작용 사망자 급증?');
+  const [keyword, setKeyword] = useState('백신 부작용 사망자 급증');
+  const [suggestedKeywords, setSuggestedKeywords] = useState(() => buildKeywordSuggestions('백신 부작용 사망자 급증?'));
   const [period, setPeriod] = useState(1);
   const [analysisData, setAnalysisData] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState('fallback');
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
-  const analyze = () => {
-    if (!keyword.trim()) return;
+  const suggestKeywords = () => {
+    setApiError('');
+    setSuggestedKeywords(buildKeywordSuggestions(question));
+  };
 
+  const analyze = (nextKeyword = keyword) => {
+    const trimmedKeyword = nextKeyword.trim();
+    if (!trimmedKeyword) return;
+
+    setKeyword(trimmedKeyword);
     setIsLoading(true);
     setApiError('');
     setAnalysisStatus('loading');
-    runAnalysis({ keyword: keyword.trim(), period, limit: 4 })
+    runAnalysis({ keyword: trimmedKeyword, period, limit: 4 })
       .then((data) => {
         setAnalysisData(data || {});
         setAnalysisStatus('done');
@@ -61,7 +96,21 @@ export default function AlgoView() {
     cardDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px' },
     inputLabel: { display: 'block', fontSize: '14px', color: '#3c4043', marginBottom: '8px', fontWeight: 'bold' },
     input: { width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', marginBottom: '16px', boxSizing: 'border-box', outline: 'none' },
-    primaryBtn: { width: '100%', padding: '12px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '16px' },
+    questionInput: { width: '100%', minHeight: '108px', padding: '14px 16px', borderRadius: '12px', border: '1px solid #dadce0', fontSize: '14px', lineHeight: '1.5', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', resize: 'vertical' },
+    primaryBtn: { width: '100%', padding: '12px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '12px' },
+    keywordPanel: { paddingTop: '8px', borderTop: '1px solid #f1f3f4', marginBottom: '16px' },
+    keywordTitle: { fontSize: '13px', fontWeight: 'bold', color: '#3c4043', marginBottom: '10px' },
+    keywordChips: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
+    keywordChip: (isActive) => ({
+      padding: '8px 11px',
+      borderRadius: '999px',
+      border: isActive ? '1px solid #0056d2' : '1px solid #dadce0',
+      backgroundColor: isActive ? '#e8f0fe' : '#ffffff',
+      color: isActive ? '#0056d2' : '#3c4043',
+      fontSize: '13px',
+      fontWeight: '700',
+      cursor: 'pointer',
+    }),
     selectRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' },
     select: { padding: '8px 12px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '13px', outline: 'none' },
     
@@ -128,14 +177,14 @@ export default function AlgoView() {
     emptyState: { gridColumn: '1 / -1', padding: '40px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
 
     // Bottom Insight
-    bottomLayout: { display: 'flex', gap: '24px', marginTop: '16px' },
-    insightBox: { flex: 1.5, backgroundColor: '#f8f9fa', borderRadius: '12px', border: '1px solid #e0e0e0', padding: '24px' },
-    insightTitle: { fontSize: '16px', fontWeight: 'bold', color: '#202124', marginBottom: '16px' },
+    bottomLayout: { display: 'flex', alignItems: 'flex-start', gap: '24px', marginTop: '0' },
+    insightBox: { flex: 1.5, backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #d2e3fc', padding: '28px', boxShadow: '0 8px 24px rgba(26,115,232,0.06)' },
+    insightTitle: { fontSize: '20px', fontWeight: '800', color: '#202124', marginBottom: '16px' },
     insightList: { margin: 0, paddingLeft: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' },
     insightItem: { display: 'flex', gap: '12px', fontSize: '14px', color: '#3c4043', lineHeight: '1.5', alignItems: 'flex-start' },
     
-    summaryBox: { flex: 1, backgroundColor: '#f0f4fd', borderRadius: '12px', border: '1px solid #d2e3fc', padding: '24px' },
-    summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '20px' },
+    summaryBox: { flex: 1, alignSelf: 'flex-start', backgroundColor: '#f0f4fd', borderRadius: '12px', border: '1px solid #d2e3fc', padding: '24px' },
+    summaryRow: { display: 'flex', justifyContent: 'space-between' },
     statItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
     statLabel: { fontSize: '13px', color: '#5f6368' },
     statValue: { fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' },
@@ -196,12 +245,41 @@ export default function AlgoView() {
       <div style={styles.sidebar}>
         <div style={styles.card}>
           <div style={styles.cardTitle}>질문하기 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
-          <div style={styles.cardDesc}>분석하고 싶은 주제를 질문해보세요.</div>
-          <input style={styles.input} value={keyword} onChange={(event) => setKeyword(event.target.value)} />
-          <button type="button" style={styles.primaryBtn} onClick={analyze} disabled={isLoading}>
+          <div style={styles.cardDesc}>분석하고 싶은 내용을 먼저 질문하면, 아래에 검색할 키워드를 제안합니다.</div>
+          <textarea
+            style={styles.questionInput}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                suggestKeywords();
+              }
+            }}
+            placeholder="예: 백신 부작용으로 사망자가 급증했다는 주장이 사실인가요?"
+            aria-label="분석 질문"
+          />
+          <button type="button" style={styles.primaryBtn} onClick={suggestKeywords}>
             <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
-            {isLoading ? '분석 중...' : '분석하기'}
+            키워드 추천
           </button>
+          <div style={styles.keywordPanel}>
+            <div style={styles.keywordTitle}>추천 키워드</div>
+            <div style={styles.keywordChips}>
+              {suggestedKeywords.length === 0 ? (
+                <span style={{ fontSize: '13px', color: '#80868b' }}>질문을 입력하면 키워드가 표시됩니다.</span>
+              ) : suggestedKeywords.map((suggestedKeyword) => (
+                <button
+                  type="button"
+                  key={suggestedKeyword}
+                  style={styles.keywordChip(keyword === suggestedKeyword)}
+                  onClick={() => analyze(suggestedKeyword)}
+                  disabled={isLoading}
+                >
+                  {suggestedKeyword}
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={styles.selectRow}>
             <span style={{color:'#5f6368'}}>기간 설정</span>
             <select style={styles.select} value={period} onChange={(event) => setPeriod(Number(event.target.value))}>
@@ -288,23 +366,65 @@ export default function AlgoView() {
           </div>
         </div>
 
-        <div style={styles.tabContainer}>
-          <div style={styles.tabBtn(activeTab === 'related')} onClick={() => setActiveTab('related')}>
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-            관련 뉴스 ({displayRelatedList.length})
+        <div style={styles.bottomLayout}>
+          <div style={styles.insightBox}>
+             <div style={styles.insightTitle}>AI 주요 인사이트</div>
+             <ul style={styles.insightList}>
+               {displayInsights.length === 0 ? (
+                 <li style={styles.insightItem}><span style={{color:'#80868b', fontSize:'16px'}}>•</span> 백엔드에서 받은 인사이트가 없습니다.</li>
+               ) : displayInsights.map((insight) => (
+                 <li key={insight} style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> {insight}</li>
+               ))}
+             </ul>
           </div>
-          <div style={styles.tabBtn(activeTab === 'unrelated')} onClick={() => setActiveTab('unrelated')}>
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
-            비연관 검색어 (반박 기사) ({displayCounterList.length})
+          
+          <div style={styles.summaryBox}>
+             <div style={{...styles.insightTitle, color:'#1a73e8'}}>신뢰도 분석 요약</div>
+             <div style={styles.summaryRow}>
+               <div style={styles.statItem}>
+                 <div style={styles.statLabel}>수집 기사 수</div>
+                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <span style={{fontSize:'24px'}}>📄</span>
+                    <span style={styles.statValue}>{summaryStats.collectedArticles}<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>건</span></span>
+                 </div>
+               </div>
+               <div style={styles.statItem}>
+                 <div style={styles.statLabel}>언론사 수</div>
+                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <span style={{fontSize:'24px'}}>🏢</span>
+                    <span style={styles.statValue}>{summaryStats.pressCount}<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>개</span></span>
+                 </div>
+               </div>
+               <div style={styles.statItem}>
+                 <div style={styles.statLabel}>평균 신뢰도</div>
+                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <span style={{fontSize:'24px', color:'#34a853'}}>✓</span>
+                   <span style={{...styles.statValue, color:'#202124'}}>{summaryStats.averageReliability} <span style={{fontSize:'14px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></span>
+                 </div>
+               </div>
+             </div>
           </div>
         </div>
 
         <div>
           <div style={styles.listHeader}>
-            <div style={styles.listTitle}>
-              {activeTab === 'related' ? '관련 뉴스 (해당 주장/의견을 지지하거나 다루는 기사)' : '비연관 검색어 (반박 기사)'}
-            </div>
+            <div style={{ ...styles.listTitle, fontSize: '18px' }}>관련 뉴스</div>
             <select style={styles.select}><option>최신순</option></select>
+          </div>
+
+          <div style={styles.tabContainer}>
+            <div style={styles.tabBtn(activeTab === 'related')} onClick={() => setActiveTab('related')}>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              관련 뉴스 ({displayRelatedList.length})
+            </div>
+            <div style={styles.tabBtn(activeTab === 'unrelated')} onClick={() => setActiveTab('unrelated')}>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+              반박 기사 ({displayCounterList.length})
+            </div>
+          </div>
+
+          <div style={{ ...styles.listTitle, padding: '0 8px', marginBottom: '16px' }}>
+            {activeTab === 'related' ? '해당 주장/의견을 지지하거나 다루는 기사' : '다른 관점에서 반박하거나 보완하는 기사'}
           </div>
 
           <div style={styles.grid}>
@@ -336,49 +456,6 @@ export default function AlgoView() {
           </div>
 
           <button style={styles.moreBtn}>더보기 v</button>
-        </div>
-
-        <div style={styles.bottomLayout}>
-          <div style={styles.insightBox}>
-             <div style={styles.insightTitle}>주요 인사이트</div>
-             <ul style={styles.insightList}>
-               {displayInsights.length === 0 ? (
-                 <li style={styles.insightItem}><span style={{color:'#80868b', fontSize:'16px'}}>•</span> 백엔드에서 받은 인사이트가 없습니다.</li>
-               ) : displayInsights.map((insight) => (
-                 <li key={insight} style={styles.insightItem}><span style={{color:'#34a853', fontSize:'16px'}}>✓</span> {insight}</li>
-               ))}
-             </ul>
-          </div>
-          
-          <div style={styles.summaryBox}>
-             <div style={{...styles.insightTitle, color:'#1a73e8'}}>신뢰도 분석 요약</div>
-             <div style={styles.summaryRow}>
-               <div style={styles.statItem}>
-                 <div style={styles.statLabel}>수집 기사 수</div>
-                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                    <span style={{fontSize:'24px'}}>📄</span>
-                    <span style={styles.statValue}>{summaryStats.collectedArticles}<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>건</span></span>
-                 </div>
-               </div>
-               <div style={styles.statItem}>
-                 <div style={styles.statLabel}>언론사 수</div>
-                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                    <span style={{fontSize:'24px'}}>🏢</span>
-                    <span style={styles.statValue}>{summaryStats.pressCount}<span style={{fontSize:'14px', color:'#202124', fontWeight:'normal'}}>개</span></span>
-                 </div>
-               </div>
-               <div style={styles.statItem}>
-                 <div style={styles.statLabel}>평균 신뢰도</div>
-                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                    <span style={{fontSize:'24px', color:'#34a853'}}>✓</span>
-                    <span style={{...styles.statValue, color:'#202124'}}>{summaryStats.averageReliability} <span style={{fontSize:'14px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></span>
-                 </div>
-               </div>
-             </div>
-             <button style={{width:'100%', padding:'12px', backgroundColor:'#ffffff', border:'1px solid #1a73e8', borderRadius:'8px', color:'#1a73e8', fontWeight:'bold', fontSize:'14px', cursor:'pointer', display:'flex', justifyContent:'center', alignItems:'center', gap:'8px'}}>
-               분석 리포트 다운로드 📥
-             </button>
-          </div>
         </div>
 
         <div style={styles.footer}>

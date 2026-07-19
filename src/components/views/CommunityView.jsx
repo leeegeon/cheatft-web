@@ -111,7 +111,7 @@ export default function CommunityView({ onPostClick }) {
     guideBox: { backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e0e0e0', padding: '20px' },
     guideList: { margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#5f6368', lineHeight: '1.8' },
     
-    centerHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+    centerHeader: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px 20px', marginBottom: '20px' },
     sourceNotice: (source) => ({
       display: 'inline-flex',
       alignItems: 'center',
@@ -125,12 +125,13 @@ export default function CommunityView({ onPostClick }) {
       border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
       marginBottom: '16px',
     }),
-    tabGroup: { display: 'flex', gap: '20px' },
-    tab: (isActive) => ({ fontSize: '15px', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#202124' : '#80868b', cursor: 'pointer' }),
-    searchBox: { display: 'flex', alignItems: 'center', gap: '12px' },
+    tabGroup: { display: 'flex', flexShrink: 0, gap: '24px' },
+    tab: (isActive) => ({ fontSize: '15px', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#202124' : '#80868b', cursor: 'pointer', whiteSpace: 'nowrap' }),
+    searchBox: { display: 'flex', flex: '1 1 420px', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' },
+    writeButton: { padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#0056d2', color: '#ffffff', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' },
     select: { padding: '10px 12px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', outline: 'none' },
     inputWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
-    searchInput: { padding: '10px 16px 10px 40px', borderRadius: '20px', border: '1px solid #dadce0', fontSize: '14px', outline: 'none', width: '200px' },
+    searchInput: { padding: '10px 16px 10px 40px', borderRadius: '20px', border: '1px solid #dadce0', fontSize: '14px', outline: 'none', width: '200px', maxWidth: '100%' },
     
     postCard: { backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e0e0e0', padding: '24px', marginBottom: '16px', display: 'flex', gap: '24px', cursor: 'pointer', transition: 'box-shadow 0.2s', ':hover': {boxShadow: '0 2px 8px rgba(0,0,0,0.05)'} },
     postContent: { flex: 1 },
@@ -276,6 +277,9 @@ export default function CommunityView({ onPostClick }) {
               <div style={styles.tab(false)}>댓글 많은 순</div>
             </div>
             <div style={styles.searchBox}>
+              <button type="button" style={styles.writeButton} onClick={() => navigate('/community/write')}>
+                글 작성하기
+              </button>
               <select
                 style={styles.select}
                 value={selectedCategory}
@@ -371,7 +375,7 @@ export default function CommunityView({ onPostClick }) {
 
         <div style={styles.rightSidebar}>
           <div style={styles.rightCard}>
-            <div style={styles.rightCardTitle}>키뮤니티 참여 현황 <span style={{ fontSize: '13px', color: '#0056d2', fontWeight: 'normal', cursor: 'pointer' }}>더보기 &gt;</span></div>
+            <div style={styles.rightCardTitle}>커뮤니티 참여 현황 <span style={{ fontSize: '13px', color: '#0056d2', fontWeight: 'normal', cursor: 'pointer' }}>더보기 &gt;</span></div>
             <div style={styles.statRow}>
               <div style={styles.statBox}>
                 <div style={styles.statLabel}>📝 오늘 게시글</div>
@@ -433,7 +437,7 @@ export default function CommunityView({ onPostClick }) {
           <div style={styles.reportBanner}>
             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#202124', marginBottom: '8px' }}>정보 오류를 발견하셨나요?</div>
             <div style={{ fontSize: '14px', color: '#5f6368' }}>정정 요청을 통해 더 정확한 정보를 함께 만들어주세요.</div>
-            <button style={styles.reportBtn}>정정 요청하기</button>
+            <button type="button" style={styles.reportBtn} onClick={() => navigate('/community/write')}>정정 요청하기</button>
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@
 - `code-map.md`: 폴더/파일/화면별 역할 지도.
 - `backend-contract.md`: 프론트 화면과 실제 백엔드 API 구현/명세 매핑.
 - `api-integration-log.md`: API 연동 작업 기록과 검증 로그. 현재 동작 요약은 최신 섹션을 우선 본다.
-- `AGENTS.md`: 실제 지침 위치를 안내하는 백업본.
+- `AGENTS.md`: 실제 지침 위치를 안내하는 최소 백업본. 세부 규칙은 중복 기록하지 않고 루트 `AGENTS.md`와 `../AGENTS.md`를 우선한다.
 
 ## 역사/협의 문서
 
@@ -25,7 +25,7 @@
 - 현재 API 성격: `summary/reports/posts/profile`은 dummy controller 중심, `auth/checks/analysis`는 실제 라우트/서비스/DB 흐름이다.
 - 2026-07-16 기준 `/api/login`, `/api/signup`, `/api/me`는 배포 API에서 테스트 계정으로 동작 확인했다.
 - 최신 프론트 상태는 `handoff.md`와 `code-map.md`, API 계약은 `backend-contract.md`, 검증 로그는 `api-integration-log.md`를 우선 본다.
-- 프론트 동작/라우트/배포/API/인증/제약이 바뀌면 `cheatft_web/README.md`와 필요한 `docs/*.md`, 반복 규칙은 `cheatft_web/AGENTS.md`까지 함께 갱신한다.
-- 사용자가 `종료`라고만 말하면 문서 최신화와 한글 push용 제목/내용 전달까지 수행한다.
+- 프론트 동작/라우트/배포/API/인증/제약이 바뀌면 `cheatft_web/README.md`와 필요한 `docs/*.md`, 반복 규칙은 `cheatft_web/AGENTS.md`까지 함께 갱신한다. 세부 시작/종료 규칙은 `../AGENTS.md`를 기준으로 한다.
+- 사용자가 `종료`라고만 말하면 문서 최신화와 한글 push용 제목/내용 전달까지 수행한다. push용 내용은 파일명 나열보다 변경 의도 중심의 2~4줄로 작성하고, 점 목록이 아니라 코드블록 안에서 각 줄이 하이픈(`-`)으로 시작하게 한다.
 - 루트 `.git`은 2026-07-15 확인 기준 git 저장소로 동작하지 않는다. `cheatft_web`, `cheatft_api`의 git 명령은 Codex sandbox 사용자 기준 `dubious ownership`가 발생할 수 있다.
 - `.understand-anything/`은 2026-07-15 전체 스캔 산출물이며 일반 맥락 파악 때는 다시 훑지 않는다.

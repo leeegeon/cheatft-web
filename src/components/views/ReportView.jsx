@@ -86,7 +86,7 @@ export default function ReportView() {
   }, [dateFilter, keyword, page, scoreFilter]);
 
   const styles = {
-    container: { backgroundColor: '#ffffff', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', display: 'flex', borderTop: '1px solid #e0e0e0' },
+    container: { backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', display: 'flex', borderTop: '1px solid #e8eaed' },
     
     // Left Sidebar
     sidebar: { width: '260px', flexShrink: 0, borderRight: '1px solid #e0e0e0', backgroundColor: '#fafbfc', padding: '24px 0', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 71px)', overflowY: 'auto' },
@@ -109,9 +109,9 @@ export default function ReportView() {
     tipDesc: { fontSize: '13px', color: '#5f6368', lineHeight: '1.5', marginBottom: '16px' },
     
     // Main Content
-    main: { flex: 1, padding: '40px', backgroundColor: '#ffffff', overflowY: 'auto', height: 'calc(100vh - 71px)' },
-    mainHeader: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' },
-    mainTitle: { fontSize: '24px', fontWeight: 'bold', color: '#202124' },
+    main: { flex: 1, padding: '40px', backgroundColor: '#f8f9fa', overflowY: 'auto', height: 'calc(100vh - 71px)' },
+    mainHeader: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', padding: '28px', border: '1px solid #e8eaed', borderRadius: '16px', backgroundColor: '#ffffff' },
+    mainTitle: { fontSize: '26px', fontWeight: '800', color: '#202124' },
     mainDesc: { fontSize: '14px', color: '#5f6368' },
     sourceNotice: (source) => ({
       display: 'inline-flex',
@@ -127,13 +127,13 @@ export default function ReportView() {
       marginTop: '6px',
     }),
     
-    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' },
-    statCard: { backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' },
+    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' },
+    statCard: { backgroundColor: '#ffffff', border: '1px solid #e8eaed', borderRadius: '12px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' },
     statIconWrapper: (bg) => ({ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }),
     statLabel: { fontSize: '13px', color: '#5f6368', marginBottom: '4px' },
     statValue: { fontSize: '20px', fontWeight: 'bold', color: '#202124' },
     
-    toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+    toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px', border: '1px solid #e8eaed', borderRadius: '12px', backgroundColor: '#ffffff' },
     searchInput: { padding: '10px 16px 10px 40px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', outline: 'none', width: '300px', backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' fill=\'%2380868b\' viewBox=\'0 0 24 24\'><path d=\'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\'/></svg>")', backgroundPosition: '12px center', backgroundRepeat: 'no-repeat' },
     toolsRight: { display: 'flex', alignItems: 'center', gap: '12px' },
     viewToggle: { display: 'flex', gap: '4px', backgroundColor: '#f1f3f4', padding: '4px', borderRadius: '8px' },
@@ -142,7 +142,7 @@ export default function ReportView() {
     // List Item
     listContainer: { display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '40px' },
     emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
-    reportCard: (isExpanded) => ({ backgroundColor: '#ffffff', border: isExpanded ? '1px solid #1a73e8' : '1px solid #e0e0e0', borderRadius: '12px', padding: '24px', transition: 'all 0.2s', boxShadow: isExpanded ? '0 4px 12px rgba(26, 115, 232, 0.1)' : 'none' }),
+    reportCard: (isExpanded) => ({ backgroundColor: '#ffffff', border: isExpanded ? '1px solid #1a73e8' : '1px solid #e8eaed', borderRadius: '14px', padding: '24px', transition: 'all 0.2s', boxShadow: isExpanded ? '0 8px 24px rgba(26, 115, 232, 0.1)' : '0 1px 2px rgba(60,64,67,0.04)' }),
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
     cardTitleRow: { display: 'flex', alignItems: 'center', gap: '12px' },
     cardTitle: { fontSize: '18px', fontWeight: 'bold', color: '#202124' },
@@ -180,8 +180,7 @@ export default function ReportView() {
     
     summaryCol: { flex: 1, backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e0e0e0', padding: '20px', display: 'flex', flexDirection: 'column' },
     summaryColTitle: { fontSize: '14px', fontWeight: 'bold', color: '#202124', marginBottom: '12px' },
-    summaryColText: { fontSize: '13px', color: '#5f6368', lineHeight: '1.6', marginBottom: '24px', flex: 1 },
-    downloadBtn: { width: '100%', padding: '10px', backgroundColor: '#ffffff', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' },
+    summaryColText: { fontSize: '13px', color: '#5f6368', lineHeight: '1.6', flex: 1 },
 
     globalFooter: { borderTop: '1px solid #e0e0e0', padding: '16px 40px', fontSize: '12px', color: '#80868b', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#ffffff' }
   };
@@ -303,13 +302,6 @@ export default function ReportView() {
               <div>
                 <div style={styles.statLabel}>분석한 기사 수</div>
                 <div style={styles.statValue}>{totalStats.analyzedArticles}<span style={{fontSize:'14px', fontWeight:'normal'}}>건</span></div>
-              </div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statIconWrapper('#e8f0fe')}><span style={{color:'#1a73e8'}}>🕒</span></div>
-              <div>
-                <div style={styles.statLabel}>총 검색 시간</div>
-                <div style={styles.statValue}>12<span style={{fontSize:'14px', fontWeight:'normal'}}>시간</span> 34<span style={{fontSize:'14px', fontWeight:'normal'}}>분</span></div>
               </div>
             </div>
             <div style={styles.statCard}>
@@ -437,9 +429,6 @@ export default function ReportView() {
                               대부분의 전문가들은 AI가 일부 일자리를 대체하겠지만, 새로운 산업과 직무를 창출하여 전체적인 일자리 수는 큰 변동이 없을 것이라고 전망합니다.<br/><br/>
                               핵심은 AI와의 협업 능력과 새로운 기술 습득이 중요하다는 의견이 지배적입니다.
                             </div>
-                            <button style={styles.downloadBtn}>
-                              전체 요약 다운로드 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                            </button>
                          </div>
                       </div>
                     </div>

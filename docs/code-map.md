@@ -1,6 +1,6 @@
 # 코드맵
 
-마지막 갱신: 2026-07-16
+마지막 갱신: 2026-07-19
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 이 문서는 새 채팅에서 전체 코드를 다시 훑지 않도록 만든 지도이다. 정확한 구현 확인이 필요할 때만 해당 파일을 직접 연다.
@@ -73,6 +73,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `index.html`: Vite HTML 진입점. 문서 제목은 `Cheat F/T`, favicon은 `public/favicon.png`를 참조한다.
 - `src/main.jsx`: `BrowserRouter`로 `App`을 감싸서 렌더링.
 - `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심.
+  - `/report`, `/community`용 별도 오른쪽 상단 버튼 분기는 제거되어 다른 화면과 같은 상단바를 사용한다.
 - `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일.
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
@@ -94,8 +95,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 | `/search?q=...` | `VerificationView` | 검색어가 있으면 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
 | `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
 | `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 표시. 직접 조회 API 없음 |
-| `/algo` | `AlgoView` | 보호 라우트. 분석 버튼에서 `POST /analysis` 후 `GET /analysis/{id}`, API/목업 출처 안내, 실패 시 목업 |
-| `/report` | `ReportView` | `GET /reports` 우선, `keyword/date/score/page/limit` 전달, API/목업 출처 안내, 실패 시 리포트 목록/상세 목업 |
+| `/algo` | `AlgoView` | 보호 라우트. 질문 입력 후 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}`, AI 주요 인사이트 우선 표시, 실패 시 목업 |
+| `/report` | `ReportView` | `GET /reports` 우선, `keyword/date/score/page/limit` 전달, API/목업 출처 안내, 실패 시 리포트 목록/상세 목업. 내보내기/다운로드 버튼 없음 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
 | `/community/write` | `CommunityWriteView` | 보호 라우트. 글 작성 임시 저장, 등록 시 `POST /posts` |
 | `/community/:id` | `DetailView type="커뮤니티"` | 게시글 상세 placeholder |
@@ -136,7 +137,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 - `AlgoView.jsx`
   - `activeTab`으로 관련 뉴스/반박 기사 탭 전환.
-  - 분석 버튼에서 `runAnalysis()`로 `POST /analysis`와 `GET /analysis/{id}`를 호출한다.
+  - 질문 입력 후 프론트에서 추천 키워드 칩을 생성한다. 사용자가 키워드 칩을 선택하면 `runAnalysis()`로 `POST /analysis`와 `GET /analysis/{id}`를 호출한다.
+  - 메인 영역은 `AI 주요 인사이트`와 `신뢰도 분석 요약`을 먼저 표시하고, 관련 뉴스/반박 기사 탭은 그 아래 서브 섹션으로 표시한다.
   - `relatedArticles`, `counterArticles`, `insights`, `summaryStats`를 우선 사용하고 실패 시 목업을 사용한다.
   - 기사 변환에서 `description`, `publishedAt/createdAt/date`, `press/pressName/publisher/mediaName` 후보를 처리한다.
   - 언론사는 `src/utils/press.js`의 `getPressLabel()`로 백엔드 oid/name 표에 맞춰 정규화하고, `getPressLogoUrl()` 로고 이미지와 `recordObservedPress()` 미매핑 oid 관측 저장을 사용한다.
@@ -148,6 +150,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `expandedId`, `innerTab`으로 리포트 펼침/요약 탭 제어.
   - `getReports()`로 `totalStats`, `reports`, `pagination`을 가져오고 실패 시 기존 목업을 사용한다.
   - 검색어, 날짜 필터, 신뢰도 필터를 `keyword`, `date`, `score` query parameter로 전달한다.
+  - 상단 nav의 리포트 내보내기 버튼, `총 검색 시간` 통계 카드, 상세 요약 다운로드 버튼은 제거됐다.
+  - 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 3개 카드로 표시한다.
   - 주요 출처는 `getPressLabel()`, `getPressLogoUrl()`, `recordObservedPress()`를 사용한다. API 리포트 제목/요약은 `cleanDisplayText()`로 디코딩한다.
   - API 성공 후 `reports`가 비어 있으면 빈 리포트 상태를 표시하고, 실패 시에만 기존 리포트 목업을 사용한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 상단 안내로 구분한다.
@@ -156,6 +160,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `tab` query param으로 상단/사이드 탭 상태를 공유한다.
   - `getPosts()`로 게시글과 `communityStats`를 가져오고 실패 시 기존 목업을 사용한다.
   - 탭/카테고리/검색어/페이지를 `category`, `keyword`, `page`, `limit` query parameter로 전달한다.
+  - `글 작성하기` 버튼은 전역 상단바가 아니라 커뮤니티 목록 상단의 검색/필터 영역에 표시한다.
+  - 오른쪽 정정 요청 배너의 `정정 요청하기` 버튼은 `/community/write`로 이동한다.
   - API 게시글 제목/본문/작성자/카테고리는 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 `posts`가 비어 있으면 빈 게시글 상태를 표시하고, 실패 시에만 기존 커뮤니티 목업을 사용한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 목록 상단 안내로 구분한다.

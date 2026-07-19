@@ -251,19 +251,21 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   }, [query]);
 
   const styles = {
-    container: { display: 'flex', gap: '24px', padding: '40px', backgroundColor: '#f8f9fa', minHeight: '100%', maxWidth: '1400px', margin: '0 auto' },
-    leftPanel: { width: '340px', flexShrink: 0 },
-    rightPanel: { flex: 1, backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e0e0e0', padding: '32px' },
-    searchCard: { backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '16px' },
-    titleInfo: { fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: '#202124', display: 'flex', alignItems: 'center', gap: '8px' },
-    descInfo: { fontSize: '14px', color: '#5f6368', marginBottom: '20px', lineHeight: '1.5' },
+    container: { display: 'flex', flexDirection: 'column', gap: '28px', padding: '32px 40px 48px', backgroundColor: '#f8f9fa', minHeight: '100%', maxWidth: '1240px', margin: '0 auto' },
+    leftPanel: { width: '100%', flexShrink: 0 },
+    rightPanel: { flex: 1, backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e8eaed', padding: '32px' },
+    searchCard: { width: '100%', maxWidth: '920px', margin: '0 auto', backgroundColor: 'transparent', padding: '8px 0 0', border: 'none' },
+    titleInfo: { fontSize: '20px', fontWeight: '800', marginBottom: '18px', color: '#202124', textAlign: 'center' },
+    descInfo: { display: 'none' },
     tabContainer: { display: 'flex', marginBottom: '16px', backgroundColor: '#f1f3f4', borderRadius: '8px', padding: '4px' },
     tab: (isActive) => ({ flex: 1, padding: '10px 0', textAlign: 'center', cursor: 'pointer', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#0056d2' : '#5f6368', backgroundColor: isActive ? '#ffffff' : 'transparent', borderRadius: '6px', boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
-    textarea: { width: '100%', height: '180px', padding: '16px', border: '1px solid #e0e0e0', borderRadius: '8px', resize: 'none', marginBottom: '8px', boxSizing: 'border-box', fontSize: '15px', outline: 'none' },
-    charCount: { textAlign: 'right', fontSize: '12px', color: '#80868b', marginBottom: '24px' },
+    searchShell: { display: 'flex', alignItems: 'center', gap: '12px', minHeight: '58px', padding: '0 8px 0 22px', backgroundColor: '#ffffff', border: '1px solid #dadce0', borderRadius: '999px', boxShadow: '0 2px 10px rgba(60,64,67,0.08)' },
+    searchIcon: { flexShrink: 0, color: '#5f6368' },
+    textarea: { flex: 1, minWidth: 0, height: '56px', padding: '0', border: 'none', background: 'transparent', boxSizing: 'border-box', fontSize: '16px', outline: 'none', color: '#202124' },
+    charCount: { display: 'none' },
     exampleText: { fontSize: '13px', color: '#5f6368', marginBottom: '12px' },
     exampleBtn: { display: 'block', width: '100%', textAlign: 'left', padding: '12px 16px', backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px', marginBottom: '8px', color: '#3c4043', cursor: 'pointer', fontSize: '14px' },
-    searchBtn: { width: '100%', padding: '16px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', marginTop: '16px' },
+    searchBtn: { flexShrink: 0, minWidth: '84px', height: '42px', padding: '0 18px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '999px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' },
     infoBox: { backgroundColor: '#f0f4f9', padding: '20px', borderRadius: '12px', border: '1px solid #d2e3fc' },
     infoTitle: { color: '#174ea6', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
     infoDesc: { color: '#5f6368', fontSize: '13px', lineHeight: '1.5' },
@@ -370,28 +372,27 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     <div style={styles.container}>
       <div style={styles.leftPanel}>
         <div style={styles.searchCard}>
-          <div style={styles.titleInfo}>검증할 정보를 입력하세요 ⓘ</div>
-          <div style={styles.descInfo}>뉴스, 게시글, 영상 등 다양한 정보를 검색하여 관련 출처의 신빙성을 확인해보세요.</div>
-          
-          <textarea
-            style={styles.textarea}
-            placeholder="검증하고 싶은 내용이나 문장을 입력하세요."
-            value={val}
-            onChange={(e) => setVal(e.target.value)}
-            maxLength={5000}
-            aria-label="검증할 정보"
-          />
-          <div style={styles.charCount}>{val.length} / 5,000</div>
-          
-          <button style={styles.searchBtn} onClick={() => onSearch(val)}>
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style={{verticalAlign:'middle', marginRight:'8px'}}><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
-            검색하기
-          </button>
-        </div>
-        
-        <div style={styles.infoBox}>
-          <div style={styles.infoTitle}>Cheat F/T는 알려드립니다 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg></div>
-          <div style={styles.infoDesc}>여러 언론사와 기관의 기사를 수집하여 출처의 신빙성을 객관적으로 평가합니다. 최종 판단은 사용자에게 맡깁니다.</div>
+          <div style={styles.titleInfo}>무엇을 검증할까요?</div>
+          <div style={styles.searchShell}>
+            <svg style={styles.searchIcon} width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
+            <input
+              type="search"
+              style={styles.textarea}
+              placeholder="뉴스 제목이나 내용을 입력하세요"
+              value={val}
+              onChange={(e) => setVal(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  onSearch(val);
+                }
+              }}
+              maxLength={5000}
+              aria-label="검증할 정보"
+            />
+            <button style={styles.searchBtn} onClick={() => onSearch(val)}>
+              검색
+            </button>
+          </div>
         </div>
       </div>
 
