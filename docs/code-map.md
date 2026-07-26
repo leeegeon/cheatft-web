@@ -73,9 +73,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `eslint.config.js`: JS recommended, React Hooks, React Refresh 설정. `dist`는 ignore.
 - `index.html`: Vite HTML 진입점. 문서 제목은 `Cheat F/T`, favicon은 `public/favicon.png`를 참조한다.
 - `src/main.jsx`: `BrowserRouter`로 `App`을 감싸서 렌더링.
-- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심.
+- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심. 앱 본문은 내부 이중 세로 스크롤 없이 브라우저 기본 페이지 스크롤을 사용한다.
   - `/report`, `/community`용 별도 오른쪽 상단 버튼 분기는 제거되어 다른 화면과 같은 상단바를 사용한다.
-- `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일.
+- `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 홈 외 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
 - `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
@@ -131,6 +131,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - `cleanDisplayText()`로 `&quot;` 같은 HTML entity를 표시 전에 디코딩한다.
   - 정렬은 `연관도순`, `최신순`을 제공한다. 백엔드 응답 필드가 있으면 `relevanceScore/relevance/similarity`를 사용하고, 현재 배포 API처럼 연관도 점수 필드가 없으면 백엔드 기본 반환 순서를 유지한다. 조회수순은 제거됐다.
   - 검색어 없는 초기 화면 카드와 검색 결과 카드 클릭은 제목 재검색이 아니라 `onArticleClick()`을 통해 `/article/:id` 뉴스 상세로 이동한다.
+  - 좁은 폭에서는 검색창 아이콘/입력/버튼 배치, 기사 메타 줄바꿈, 신빙성 게이지 표시가 깨지지 않도록 `verification-*` 클래스와 전역 CSS로 보정한다.
 
 - `DetailView.jsx`
   - 뉴스 상세와 커뮤니티 상세을 `type` prop으로 구분한다.
@@ -152,6 +153,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - API 기사 제목/설명은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 관련/반박 기사 또는 인사이트 배열이 비어 있으면 목업을 섞지 않고 빈 상태/빈 안내를 표시한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 상단 안내로 구분한다.
+  - `분석 안내` 버튼은 제거됐다. 넓이가 충분하면 좌우형 레이아웃과 신뢰도 요약 가로 배치를 유지하고, 좁은 폭에서만 세로형으로 전환한다.
 
 - `ReportView.jsx`
   - `expandedId`, `innerTab`으로 리포트 펼침/요약 탭 제어.
@@ -162,6 +164,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - 주요 출처는 `getPressLabel()`, `getPressLogoUrl()`, `recordObservedPress()`를 사용한다. API 리포트 제목/요약은 `cleanDisplayText()`로 디코딩한다.
   - API 성공 후 `reports`가 비어 있으면 빈 리포트 상태를 표시하고, 실패 시에만 기존 리포트 목업을 사용한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 상단 안내로 구분한다.
+  - 내부 `height: calc(100vh - 71px)`/`overflowY: auto` 스크롤 구조는 제거됐다. 충분한 폭에서는 좌측 사이드바와 가로 통계를 유지하고, 좁은 폭에서만 세로형으로 전환한다.
 
 - `CommunityView.jsx`
   - `tab` query param으로 상단/사이드 탭 상태를 공유한다.
@@ -173,6 +176,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - API 성공 후 `posts`가 비어 있으면 빈 게시글 상태를 표시하고, 실패 시에만 기존 커뮤니티 목업을 사용한다.
   - API 응답 표시 중인지, 프론트 목업 fallback인지 목록 상단 안내로 구분한다.
   - 정보 공유 탭 외에는 준비중 placeholder.
+  - 좁은 폭에서도 글 작성 버튼/필터가 과하게 커지지 않도록 하고, 참여 현황은 가능한 폭에서 가로 배치를 유지한다.
 
 - `CommunityWriteView.jsx`
   - `cheat-ft-community-draft` 키로 `sessionStorage` 임시 저장.

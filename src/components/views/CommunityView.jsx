@@ -194,8 +194,8 @@ export default function CommunityView({ onPostClick }) {
       : '프론트 목업 fallback 표시 중';
 
   return (
-    <div style={styles.container}>
-      <div style={styles.subnav}>
+    <div className="community-page" style={styles.container}>
+      <div className="community-subnav" style={styles.subnav}>
         {COMMUNITY_TABS.map(tab => (
           <div key={tab} style={styles.subnavItem(activeTab === tab)} onClick={() => setActiveTab(tab)}>
             {tab}
@@ -203,14 +203,14 @@ export default function CommunityView({ onPostClick }) {
         ))}
       </div>
 
-      <div style={styles.heroWrapper}>
+      <div className="community-hero" style={styles.heroWrapper}>
         {activeTab === '정보 공유 커뮤니티' && (
           <>
             <div>
               <div style={styles.heroTitle}>함께 만드는 더 나은 <span style={styles.heroTitleHighlight}>정보</span> 환경</div>
               <div style={styles.heroDesc}>정보 오류를 발견했다면 공유해주세요.<br/>여러분의 참여가 더 정확하고 공정한 정보를 만듭니다.</div>
             </div>
-            <div style={{ display: 'flex', gap: '24px' }}>
+            <div className="community-hero-visual" style={{ display: 'flex', gap: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#ffffff', padding: '12px 20px', borderRadius: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                    <div style={{ width: '32px', height: '32px', backgroundColor: '#f1f3f4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>💬</div>
@@ -245,8 +245,8 @@ export default function CommunityView({ onPostClick }) {
         )}
       </div>
 
-      <div style={styles.mainLayout}>
-        <div style={styles.leftSidebar}>
+      <div className="community-main-layout" style={styles.mainLayout}>
+        <div className="community-left-sidebar" style={styles.leftSidebar}>
           <div style={styles.menuSection}>
             <div style={styles.menuTitle}>카테고리</div>
             <div style={styles.menuItem(activeTab === '정보 공유 커뮤니티')} onClick={() => setActiveTab('정보 공유 커뮤니티')}>📄 정보 공유 커뮤니티</div>
@@ -269,18 +269,19 @@ export default function CommunityView({ onPostClick }) {
           </div>
         </div>
 
-        <div style={styles.centerContent}>
-          <div style={styles.centerHeader}>
-            <div style={styles.tabGroup}>
+        <div className="community-center-content" style={styles.centerContent}>
+          <div className="community-center-header" style={styles.centerHeader}>
+            <div className="community-tab-group" style={styles.tabGroup}>
               <div style={styles.tab(true)}>최신순</div>
               <div style={styles.tab(false)}>인기순</div>
               <div style={styles.tab(false)}>댓글 많은 순</div>
             </div>
-            <div style={styles.searchBox}>
-              <button type="button" style={styles.writeButton} onClick={() => navigate('/community/write')}>
+            <div className="community-search-box" style={styles.searchBox}>
+              <button type="button" className="community-write-button" style={styles.writeButton} onClick={() => navigate('/community/write')}>
                 글 작성하기
               </button>
               <select
+                className="community-filter-select"
                 style={styles.select}
                 value={selectedCategory}
                 onChange={(event) => {
@@ -294,9 +295,10 @@ export default function CommunityView({ onPostClick }) {
                 <option value="토론">토론</option>
                 <option value="질문">질문</option>
               </select>
-              <div style={styles.inputWrapper}>
+              <div className="community-input-wrapper" style={styles.inputWrapper}>
                 <svg width="18" height="18" fill="#5f6368" viewBox="0 0 24 24" style={{position:'absolute', left:'12px'}}><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
                 <input
+                  className="community-search-input"
                   style={styles.searchInput}
                   placeholder="검색어를 입력하세요"
                   value={searchKeyword}
@@ -320,19 +322,19 @@ export default function CommunityView({ onPostClick }) {
                 프론트 예시 데이터는 섞지 않았습니다.
               </div>
             ) : displayPosts.map((post, i) => (
-              <div key={post.id ?? post.title ?? i} style={{ ...styles.postCard, padding: post.type==='공지' ? '16px 24px' : '24px' }} onClick={() => onPostClick(post.id ?? i + 1)}>
+              <div className="community-post-card" key={post.id ?? post.title ?? i} style={{ ...styles.postCard, padding: post.type==='공지' ? '16px 24px' : '24px' }} onClick={() => onPostClick(post.id ?? i + 1)}>
                 <div style={styles.postContent}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="community-post-topline" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={styles.badge(post.type)}>{post.type}</div>
                     {post.type !== '공지' && <svg width="20" height="20" fill="#dadce0" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>}
                   </div>
-                  <div style={{ ...styles.postTitle, fontSize: post.type==='공지'?'15px':'18px', marginBottom: post.type==='공지'?'0':'8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="community-post-title-row" style={{ ...styles.postTitle, fontSize: post.type==='공지'?'15px':'18px', marginBottom: post.type==='공지'?'0':'8px', display: 'flex', justifyContent: 'space-between' }}>
                     {post.title}
                     {post.type==='공지' && <span style={{fontSize:'13px', color:'#80868b', fontWeight:'normal'}}>{post.date}</span>}
                   </div>
                   {post.desc && <div style={styles.postDesc}>{post.desc}</div>}
                   {post.author && (
-                    <div style={styles.postMeta}>
+                    <div className="community-post-meta" style={styles.postMeta}>
                       <span style={{ color: '#3c4043', fontWeight: 'bold' }}>{post.author}</span>
                       <span>{post.date}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> {post.views}</span>
@@ -341,7 +343,7 @@ export default function CommunityView({ onPostClick }) {
                   )}
                 </div>
                 {post.bg && (
-                  <div style={styles.postImage(post.bg)}>{post.icon}</div>
+                  <div className="community-post-image" style={styles.postImage(post.bg)}>{post.icon}</div>
                 )}
               </div>
             ))}
@@ -373,10 +375,10 @@ export default function CommunityView({ onPostClick }) {
           )}
         </div>
 
-        <div style={styles.rightSidebar}>
+        <div className="community-right-sidebar" style={styles.rightSidebar}>
           <div style={styles.rightCard}>
             <div style={styles.rightCardTitle}>커뮤니티 참여 현황 <span style={{ fontSize: '13px', color: '#0056d2', fontWeight: 'normal', cursor: 'pointer' }}>더보기 &gt;</span></div>
-            <div style={styles.statRow}>
+            <div className="community-stat-row" style={styles.statRow}>
               <div style={styles.statBox}>
                 <div style={styles.statLabel}>📝 오늘 게시글</div>
                 <div style={styles.statValue}>{communityStats.todayPosts}<span style={{fontSize:'13px', fontWeight:'normal'}}>건</span></div>

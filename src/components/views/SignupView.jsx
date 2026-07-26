@@ -88,8 +88,8 @@ export default function SignupView() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div className="auth-page" style={styles.container}>
+      <div className="auth-card" style={styles.card}>
         <div style={styles.title}>Cheat F/T 회원가입</div>
         <div style={styles.subtitle}>검증된 정보를 찾기 위한 첫 걸음입니다.</div>
         

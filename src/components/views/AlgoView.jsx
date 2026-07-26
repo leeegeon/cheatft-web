@@ -253,9 +253,9 @@ export default function AlgoView() {
       : '프론트 목업 fallback 표시 중';
 
   return (
-    <div style={styles.container}>
+    <div className="algo-page" style={styles.container}>
       {/* Left Sidebar */}
-      <div style={styles.sidebar}>
+      <div className="algo-sidebar" style={styles.sidebar}>
         <div style={styles.card}>
           <div style={styles.focusPanel(guideFocus === 'question')}>
             <div style={styles.cardTitle}>질문하기 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
@@ -367,25 +367,22 @@ export default function AlgoView() {
       </div>
 
       {/* Main Content */}
-      <div style={styles.mainContent}>
+      <div className="algo-main" style={styles.mainContent}>
         <div>
-          <div style={styles.mainHeader}>
+          <div className="algo-main-header" style={styles.mainHeader}>
              <div>
                <div style={styles.mainTitle}>{displayKeyword} 분석 결과 <span style={{color:'#80868b', fontSize:'18px', fontWeight:'normal'}}>ⓘ</span></div>
                <div style={styles.mainDesc}>수집한 뉴스의 출처와 근거를 바탕으로 신뢰도를 분석해드립니다.</div>
                <div style={{ marginTop: '12px' }}><span style={styles.sourceNotice(sourceState)}>{sourceText}</span></div>
              </div>
-             <div style={styles.metaInfo}>
+             <div className="algo-meta-info" style={styles.metaInfo}>
                <span style={styles.metaText}>검색 시간: 2024.05.20 14:30</span>
-               <button style={{padding:'8px 16px', backgroundColor:'#ffffff', border:'1px solid #dadce0', borderRadius:'8px', color:'#0056d2', fontWeight:'bold', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px'}}>
-                 분석 안내 ↗
-               </button>
              </div>
           </div>
         </div>
 
-        <div style={styles.bottomLayout}>
-          <div style={styles.insightBox}>
+        <div className="algo-bottom-layout" style={styles.bottomLayout}>
+          <div className="algo-insight-box" style={styles.insightBox}>
              <div style={styles.insightTitle}>AI 주요 인사이트</div>
              <ul style={styles.insightList}>
                {displayInsights.length === 0 ? (
@@ -396,9 +393,9 @@ export default function AlgoView() {
              </ul>
           </div>
           
-          <div style={styles.summaryBox}>
+          <div className="algo-summary-box" style={styles.summaryBox}>
              <div style={{...styles.insightTitle, color:'#1a73e8'}}>신뢰도 분석 요약</div>
-             <div style={styles.summaryRow}>
+             <div className="algo-summary-row" style={styles.summaryRow}>
                <div style={styles.statItem}>
                  <div style={styles.statLabel}>수집 기사 수</div>
                  <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
@@ -425,12 +422,12 @@ export default function AlgoView() {
         </div>
 
         <div>
-          <div style={styles.listHeader}>
+          <div className="algo-list-header" style={styles.listHeader}>
             <div style={{ ...styles.listTitle, fontSize: '18px' }}>관련 뉴스</div>
             <select style={styles.select}><option>최신순</option></select>
           </div>
 
-          <div style={styles.tabContainer}>
+          <div className="algo-tabs" style={styles.tabContainer}>
             <div style={styles.tabBtn(activeTab === 'related')} onClick={() => setActiveTab('related')}>
               <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
               관련 뉴스 ({displayRelatedList.length})
@@ -445,14 +442,14 @@ export default function AlgoView() {
             {activeTab === 'related' ? '해당 주장/의견을 지지하거나 다루는 기사' : '다른 관점에서 반박하거나 보완하는 기사'}
           </div>
 
-          <div style={styles.grid}>
+          <div className="algo-news-grid" style={styles.grid}>
             {activeList.length === 0 ? (
               <div style={styles.emptyState}>
                 백엔드에서 받은 {activeTab === 'related' ? '관련 뉴스' : '반박 기사'} 목록이 비어 있습니다.<br/>
                 프론트 예시 데이터는 섞지 않았습니다.
               </div>
             ) : activeList.map(item => (
-              <div key={item.id} style={styles.newsCard}>
+              <div className="algo-news-card" key={item.id} style={styles.newsCard}>
                 <div style={{...styles.newsLogo(item.logo), color: item.logoBorder ? '#000' : '#fff', border: item.logoBorder ? `1px solid ${item.logoBorder}` : 'none', whiteSpace: 'pre-wrap', textAlign: 'center', lineHeight: '1.2'}}>
                   {item.logoText}
                   {item.logoUrl && <img src={item.logoUrl} alt={`${item.logoText} 로고`} style={styles.newsLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
@@ -460,7 +457,7 @@ export default function AlgoView() {
                 <div style={styles.newsContent}>
                   <div style={styles.newsTitle}>{item.title}</div>
                   <div style={styles.newsDesc}>{item.desc}</div>
-                  <div style={styles.newsFooter}>
+                  <div className="algo-news-footer" style={styles.newsFooter}>
                     <div style={styles.newsMeta}>
                       <span>{item.date}</span>
                       <span>|</span>
@@ -476,7 +473,7 @@ export default function AlgoView() {
           <button style={styles.moreBtn}>더보기 v</button>
         </div>
 
-        <div style={styles.footer}>
+        <div className="algo-footer" style={styles.footer}>
           <span style={{fontSize:'24px'}}>💡</span>
           <div>
             <div style={{fontSize:'13px', color:'#5f6368', marginBottom:'4px'}}>Cheat F/T는 정보를 수집하고 분석할 뿐, 결론을 내리지 않습니다.</div>

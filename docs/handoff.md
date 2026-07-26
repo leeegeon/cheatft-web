@@ -54,7 +54,21 @@
 - 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
 - API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
+- 반응형: `App.jsx`는 내부 `main` 세로 스크롤을 제거하고 브라우저 기본 페이지 스크롤을 사용한다. `src/index.css`는 검증하기, 신뢰도 분석, 리포트, 커뮤니티, 상세, 로그인/회원가입의 노트북 절반 폭/모바일 폭 보정을 담당한다. 신뢰도 분석과 리포트는 충분한 폭에서는 좌우형과 가로 통계를 유지하고 좁은 폭에서만 세로형으로 전환한다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-07-26 홈 외 화면 반응형/스크롤 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `src/App.jsx`에서 앱 루트의 `height: 100vh`, `overflow: hidden`, `main` 내부 `overflowY: auto` 구조를 제거해 내부 이중 세로 스크롤 대신 브라우저 기본 페이지 스크롤을 사용한다.
+- `src/index.css`에 홈 외 주요 화면 반응형 클래스를 추가했다.
+  - 검증하기: 좁은 폭에서 검색 아이콘/입력/버튼 배치와 기사 메타 줄바꿈, 신빙성 게이지 표시를 보정했다.
+  - 신뢰도 분석: `분석 안내` 버튼을 제거하고, 넓이가 충분하면 좌우 레이아웃과 신뢰도 요약 가로 배치를 유지한다.
+  - 팩트체크 리포트: 내부 스크롤을 제거하고 통계 카드/리포트 카드 여백과 줄바꿈을 보정했다.
+  - 커뮤니티: 글 작성 버튼/필터/검색창이 과하게 커지지 않게 하고, 참여 현황은 가능하면 가로로 유지한다.
+  - 상세/로그인/회원가입: 좁은 폭에서 폼/상세 보조 패널이 화면을 넘지 않게 보정했다.
+- Chrome headless로 `/search`, `/algo`, `/report`, `/community`, `/community/write`, `/login`, `/signup`, `/article/1`을 1366/1180/820/700/600/390px 계열 폭에서 확인했다. 확인 범위에서 문서 전체 가로 넘침은 0으로 관측됐다.
+- 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
 
 ## 2026-07-26 검증하기 결과 페이지네이션
 

@@ -90,7 +90,7 @@ export default function ReportView() {
     container: { backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', display: 'flex', borderTop: '1px solid #e8eaed' },
     
     // Left Sidebar
-    sidebar: { width: '260px', flexShrink: 0, borderRight: '1px solid #e0e0e0', backgroundColor: '#fafbfc', padding: '24px 0', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 71px)', overflowY: 'auto' },
+    sidebar: { width: '260px', flexShrink: 0, borderRight: '1px solid #e0e0e0', backgroundColor: '#fafbfc', padding: '24px 0', display: 'flex', flexDirection: 'column' },
     sidebarSection: { padding: '0 24px', marginBottom: '24px' },
     sidebarTitle: { fontSize: '16px', fontWeight: 'bold', color: '#202124', marginBottom: '8px' },
     sidebarDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px', lineHeight: '1.4' },
@@ -110,7 +110,7 @@ export default function ReportView() {
     tipDesc: { fontSize: '13px', color: '#5f6368', lineHeight: '1.5', marginBottom: '16px' },
     
     // Main Content
-    main: { flex: 1, padding: '40px', backgroundColor: '#f8f9fa', overflowY: 'auto', height: 'calc(100vh - 71px)' },
+    main: { flex: 1, padding: '40px', backgroundColor: '#f8f9fa' },
     mainHeader: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', padding: '28px', border: '1px solid #e8eaed', borderRadius: '16px', backgroundColor: '#ffffff' },
     mainTitle: { fontSize: '26px', fontWeight: '800', color: '#202124' },
     mainDesc: { fontSize: '14px', color: '#5f6368' },
@@ -222,10 +222,10 @@ export default function ReportView() {
       : '프론트 목업 fallback 표시 중';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={styles.container}>
+    <div className="report-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="report-layout" style={styles.container}>
         {/* Left Sidebar */}
-        <div style={styles.sidebar}>
+        <div className="report-sidebar" style={styles.sidebar}>
           <div style={styles.sidebarSection}>
             <div style={styles.sidebarTitle}>팩트체크 리포트</div>
             <div style={styles.sidebarDesc}>이전에 검색하고 분석한 내용을 한눈에 확인할 수 있습니다.</div>
@@ -255,7 +255,7 @@ export default function ReportView() {
             </div>
           </div>
 
-          <div style={styles.divider}></div>
+          <div className="report-divider" style={styles.divider}></div>
 
           <div style={styles.sidebarSection}>
             <div style={styles.filterTitle}>리포트 필터</div>
@@ -273,7 +273,7 @@ export default function ReportView() {
             </select>
           </div>
 
-          <div style={styles.divider}></div>
+          <div className="report-divider" style={styles.divider}></div>
 
           <div style={styles.sidebarSection}>
             <div style={styles.filterTitle}>활용 팁</div>
@@ -283,14 +283,14 @@ export default function ReportView() {
         </div>
 
         {/* Main Content */}
-        <div style={styles.main}>
-          <div style={styles.mainHeader}>
+        <div className="report-main" style={styles.main}>
+          <div className="report-main-header" style={styles.mainHeader}>
             <div style={styles.mainTitle}>전체 리포트</div>
             <div style={styles.mainDesc}>지금까지 검색하고 분석한 모든 주제와 기사들을 확인하세요.</div>
             <div style={styles.sourceNotice(sourceState)}>{sourceText}</div>
           </div>
 
-          <div style={styles.statsGrid}>
+          <div className="report-stats-grid" style={styles.statsGrid}>
             <div style={styles.statCard}>
               <div style={styles.statIconWrapper('#e8f0fe')}><span style={{color:'#1a73e8'}}>📄</span></div>
               <div>
@@ -314,7 +314,7 @@ export default function ReportView() {
             </div>
           </div>
 
-          <div style={styles.toolbar}>
+          <div className="report-toolbar" style={styles.toolbar}>
             <input
               type="text"
               placeholder="검색한 주제나 키워드로 검색하세요"
@@ -322,9 +322,9 @@ export default function ReportView() {
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
             />
-            <div style={styles.toolsRight}>
+            <div className="report-tools-right" style={styles.toolsRight}>
               <select style={{...styles.select, marginBottom: 0, width: '120px'}}><option>최신순</option></select>
-              <div style={styles.viewToggle}>
+              <div className="report-view-toggle" style={styles.viewToggle}>
                 <button style={styles.viewBtn(true)}><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg></button>
                 <button style={styles.viewBtn(false)}><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg></button>
               </div>
@@ -342,9 +342,9 @@ export default function ReportView() {
               const isExpanded = expandedId === report.id;
               
               return (
-                <div key={report.id} style={styles.reportCard(isExpanded)}>
-                  <div style={styles.cardHeader}>
-                    <div style={styles.cardTitleRow}>
+                <div className="report-card" key={report.id} style={styles.reportCard(isExpanded)}>
+                  <div className="report-card-header" style={styles.cardHeader}>
+                    <div className="report-card-title-row" style={styles.cardTitleRow}>
                       <span style={{color: '#fbbc04', fontSize: '20px', cursor: 'pointer'}}>★</span>
                       <span style={styles.cardTitle}>{report.title}</span>
                       <span style={styles.cardMeta}>검색일: {report.date} <span style={styles.statusBadge}>{report.status}</span></span>
@@ -352,18 +352,18 @@ export default function ReportView() {
                     <div style={{color: '#80868b', cursor: 'pointer', fontSize: '20px'}}>...</div>
                   </div>
                   
-                  <div style={styles.cardContentRow}>
-                    <div style={styles.infoBlock}>
+                  <div className="report-card-content-row" style={styles.cardContentRow}>
+                    <div className="report-info-block" style={styles.infoBlock}>
                       <div style={styles.iconBox('#e8f0fe')}><span style={{fontSize:'18px'}}>📄</span></div>
                       <div style={styles.infoLabel}>관련 기사 <span style={styles.infoValue}>{report.relatedCount}건</span></div>
                     </div>
                     
-                    <div style={styles.infoBlock}>
+                    <div className="report-info-block" style={styles.infoBlock}>
                       <div style={styles.iconBox('#fce8e6')}><span style={{fontSize:'18px'}}>🏛️</span></div>
                       <div style={styles.infoLabel}>반박 기사 <span style={styles.infoValue}>{report.unrelatedCount}건</span></div>
                     </div>
                     
-                    <div style={styles.infoBlock}>
+                    <div className="report-info-block" style={styles.infoBlock}>
                        <svg viewBox="0 0 40 20" style={{width: '40px', height: '20px', overflow: 'visible'}}>
                          <path d="M 5 20 A 15 15 0 0 1 35 20" fill="none" stroke="#e0e0e0" strokeWidth="4" />
                          <path d="M 5 20 A 15 15 0 0 1 25 5" fill="none" stroke="#fbbc04" strokeWidth="4" />
@@ -371,9 +371,9 @@ export default function ReportView() {
                        <div style={styles.infoLabel}>신뢰도 평균 <span style={styles.infoValue}>{report.score} <span style={{fontSize:'12px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></span></div>
                     </div>
 
-                    <div style={{ flex: 1, paddingLeft: '12px' }}>
+                    <div className="report-source-wrap" style={{ flex: 1, paddingLeft: '12px' }}>
                       <div style={{fontSize: '12px', color: '#80868b', marginBottom: '8px'}}>주요 출처 신뢰도</div>
-                      <div style={styles.sourceGroup}>
+                      <div className="report-source-group" style={styles.sourceGroup}>
                         {report.sources.map((src, i) => (
                           <div key={i} style={styles.sourceItem}>
                             <div style={styles.sourceLogo(src.logo)}>
@@ -389,7 +389,7 @@ export default function ReportView() {
                     </div>
                     
                     {!isExpanded && (
-                      <div style={{ width: '250px', fontSize: '13px', color: '#5f6368', lineHeight: '1.5', paddingLeft: '24px', borderLeft: '1px solid #e0e0e0' }}>
+                      <div className="report-card-summary" style={{ width: '250px', fontSize: '13px', color: '#5f6368', lineHeight: '1.5', paddingLeft: '24px', borderLeft: '1px solid #e0e0e0' }}>
                         {report.summaryDesc}
                       </div>
                     )}
@@ -405,26 +405,26 @@ export default function ReportView() {
                       <div style={styles.expandedHeader}>
                          ✨ 기사 요약
                       </div>
-                      <div style={styles.expandedTabs}>
+                      <div className="report-expanded-tabs" style={styles.expandedTabs}>
                          <div style={styles.expandedTab(innerTab === 'related')} onClick={() => setInnerTab('related')}>관련 기사 요약 (10)</div>
                          <div style={styles.expandedTab(innerTab === 'unrelated')} onClick={() => setInnerTab('unrelated')}>반박 기사 요약 (8)</div>
                          <div style={styles.expandedTab(innerTab === 'summary')} onClick={() => setInnerTab('summary')}>종합 요약</div>
                       </div>
                       
-                      <div style={styles.expandedContentBody}>
-                         <div style={styles.articleListCol}>
+                      <div className="report-expanded-content" style={styles.expandedContentBody}>
+                         <div className="report-article-list-col" style={styles.articleListCol}>
                            {['매일경제', '한국경제', '조선비즈'].map((pub, i) => (
-                             <div key={i} style={styles.articleListItem}>
+                             <div className="report-article-list-item" key={i} style={styles.articleListItem}>
                                <span style={{fontSize:'16px', color:'#80868b'}}>•</span>
-                               <span style={styles.articleListPublisher}>{pub}</span>
-                               <span style={styles.articleListDate}>(2024.05.12)</span>
+                               <span className="report-article-list-publisher" style={styles.articleListPublisher}>{pub}</span>
+                               <span className="report-article-list-date" style={styles.articleListDate}>(2024.05.12)</span>
                                <span style={styles.articleListText}>AI 기술 발전으로 단순 반복 업무의 자동화 가속화</span>
-                               <span style={styles.articleListAction}>요약 보기 v</span>
+                               <span className="report-article-list-action" style={styles.articleListAction}>요약 보기 v</span>
                              </div>
                            ))}
                            <div style={{textAlign: 'center', color: '#1a73e8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '12px'}}>더보기 v</div>
                          </div>
-                         <div style={styles.summaryCol}>
+                         <div className="report-summary-col" style={styles.summaryCol}>
                             <div style={styles.summaryColTitle}>종합 요약</div>
                             <div style={styles.summaryColText}>
                               대부분의 전문가들은 AI가 일부 일자리를 대체하겠지만, 새로운 산업과 직무를 창출하여 전체적인 일자리 수는 큰 변동이 없을 것이라고 전망합니다.<br/><br/>
@@ -440,7 +440,7 @@ export default function ReportView() {
           </div>
         </div>
       </div>
-      <div style={styles.globalFooter}>
+      <div className="report-global-footer" style={styles.globalFooter}>
         <span style={{fontSize:'16px'}}>🛡️</span> 모든 정보는 다양한 출처를 기반으로 수집되며, 최종 판단은 사용자에게 있습니다.
       </div>
     </div>

@@ -62,7 +62,7 @@ export default function App() {
   );
 
   const styles = {
-    container: { display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', backgroundColor: '#ffffff', overflow: 'hidden', fontFamily: 'sans-serif' },
+    container: { display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', backgroundColor: '#ffffff', fontFamily: 'sans-serif' },
     navbar: { height: '70px', display: 'flex', alignItems: 'center', padding: '0 40px', borderBottom: '1px solid #e0e0e0', flexShrink: 0, justifyContent: 'space-between', backgroundColor: '#ffffff' },
     logoContainer: { display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' },
     logoText: { fontSize: '24px', fontWeight: '900', fontStyle: 'italic', color: '#1a2b49', letterSpacing: '-0.5px' },
@@ -73,7 +73,7 @@ export default function App() {
     userName: { maxWidth: '160px', overflow: 'hidden', color: '#202124', fontSize: '14px', fontWeight: '700', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
     loginBtn: { background: '#ffffff', border: '1px solid #dadce0', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#3c4043', fontSize: '14px', whiteSpace: 'nowrap', flexShrink: 0 },
     signupBtn: { backgroundColor: '#0056d2', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', color: '#ffffff', fontSize: '14px', whiteSpace: 'nowrap', flexShrink: 0 },
-    main: { flex: 1, backgroundColor: '#ffffff', color: '#000000', overflowY: 'auto', position: 'relative' }
+    main: { flex: 1, backgroundColor: '#ffffff', color: '#000000', position: 'relative' }
   };
 
   const navItems = [

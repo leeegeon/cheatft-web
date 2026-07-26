@@ -44,8 +44,8 @@ export default function DetailView({ type }) {
   const displayArticle = getDisplayArticle(article, isNews);
 
   return (
-    <div style={{ display: 'flex', padding: '40px', gap: '40px', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh' }}>
-      <div style={{ flex: 2 }}>
+    <div className="detail-page" style={{ display: 'flex', padding: '40px', gap: '40px', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh' }}>
+      <div className="detail-main" style={{ flex: 2 }}>
         <div style={{ display: 'inline-block', backgroundColor: isNews ? '#1a73e8' : '#00c4b4', color: '#fff', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', marginBottom: '16px' }}>{type}</div>
         <h2 style={{ fontSize: '32px', marginBottom: '24px', lineHeight: '1.4' }}>{displayArticle.title}</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#5f6368', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid #e0e0e0', flexWrap: 'wrap' }}>
@@ -74,7 +74,7 @@ export default function DetailView({ type }) {
           <>
             <hr style={{ margin: '40px 0', border: '0px', height: '1px', backgroundColor: '#e0e0e0' }} />
             <h4 style={{ fontSize: '20px', marginBottom: '20px' }}>댓글 (12)</h4>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="detail-comment-form" style={{ display: 'flex', gap: '12px' }}>
               <div style={{ width: '40px', height: '40px', backgroundColor: '#e8f0fe', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
               <input style={{ flex: 1, padding: '14px 16px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '15px' }} placeholder="의견을 남겨보세요..." />
               <button style={{ padding: '0 24px', backgroundColor: '#1a73e8', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>등록</button>
@@ -83,7 +83,7 @@ export default function DetailView({ type }) {
         )}
       </div>
 
-      <div style={{ flex: 1, backgroundColor: '#f8f9fa', padding: '32px', borderRadius: '16px', height: 'fit-content', border: '1px solid #e0e0e0' }}>
+      <div className="detail-aside" style={{ flex: 1, backgroundColor: '#f8f9fa', padding: '32px', borderRadius: '16px', height: 'fit-content', border: '1px solid #e0e0e0' }}>
         <div style={{ marginBottom: isNews ? 0 : '32px' }}>
           <strong style={{ display: 'block', marginBottom: '16px', fontSize: '18px' }}>신뢰도</strong>
           <div style={{ height: '12px', background: 'linear-gradient(to right, #ea4335, #fbbc04, #34a853)', borderRadius: '6px' }}></div>

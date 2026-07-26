@@ -69,8 +69,8 @@ export default function LoginView({ onLogin }) {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div className="auth-page" style={styles.container}>
+      <div className="auth-card" style={styles.card}>
         <div style={styles.title}>Cheat F/T 로그인</div>
         <div style={styles.subtitle}>신뢰할 수 있는 진실의 시작, 환영합니다.</div>
         

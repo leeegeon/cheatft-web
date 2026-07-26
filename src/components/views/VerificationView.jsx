@@ -419,11 +419,11 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const pageNumbers = Array.from({ length: resultTotalPages }, (_, index) => index + 1);
 
   return (
-    <div style={styles.container}>
+    <div className="verification-page" style={styles.container}>
       <div style={styles.leftPanel}>
         <div style={styles.searchCard}>
           <div style={styles.titleInfo}>무엇을 검증할까요?</div>
-          <div style={styles.searchShell}>
+          <div className="verification-search-shell" style={styles.searchShell}>
             <svg style={styles.searchIcon} width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
             <input
               type="search"
@@ -446,10 +446,10 @@ export default function VerificationView({ onSearch, onArticleClick }) {
         </div>
       </div>
 
-      <div style={styles.rightPanel}>
+      <div className="verification-results-panel" style={styles.rightPanel}>
         {query ? (
           <>
-            <div style={styles.resultHeader}>
+            <div className="verification-result-header" style={styles.resultHeader}>
               <div>
                 <div style={styles.resultQuery}>
                   <svg width="24" height="24" fill="#1a73e8" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
@@ -472,7 +472,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               <div style={styles.resultMeta}>검색 시간: {searchTime}</div>
             </div>
 
-            <div style={styles.filters}>
+            <div className="verification-filters" style={styles.filters}>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <select
                   value={sourceFilter}
@@ -507,9 +507,9 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 {group.items.length === 0 ? (
                   <div style={styles.emptyState}>이 섹션에 표시할 결과가 없습니다.</div>
                 ) : group.items.map((res, i) => (
-                  <div key={`${group.key}-${res.articleId ?? res.title ?? i}`} style={styles.articleCard} onClick={() => onArticleClick(res.articleId ?? i + 1, res)}>
-                    <div style={{ flex: 1, paddingRight: '40px' }}>
-                      <div style={styles.articleMeta}>
+                  <div className="verification-article-card" key={`${group.key}-${res.articleId ?? res.title ?? i}`} style={styles.articleCard} onClick={() => onArticleClick(res.articleId ?? i + 1, res)}>
+                    <div className="verification-article-body" style={{ flex: 1, paddingRight: '40px' }}>
+                      <div className="verification-article-meta" style={styles.articleMeta}>
                         <div style={styles.publisherLogo(res.color)}>
                           {res.logo}
                           {res.logoUrl && <img src={res.logoUrl} alt={`${res.pub} 로고`} style={styles.publisherLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
@@ -543,15 +543,15 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                         <div style={styles.linkBtn}>기사 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></div>
                       )}
                     </div>
-                    <div style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
-                    <div style={styles.gaugeContainer}>
-                      <div style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
-                      <div style={styles.gaugeArc(res.scoreColor)}>
+                    <div className="verification-card-divider" style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
+                    <div className="verification-gauge" style={styles.gaugeContainer}>
+                      <div className="verification-gauge-title" style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
+                      <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)}>
                         <div style={styles.gaugeArcInner(res.scoreColor, res.rotation)}></div>
                       </div>
-                      <div style={styles.gaugeScore}>{res.scoreText}</div>
-                      <div style={styles.gaugeSub}>{res.score}</div>
-                      <div style={styles.gaugeHint}>{res.hint}</div>
+                      <div className="verification-gauge-score" style={styles.gaugeScore}>{res.scoreText}</div>
+                      <div className="verification-gauge-sub" style={styles.gaugeSub}>{res.score}</div>
+                      <div className="verification-gauge-hint" style={styles.gaugeHint}>{res.hint}</div>
                     </div>
                   </div>
                 ))}
@@ -596,8 +596,8 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               </div>
             ))}
 
-            <div style={styles.bottomDisclaimer}>
-              <div style={{ width: '64px', height: '64px', backgroundColor: '#e8f0fe', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="verification-disclaimer" style={styles.bottomDisclaimer}>
+              <div className="verification-disclaimer-icon" style={{ width: '64px', height: '64px', backgroundColor: '#e8f0fe', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="32" height="32" fill="#1a73e8" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
               </div>
               <div style={{ flex: 1 }}>
@@ -609,7 +609,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
           </>
         ) : (
           <>
-            <div style={{ ...styles.resultHeader, borderBottom: 'none', paddingBottom: '0' }}>
+            <div className="verification-result-header" style={{ ...styles.resultHeader, borderBottom: 'none', paddingBottom: '0' }}>
               <div>
                 <div style={styles.resultQuery}>최신 팩트체크</div>
                 <div style={{ color: '#5f6368', marginTop: '8px' }}>
@@ -624,7 +624,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 <div style={styles.sourceNotice(dataSource)}>{dataSourceText}</div>
               </div>
             </div>
-            <div style={styles.filters}>
+            <div className="verification-filters" style={styles.filters}>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <select
                   value={sourceFilter}
@@ -656,12 +656,13 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               </div>
             ) : displayResults.map((res, i) => (
               <div
+                className="verification-article-card"
                 key={res.articleId ?? res.title ?? i}
                 style={styles.articleCard}
                 onClick={() => onArticleClick(res.articleId ?? i + 1, res)}
               >
-                <div style={{ flex: 1, paddingRight: '40px' }}>
-                  <div style={styles.articleMeta}>
+                <div className="verification-article-body" style={{ flex: 1, paddingRight: '40px' }}>
+                  <div className="verification-article-meta" style={styles.articleMeta}>
                     <div style={styles.publisherLogo(res.color)}>
                       {res.logo}
                       {res.logoUrl && <img src={res.logoUrl} alt={`${res.pub} 로고`} style={styles.publisherLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
@@ -679,15 +680,15 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                     뉴스 상세 보기 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
                   </div>
                 </div>
-                <div style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
-                <div style={styles.gaugeContainer}>
-                  <div style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
-                  <div style={styles.gaugeArc(res.scoreColor)}>
+                <div className="verification-card-divider" style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
+                <div className="verification-gauge" style={styles.gaugeContainer}>
+                  <div className="verification-gauge-title" style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
+                  <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)}>
                     <div style={styles.gaugeArcInner(res.scoreColor, res.rotation)}></div>
                   </div>
-                  <div style={styles.gaugeScore}>{res.scoreText}</div>
-                  <div style={styles.gaugeSub}>{res.score}</div>
-                  <div style={styles.gaugeHint}>{res.hint}</div>
+                  <div className="verification-gauge-score" style={styles.gaugeScore}>{res.scoreText}</div>
+                  <div className="verification-gauge-sub" style={styles.gaugeSub}>{res.score}</div>
+                  <div className="verification-gauge-hint" style={styles.gaugeHint}>{res.hint}</div>
                 </div>
               </div>
             ))}
