@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getReports } from '../../services/cheatftApi.js';
-import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 function formatDateTime(value) {
@@ -30,12 +30,13 @@ function mapApiReport(report, index) {
     sources: presses.slice(0, 3).map((press, pressIndex) => {
       recordObservedPress(press);
       const pressLabel = getPressLabel(press);
+      const pressReliability = getPressReliability(press);
 
       return {
         name: typeof press === 'number' && pressLabel === String(press) ? `언론사 ${press}` : pressLabel,
         logo: ['#1a2b49', '#1a73e8', '#ea4335'][pressIndex % 3],
         logoUrl: getPressLogoUrl(press),
-        score: report.averageReliability ? `${report.averageReliability}/5` : null,
+        score: pressReliability.reliabilityScore ? `${pressReliability.reliabilityScore}/5` : report.averageReliability ? `${report.averageReliability}/5` : null,
       };
     }),
     extraCount: Math.max(0, presses.length - 3),

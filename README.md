@@ -86,19 +86,19 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 
 주의: 현재 `../cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체와 API 명세를 함께 포함합니다. 로컬 실행에는 PostgreSQL 접속 정보, JWT secret, 네이버 API 키 등 환경변수가 필요합니다. 프론트 로컬 개발의 기본 API 주소는 `https://cheatft.leegeon.com/api`입니다.
 
-현재 백엔드는 `summary/reports/posts/profile` 계열은 dummy controller 응답이고, `auth/checks/analysis` 계열은 실제 라우트/서비스/DB 흐름을 사용합니다. 2026-07-16 기준 배포 API의 회원가입, 로그인, `/me`는 테스트 계정으로 동작 확인했습니다.
+현재 백엔드는 `summary/reports/posts/profile` 계열은 dummy controller 응답이고, `auth/checks/analysis` 계열은 실제 라우트/서비스/DB 흐름을 사용합니다. 2026-07-26 기준 배포 API의 회원가입, 로그인, `/me`는 테스트 계정으로 동작 확인했습니다.
 
 ## API 연동 상태
 
-2026-07-16 기준 다음 화면은 백엔드 명세 경로를 호출합니다.
+2026-07-26 기준 다음 화면은 백엔드 명세 경로를 호출합니다.
 
 | 화면 | 호출 API | fallback |
 |---|---|---|
 | 홈 | `GET /summary` | 프론트 더미 fallback 없음 |
-| 검증하기 | `POST /checks`, `GET /checks/{id}`, 기본 화면 `GET /summary` | 프론트 더미 fallback 없음 |
-| 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 질문 입력 후 추천 키워드 선택 시 분석 호출, 기존 분석 결과 목업 |
-| 리포트 | `GET /reports?keyword=&date=&score=&page=&limit=` | 기존 리포트 목록 목업 |
-| 커뮤니티 | `GET /posts?category=&keyword=&page=&limit=` | 기존 게시글/참여 현황 목업 |
+| 검증하기 | `POST /checks`, `GET /checks/{id}?page=1&limit=100`, 기본 화면 `GET /summary` | 프론트 더미 fallback 없음, 검색 결과는 10건씩 화면 페이지네이션 |
+| 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 질문 입력 후 추천 키워드 선택 시 분석 호출, 질문/키워드 영역 단계 강조, 기존 분석 결과 목업 |
+| 리포트 | `GET /reports?keyword=&date=&score=&page=&limit=` | 기존 리포트 목록 목업, 현재 배포 API는 query와 무관한 고정 응답 |
+| 커뮤니티 | `GET /posts?category=&keyword=&page=&limit=` | 기존 게시글/참여 현황 목업, 현재 배포 API는 query와 무관한 고정 응답 |
 | 글 작성 | `POST /posts` | 실패 시 오류, 임시 저장 가능 |
 | 로그인 | `POST /login` | 실패 시 오류, 성공 시 accessToken과 현재 사용자 정보 저장 |
 | 회원가입 | `POST /signup` | 성공 후 로그인 화면 이동, 실패 시 오류 |
@@ -131,20 +131,26 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 ## 현재 제약
 
 - 홈/검증하기는 API 응답을 우선 사용하고 실패 시 목업으로 fallback하지 않습니다. 알고리즘 분석, 리포트, 커뮤니티에는 아직 일부 목업 fallback이 남아 있습니다.
-- 홈 최신 팩트체크와 검증하기 기본 화면의 최신 팩트체크는 `GET /summary`의 `recentChecks`를 사용합니다.
+- 홈 최신 팩트체크와 검증하기 기본 화면의 최신 팩트체크는 `GET /summary`의 `recentChecks`를 사용합니다. 2026-07-26 배포 API 재확인 기준 `recentChecks`는 3개입니다.
 - 검증하기 API 요청이 성공하면 API의 `articles` 배열만 사용합니다. `articles`가 비어 있으면 프론트 예시를 섞지 않고 빈 상태를 표시합니다. 다른 조회 화면도 API 성공 후 빈 배열을 목업으로 덮지 않습니다.
-- 검증하기는 텍스트 검색만 지원합니다. URL 링크 검색 탭은 제거됐습니다.
+- 검증하기 검색 결과는 현재 최대 100건을 요청한 뒤 프론트에서 10건씩 페이지를 나눠 표시합니다. 2026-07-26 배포 API 확인 기준 `limit=100` 요청에도 실제 응답은 12건이며, `page=2&limit=5`도 12건 전체와 `totalPages: 1`을 반환해 서버 페이지네이션은 아직 적용되지 않은 상태로 관측됐습니다.
+- 검증하기 정렬은 `연관도순`, `최신순`만 제공합니다. 로컬 백엔드 확인 기준 네이버 뉴스 검색은 `sort=sim`을 사용하므로 기본 반환 순서는 연관도순입니다.
+- 언론사별 분류와 신뢰도 기준은 `src/data/pressReliability.js`에 저장합니다. 검증하기 기사에 백엔드 신뢰도 점수가 없으면 이 언론사 기준 점수를 fallback으로 표시하고, 상세 화면에서는 분류와 판단 이유 요약도 확인할 수 있습니다.
+- 사람이 검토하기 쉬운 이유 표는 `docs/press-reliability.md`에서 확인합니다. `파일/신뢰도`의 AI 별점 이미지는 참고값으로만 반영했습니다.
+- 검증하기는 텍스트 검색만 지원합니다. URL 링크 검색 탭은 제거됐습니다. 배포 API는 `type=url` 요청도 `202`로 받지만 URL 본문 파싱 없이 검색어처럼 저장되며, 확인한 네이버 기사 URL 요청은 기사 0건을 반환했습니다.
 - 검증하기 카드와 최신 팩트체크 카드는 제목 재검색이 아니라 `/article/:id` 뉴스 상세로 이동합니다.
 - 뉴스 상세는 클릭한 기사 객체를 route state와 `sessionStorage`로 받아 표시합니다. 직접 URL 진입이나 저장 정보 없는 새로고침을 완전히 지원하려면 별도 상세 API가 필요합니다.
-- 신뢰도 분석(`/algo`)은 질문을 입력하면 프론트에서 추천 키워드 칩을 제시하고, 사용자가 키워드를 선택할 때 `POST /analysis`, `GET /analysis/{id}`를 호출합니다. 화면은 AI 주요 인사이트와 분석 요약을 관련 뉴스보다 먼저 보여줍니다.
+- 신뢰도 분석(`/algo`)은 질문을 입력하면 프론트에서 추천 키워드 칩을 제시하고, 사용자가 키워드를 선택할 때 `POST /analysis`, `GET /analysis/{id}`를 호출합니다. 기본값과 키워드 선택 직후에는 질문 영역을 강조하고, 추천 키워드가 생성되면 키워드 영역을 강조합니다. 화면은 AI 주요 인사이트와 분석 요약을 관련 뉴스보다 먼저 보여줍니다.
 - 팩트체크 리포트(`/report`)는 상단 리포트 내보내기, 총 검색 시간, 요약 다운로드 버튼을 표시하지 않습니다. 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 중심으로 보여줍니다.
 - 커뮤니티와 팩트체크 리포트는 전역 상단바를 다른 화면과 동일하게 사용합니다. 커뮤니티 글 작성 버튼은 상단바가 아니라 커뮤니티 목록 상단의 검색/필터 영역에 표시합니다.
-- 2026-07-16 확인 기준 `GET /summary`, `POST /login`, `GET /me`는 배포 API에서 정상 응답이 관측되었습니다. 기존 더미 `GET /checks/452`는 새 DB 기반 라우트에서는 404가 관측되었습니다.
-- 리포트 목록은 `keyword`, `date`, `score`, `page`, `limit` query parameter를 `GET /reports`에 전달합니다.
-- 커뮤니티 목록은 `category`, `keyword`, `page`, `limit` query parameter를 `GET /posts`에 전달합니다.
+- 2026-07-26 확인 기준 `GET /summary`, `POST /login`, `GET /me`는 배포 API에서 정상 응답이 관측되었습니다. 기존 더미 `GET /checks/452`는 새 DB 기반 라우트에서는 404가 관측되었습니다.
+- 리포트 목록은 `keyword`, `date`, `score`, `page`, `limit` query parameter를 `GET /reports`에 전달하지만 현재 배포 API는 해당 query를 적용하지 않고 같은 dummy 응답과 `currentPage: 1`을 반환합니다.
+- 커뮤니티 목록은 `category`, `keyword`, `page`, `limit` query parameter를 `GET /posts`에 전달하지만 현재 배포 API는 해당 query를 적용하지 않고 같은 dummy 응답과 `currentPage: 1`을 반환합니다.
+- 신뢰도 분석 결과 조회는 `limit` query를 전달할 수 있지만 현재 배포 API는 `limit=1`과 `limit=4`에 같은 결과를 반환하고, 응답 body에 `limit` 필드는 없습니다.
 - 로그인은 `/login` 응답의 accessToken을 `localStorage`에 저장하고, 이후 API 요청에 Bearer 토큰으로 첨부합니다. accessToken이 없으면 실패로 처리합니다. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시합니다.
-- 회원가입은 `/signup`을 호출하지만 현재 명세에는 accessToken이 없어 성공 후 로그인 화면으로 이동합니다.
+- 회원가입은 `/signup`을 호출하지만 현재 명세에는 accessToken이 없어 성공 후 로그인 화면으로 이동합니다. 2026-07-26 배포 API 확인 기준 중복 이메일은 `409`가 아니라 `500`과 `이미 사용 중인 이메일입니다.` 메시지로 내려옵니다.
 - 게시물 등록은 `/posts`로 전송합니다. 실패하면 오류를 보여주고 임시 저장은 유지됩니다.
+- `GET /health`는 서버 상태 확인용으로 존재하지만 `{ status, message, data }` 공통 래핑이 아니라 `{ message }`만 반환합니다.
 - 마이페이지 화면과 `/mypage` 라우트는 제거됐습니다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않습니다.
 - 주소창 favicon은 `public/favicon.png`를 사용합니다. 사용자가 제공한 Cheat F/T 돋보기 아이콘에서 흰 배경을 투명 처리한 PNG입니다.
 - 현재 Windows/Node 24.13 환경에서는 Vite 프로덕션 빌드가 네이티브 예외로 종료됩니다. Node 22 LTS 또는 배포 workflow의 검증된 Node 버전에서 빌드하는 구성을 권장합니다.

@@ -1,6 +1,6 @@
 # 프론트-백엔드 계약 지도
 
-마지막 갱신: 2026-07-16
+마지막 갱신: 2026-07-26
 기준 문서: `cheatft_api/src`, `cheatft_api/README.md`, `cheatft_web/docs/backend-handoff.md`, `cheatft_web/src`
 
 이 문서는 `cheatft_web` 화면과 `cheatft_api` 구현/명세를 빠르게 맞춰보기 위한 요약이다. 실제 동작은 `cheatft_api/src`를 우선 확인하고, README는 보조 명세로 본다.
@@ -19,11 +19,30 @@
 - 검증하기 검색 결과는 API 성공 시 백엔드 결과만 표시한다. 2026-07-15 이후 검증하기의 API 실패/미설정 프론트 더미데이터 fallback도 제거됐다.
 - 검증하기 언론사 표기는 백엔드 `src/services/checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 `src/utils/press.js`에서 정규화한다.
 - 2026-07-15 추가 보강으로 프론트는 알려진 oid에 네이버 `office_logo` 로고 URL을 매핑하고, `언론사(021)` 같은 미매핑 fallback 문자열은 브라우저 `localStorage`에 관측 목록으로 누적한다. 이는 백엔드에 전달할 보완 목록 수집용이며 서버 저장은 아니다.
-- `/algo`는 보호 라우트로 변경했다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다.
+- 2026-07-26 이후 프론트는 `src/data/pressReliability.js`의 언론사 기준표로 분류와 신뢰도 fallback을 제공한다. 백엔드 기사에 신뢰도 점수가 없으면 언론사 기준 점수를 사용한다. 판단 이유 검토용 문서는 `docs/press-reliability.md`이다.
+- `/algo`는 보호 라우트로 변경했다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 질문 영역 강조 → 추천 키워드 생성 후 키워드 영역 강조 → 키워드 선택 후 질문 영역 강조로 안내하며 API 호출 구조는 그대로 유지한다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
-- 2026-07-16 기준 `UserModel.findByEmail is not a function` 오류는 백엔드 pull 이후 로컬/배포 API에서 해결된 것으로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
-- `GET /api/health`는 서버 상태 확인 라우트로 존재한다.
+- 2026-07-26 기준 `UserModel.findByEmail is not a function` 오류는 해결된 상태로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
+- 2026-07-26 기준 `GET /api/summary`는 `recentChecks` 3개를 반환한다.
+- 2026-07-26 기준 `GET /api/checks/{id}?page=1&limit=100`은 `경제` 검색어에서 `totalArticles: 12`, `articles.length: 12`, `pagination.totalPages: 1`로 관측됐다. `page=2&limit=5`도 12건 전체와 `currentPage: 1`을 반환해 서버 페이지네이션은 아직 적용되지 않은 상태로 보이며, 프론트는 최대 100건 수신 후 10건씩 클라이언트 페이지네이션한다.
+- 2026-07-26 기준 `GET /api/reports`, `GET /api/posts`는 query parameter를 받아도 같은 dummy 응답과 `currentPage: 1`을 반환한다.
+- 2026-07-26 기준 `GET /api/analysis/{id}?limit=1`과 `limit=4`는 같은 결과를 반환하고, 응답 body에 `limit` 필드는 없다.
+- 2026-07-26 기준 `GET /api/health`는 서버 상태 확인 라우트로 존재하지만 공통 래핑 없이 `{ message }`만 반환한다.
 - 기존 `cheatft_web/docs/backend-handoff.md`는 회의 전 제안 문서라 `/auth/login`, `/fact-checks` 같은 다른 경로가 섞여 있었다. 현재 연결 상태와 향후 협의는 아래 매핑을 기준으로 본다.
+
+## 2026-07-26 배포 API 재확인 메모
+
+- 확인 시각: 2026-07-26 18:14~18:15 KST.
+- `GET /api/summary`: `todayStats`, `recentChecks`, `biasStatus` 반환. `recentChecks`는 3개.
+- `POST /api/signup`: 성공 시 `id`, `email`, `nickname`, `level`, `user_title`, `created_at` 반환. 중복 이메일은 현재 `409`가 아니라 `500`으로 내려온다.
+- `POST /api/login`: 성공 시 `accessToken`, `userId`, `nickname` 반환.
+- `GET /api/me`: 토큰 없으면 `401`, 유효 토큰이면 `id`, `email`, `nickname`, `level`, `user_title`, `created_at` 반환.
+- `POST /api/checks`: `type=text`, `type=url` 모두 `202`와 `checkId`를 반환한다. 다만 `type=url`은 URL 본문 파싱 없이 검색어처럼 저장되며, 확인한 네이버 기사 URL 요청은 기사 0건이었다.
+- `GET /api/checks/{id}`: 기사 필드는 `articleId`, `press`, `title`, `description`, `date`, `url`이다. `press`는 README 예시처럼 숫자가 아니라 `"연합뉴스"` 또는 `"언론사(050)"` 같은 문자열이다. 제목/설명에는 `&quot;` 같은 HTML entity가 남을 수 있다.
+- `POST /api/analysis`: 인증 필요. 성공 메시지는 `분석이 성공적으로 요청되었습니다.`이고 `analysisId`를 반환한다.
+- `GET /api/analysis/{id}`: `analysisId`, `keyword`, `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination` 반환. `limit` query는 실제 결과 개수에 반영되지 않고, 관련/반박 기사 `press`는 숫자가 아니라 언론사명 문자열이다.
+- `POST /api/posts`: 성공 시 `id`, `title`, `category`만 반환한다.
+- `GET /api/health`: 공통 래핑 없이 `{ message }`만 반환한다.
 
 ## 2026-07-16 인증/배포 계약 메모
 
@@ -82,7 +101,7 @@
   - `todayStats.requests`: 1248
   - `todayStats.completed`: 842
   - `todayStats.accuracyRate`: 91
-  - `recentChecks`: 1개
+  - 2026-07-10 당시 `recentChecks`: 1개. 2026-07-26 재확인 기준은 3개
   - 첫 항목 제목: `"OOO 백신 부작용 사망자 급증?"`
   - `biasStatus.overallScore`: 32
   - `biasStatus.overallLevel`: `보통`
@@ -128,11 +147,12 @@
   - `경제지`: 한국경제, 매일경제, 이데일리, 머니투데이
   - `인터넷/IT지`: 데일리안, 오마이뉴스
   - `기타 출처`: 위 목록에 속하지 않는 백엔드/외부 출처
-- 결과 정렬 select는 `latest`, `views`, `relevance` 값을 사용한다. 2026-07-15 이후 `runFactCheck()`는 `GET /checks/{id}?page=1&limit=10`만 호출하고, 정렬 변경은 프론트 수신 결과를 로컬에서 재정렬한다.
+- 결과 정렬 select는 2026-07-26 이후 `relevance`, `latest` 값만 사용한다. `runFactCheck()`는 `GET /checks/{id}?page=1&limit=100`을 호출하고, 정렬 변경은 프론트 수신 결과를 로컬에서 재정렬한다.
+- 검증하기 화면은 API에서 받은 `articles`를 프론트에서 10건씩 페이지네이션한다. 서버 `page/limit`이 실제 분할을 지원하면 이후 `page` 상태를 API 요청과 연결할 수 있다.
 - 프론트 정렬 후보 필드:
-  - 조회수: `viewCount`, `views`, `readCount`
-  - 연관도: `relevanceScore`, `relevance`, `similarity`
+  - 연관도: `relevanceScore`, `relevance`, `similarity`. 현재 배포 API에는 이 필드가 없으므로 백엔드 반환 순서를 유지한다.
   - 최신순: `publishedAt`, `createdAt`, `date`, `pubDate`, `pub_date`를 표시용 날짜로 변환한 값
+- 백엔드 `checks.service.js`는 네이버 뉴스 검색에 `sort=sim`을 설정하므로 기본 반환 순서는 연관도순이다.
 - 백엔드가 정렬/필터 parameter를 공식 지원하기 전까지 프론트에서 수신 결과를 한 번 정렬한다.
 
 ## 2026-07-12 로그인/회원가입 계약 메모
@@ -146,7 +166,7 @@
   - 로그인 `401`: 이메일 또는 비밀번호 불일치
   - 로그인 `403`: 계정 제한 또는 권한 없음
 - 회원가입 `400`: 입력값 오류
-- 회원가입 `409`: 이메일 또는 닉네임 중복
+- 회원가입 중복은 프론트 UX상 `409`가 가장 자연스럽지만, 2026-07-26 배포 API는 중복 이메일을 `500`으로 반환한다.
 
 ## 2026-07-15 실제 백엔드 관측/프론트 반영
 
@@ -189,7 +209,7 @@
 - 홈:
   - `GET /api/summary` 응답만 사용한다. 프론트 기본 summary/fallback 더미를 제거했다.
   - 최신 팩트체크는 `recentChecks` 전체를 표시한다. 프론트에서 3개로 자르지 않는다.
-  - 현재 배포 API가 `recentChecks` 1개만 반환하면 화면도 1개만 표시한다.
+  - 2026-07-26 배포 API 확인 기준 `recentChecks`는 3개이며, 프론트는 받은 개수만큼 표시한다.
   - `biasStatus`와 `reliabilityStatus` 후보를 모두 받을 수 있으나 화면 표현은 `신뢰도` 기준이다.
 - 검증하기:
   - URL 링크 검색은 제거됐다. 현재 프론트 입력은 텍스트 검색만 사용한다.
@@ -216,6 +236,7 @@
 - 단기 프론트 동작:
   - `press/pressName/publisher/mediaName` 후보에서 oid/name을 정규화한다.
   - 로고 URL이 있으면 이미지를 표시하고, 이미지 로드 실패 또는 미매핑이면 기존 텍스트 배지를 표시한다.
+  - `pressReliability.js`에 등록된 언론사는 분류와 신뢰도 점수/라벨/판단 이유를 함께 조회한다.
   - 미매핑 fallback oid는 `localStorage`에 관측 목록으로 저장한다.
 - API 문자열 표시:
   - 네이버/백엔드 응답에 HTML entity가 남아 `&quot;`처럼 보일 수 있어 프론트 `cleanDisplayText()`가 표시 전에 디코딩한다.
@@ -248,7 +269,7 @@
 | 검색/검증 요청 | `HomeView.jsx`, `VerificationView.jsx` | `POST /api/checks` | 검색어 이동 후 API 요청 |
 | 검증 결과 | `VerificationView.jsx` | `GET /api/checks/{id}` | API 응답만 표시, URL 링크 검색 제거, 프론트 더미 fallback 없음, 백엔드 `PRESS_MAPPING` 기반 출처 필터와 로컬 정렬 제공 |
 | 뉴스 상세 | `DetailView.jsx` | 명세 없음 | 클릭한 기사 객체를 route state/sessionStorage로 표시. 직접 조회용 상세 API 없음 |
-| 알고리즘 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 분석 버튼에서 API 요청, 백엔드는 Bearer token 요구 |
+| 알고리즘 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 추천 키워드 칩 선택 시 API 요청, 백엔드는 Bearer token 요구 |
 | 알고리즘 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}` | 보호 라우트, API 우선, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
 | 리포트 목록 | `ReportView.jsx` | `GET /api/reports` | API 우선, `keyword/date/score/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
 | 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
@@ -265,28 +286,28 @@
 | 메서드 | 경로 | 용도 | 주요 data |
 |---|---|---|---|
 | GET | `/api/summary` | 홈 대시보드 | `todayStats`, `recentChecks`, `biasStatus` |
-| POST | `/api/signup` | 회원가입 | `userId`, `nickname` |
+| POST | `/api/signup` | 회원가입 | 성공 시 `id`, `email`, `nickname`, `level`, `user_title`, `created_at`; 중복 이메일은 현재 `500` |
 | POST | `/api/login` | 로그인 | `accessToken`, `userId` |
-| GET | `/api/me` | 인증 사용자 정보 | Bearer token 필요. 현재 user model 결함으로 정상 동작 불확실 |
+| GET | `/api/me` | 인증 사용자 정보 | Bearer token 필요. 2026-07-26 배포 API 정상 조회 확인 |
 | POST | `/api/checks` | 팩트체크 요청 | `checkId` |
 | GET | `/api/checks/{id}` | 검증 결과 | `checkId`, `query`, `articles`, `pagination`; `page/limit` 미구현, pagination은 현재 `1/1/articles.length` |
 | POST | `/api/analysis` | 알고리즘 분석 요청 | `analysisId` |
-| GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`; `limit` query 미구현 |
-| GET | `/api/reports` | 리포트 목록 | `totalStats`, `reports`, `pagination` |
-| GET | `/api/posts` | 커뮤니티 목록 | `communityStats`, `posts`, `pagination` |
-| POST | `/api/posts` | 게시글 작성 | 명세에 response 예시 없음 |
+| GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`; `limit` query 미구현, 응답 `limit` 없음 |
+| GET | `/api/reports` | 리포트 목록 | `totalStats`, `reports`, `pagination`; query parameter는 현재 dummy 응답에 미반영 |
+| GET | `/api/posts` | 커뮤니티 목록 | `communityStats`, `posts`, `pagination`; query parameter는 현재 dummy 응답에 미반영 |
+| POST | `/api/posts` | 게시글 작성 | `id`, `title`, `category` |
 | GET | `/api/profile` | 마이페이지 dummy dashboard | `userInfo`, `myContribution`, `personalDashboard`, `earnedBadges`, etc. |
-| GET | `/api/health` | 서버 상태 확인 | `{ message }` |
+| GET | `/api/health` | 서버 상태 확인 | 공통 래핑 없이 `{ message }` |
 
 ## 실제/더미 구분
 
 | 구분 | Endpoint | 현재 성격 |
 |---|---|---|
-| 실제 DB 흐름, 현재 auth model 결함 | `/api/signup`, `/api/login`, `/api/me` | service는 user model을 기대하지만 `user.model.js`가 checks model 복사본 |
+| 실제 DB 흐름 | `/api/signup`, `/api/login`, `/api/me` | 배포 API에서 생성/로그인/토큰 조회 정상 확인. 중복 회원가입은 현재 `500` |
 | 실제 DB 흐름 | `/api/checks`, `/api/checks/{id}` | 요청 시 check와 article 저장, 네이버 API 실패/키 없음이면 fallback article 저장 |
 | DB-backed stub | `/api/analysis`, `/api/analysis/{id}` | 인증 필요, 고정 stats/기사/insight를 DB에 저장/조회 |
-| dummy controller | `/api/summary`, `/api/reports`, `/api/posts`, `/api/profile` | query/auth/DB 저장 거의 미처리. `POST /api/posts`도 더미 생성 응답 |
-| health | `/api/health` | 상태 메시지 |
+| dummy controller | `/api/summary`, `/api/reports`, `/api/posts`, `/api/profile` | query/auth/DB 저장 거의 미처리. `GET /reports`, `GET /posts` query 미반영. `POST /api/posts`도 더미 생성 응답 |
+| health | `/api/health` | 공통 래핑 없이 상태 메시지 |
 
 ## 프론트에서 필요한 추가 API
 
@@ -294,12 +315,15 @@
 
 - `GET /api/articles/{id}` 또는 `GET /api/checks/{checkId}/articles/{articleId}`: `DetailView` 뉴스 상세 직접 진입/새로고침/공유 링크 지원용
 - `GET /api/checks/{id}` article 필드 확정: `press` 번호 또는 언론사명, `publishedAt`, `viewCount`, `relevanceScore`, `articleId`, `url`, `summary`
+- `POST /api/checks`의 `type=url` 실제 처리 방식 확정. 현재는 URL 본문 분석이 아니라 검색어처럼 처리된다.
 - `GET /api/posts/{id}`: 커뮤니티 상세용
 - `GET /api/posts/{id}/comments`, `POST /api/posts/{id}/comments`: 댓글 목록/작성
 - `POST /api/logout` 또는 토큰 만료/갱신 정책
 - `GET /api/me` 또는 `GET /api/profile`의 인증 사용자 정보 분리 여부
 - 알림 목록 API: nav의 알림 버튼 활성화용
 - 리포트 다운로드 API: `ReportView`, `AlgoView`의 다운로드 버튼용
+- `POST /api/posts` 응답 스키마 문서화. 현재는 `id`, `title`, `category`만 반환한다.
+- 공통 응답을 모든 API에 적용할지 확정. 현재 `/api/health`는 `{ message }`만 반환한다.
 - 즐겨찾기/저장한 기사 API: `ReportView` 또는 향후 개인화 화면 요소용
 - 실제 마이페이지를 다시 제공하려면 공개 dummy `/api/profile`과 인증 사용자 `/api/me` 또는 인증 profile API의 역할 분리가 필요하다.
 - `GET /api/checks/{id}`와 `GET /api/analysis/{id}`는 현재 owner check가 보이지 않는다. 사용자별 데이터 격리가 필요하면 백엔드 계약을 추가해야 한다.
@@ -312,7 +336,7 @@
    - 로그인은 `accessToken`이 없는 응답을 실패로 본다.
    - 회원가입은 현재 명세상 로그인 상태를 만들지 않으므로, 가입 직후 자동 로그인 여부를 백엔드와 별도 확정해야 한다.
    - 백엔드 `JWT_SECRET`이 없으면 fallback secret을 사용하므로 배포/운영 환경에서는 명시 secret이 필요하다.
-   - 로그인 실패 상태 코드는 `401`, 계정 제한/권한 문제는 `403`, 회원가입 중복은 `409`로 주면 프론트 메시지와 잘 맞는다.
+   - 로그인 실패 상태 코드는 `401`, 계정 제한/권한 문제는 `403`, 회원가입 중복은 `409`로 주면 프론트 메시지와 잘 맞는다. 현재 배포 API의 중복 회원가입은 `500`이다.
 
 2. API base URL
    - 프론트는 `VITE_API_BASE_URL`을 사용한다.
@@ -332,6 +356,7 @@
    - 프론트는 목록 화면에서 `currentPage`, `totalPages`, `totalItems`를 그대로 쓸 수 있다.
    - 현재 커뮤니티는 `GET /posts`에 `category`, `keyword`, `page`, `limit`을 전달한다.
    - 현재 리포트는 `GET /reports`에 `keyword`, `date`, `score`, `page`, `limit`을 전달한다.
+   - 2026-07-26 배포 API 확인 기준 `checks`, `reports`, `posts`, `analysis`의 page/limit/filter query는 실제 분할/필터에 반영되지 않는다.
 
 6. 점수/라벨 체계
    - 신뢰도: 화면은 0~5 또는 1~5 점수와 `신뢰 가능`, `주의` 같은 라벨을 사용한다.
@@ -340,8 +365,7 @@
 
 7. 검증 결과 정렬/필터
    - 2026-07-15 현재 프론트는 `sort` query를 보내지 않고 수신 결과를 로컬 정렬한다.
-   - 백엔드에서 서버 정렬을 공식 지원하면 `sort=latest|views|relevance` 계약을 다시 열면 된다.
-   - 조회수 기준 필드는 `viewCount`를 우선 추천한다.
+   - 백엔드에서 서버 정렬을 공식 지원하면 `sort=latest|relevance` 계약을 다시 열면 된다.
    - 연관도 기준 필드는 `relevanceScore`를 우선 추천한다. 0~100 정수 또는 0~1 소수 중 하나로 확정해야 한다.
    - 현재 실제 `GET /api/checks/{id}` article 필드는 `articleId`, `press`, `title`, `description`, `date`, `url`이다. `publishedAt`, `viewCount`, `relevanceScore`, `summary`는 아직 오지 않는다.
    - 언론사 필드는 백엔드 `PRESS_MAPPING`의 oid 문자열 또는 정규화된 언론사명 중 하나를 주면 된다. 둘 다 줄 경우 프론트는 `press`를 우선 읽고 `pressName/publisher/mediaName`을 fallback으로 읽는다.

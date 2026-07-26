@@ -1,6 +1,6 @@
 # Handoff
 
-마지막 갱신: 2026-07-19
+마지막 갱신: 2026-07-26
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 새 채팅에서 이어받을 때는 루트 `AGENTS.md` → `cheatft_web/AGENTS.md` → 이 파일 순서로 본다. 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다.
@@ -12,7 +12,7 @@
 - 핵심 개발 대상은 `cheatft_web` React/Vite 프론트엔드이다.
 - 로컬 `cheatft_api`는 이제 Express/PostgreSQL/JWT 기반 Node 백엔드 코드와 API 명세 `README.md`를 포함한다.
 - `cheatft_api`는 확인/분석을 위해 읽을 수 있다. 단, 앞으로 Codex는 `cheatft_api`를 수정하지 않는다. 로그인/회원가입 구현처럼 표현이 넓은 요청도 프론트만 수정하고, 백엔드는 읽기 전용으로만 확인한다.
-- 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다. 일부 라우트는 실제 DB/토큰/네이버 뉴스 검색 흐름이고, `summary/reports/posts/profile`은 아직 더미 컨트롤러 중심이다.
+- 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다. 일부 라우트는 실제 DB/토큰/네이버 뉴스 검색 흐름이고, `summary/reports/posts/profile`은 아직 더미 컨트롤러 중심이다. 2026-07-26 재확인 기준 `reports/posts` query, `analysis` limit, `checks` page/limit은 실제 결과 분할/필터에 반영되지 않는다.
 - `cheatft_web`과 `cheatft_api`는 각각 `.git`이 있지만 Codex sandbox 사용자 기준으로 `dubious ownership`가 발생한다. Git 상태 확인이 필요하면 safe.directory 설정 여부를 먼저 확인한다.
 - `cheatft_web`에는 `node_modules/`와 `dist/`가 이미 있으나 생성물/의존성 폴더이므로 일반 맥락 파악 때는 다시 훑지 않는다.
 - `.understand-anything/`은 2026-07-15 전체 스캔용 산출물이다. 일반 맥락 파악 때는 다시 훑지 않는다.
@@ -49,12 +49,53 @@
 - API 응답이 성공했지만 배열이 비어 있으면 해당 빈 상태를 그대로 보여주며 프론트 목업을 섞지 않는다. 검증하기 검색 결과는 API 실패 시에도 프론트 더미데이터를 섞지 않고 오류/빈 상태를 보여준다.
 - 현재 API 기본 URL: `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
-- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다.
+- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다. 2026-07-26 배포 API 확인 기준 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
 - 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
 - API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-07-26 검증하기 결과 페이지네이션
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `파일/신뢰도`의 이미지 자료를 확인해 AI 별점은 참고값으로만 사용하고, Codex가 언론사별 분류/신뢰도/판단 이유를 새로 정리했다.
+- 사이트 반영 원본은 `src/data/pressReliability.js`이다. 79개 언론사에 대해 `category`, `reliabilityScore`, `reliabilityLabel`, `aiReferenceStars`, `rationaleSummary`를 기록했다.
+- 이유 확인용 문서는 `docs/press-reliability.md`로 생성했다.
+- `src/utils/press.js`는 `pressReliability.js`를 기준으로 언론사 분류와 신뢰도를 조회한다. 백엔드 `PRESS_MAPPING`에는 있으나 프론트에 없던 `144: 스포츠경향`도 추가했다.
+- `VerificationView.jsx`는 백엔드 기사에 신뢰도 점수가 없으면 언론사 기준 신뢰도를 표시하고, 기사 상세로 전달한다.
+- `DetailView.jsx`는 전달받은 언론사 신뢰도 분류와 판단 이유 요약을 오른쪽 신뢰도 패널에 표시한다.
+- `AlgoView.jsx`, `ReportView.jsx`도 언론사 배지/주요 출처 점수에 같은 기준표를 fallback으로 사용한다.
+- 배포 API `POST /api/checks` 후 `GET /api/checks/{id}?page=1&limit=100`을 직접 확인했다.
+  - `인공지능 뉴스`, `정치`, `경제`, `대통령` 검색어 모두 `totalArticles: 12`, `articles.length: 12`, `pagination.totalPages: 1`로 관측됐다.
+  - `page=2&limit=5` 요청도 12건 전체와 `totalPages: 1`을 반환해, 현재 배포 API에서는 서버 페이지네이션이 아직 적용되지 않은 상태로 보인다.
+- `VerificationView.jsx`는 검증 결과 조회 시 `limit=100`을 요청하고, 수신한 `articles`를 프론트에서 정렬/필터링한 뒤 10건씩 페이지를 나눠 표시한다.
+- 출처 필터나 정렬을 바꾸면 결과 페이지는 1페이지로 돌아간다.
+- 로컬 백엔드 `checks.service.js` 확인 기준 네이버 뉴스 검색은 `sort=sim`을 사용하므로 백엔드 기본 반환 순서는 연관도순이다.
+- 배포 API article에는 현재 `relevanceScore/relevance/similarity`, `viewCount/views/readCount` 필드가 오지 않는다. 검증하기 정렬 옵션은 `연관도순`, `최신순`만 제공하고, 기본값인 `연관도순`은 백엔드 반환 순서를 유지한다.
+- 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
+
+## 2026-07-26 신뢰도 분석 입력 강조
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `src/components/views/AlgoView.jsx`에서 질문 영역과 추천 키워드 영역을 각각 독립된 강조 박스로 나눴다.
+- 기본 상태와 키워드 칩 선택 직후에는 질문 영역을 강조한다.
+- `키워드 추천`으로 추천 키워드가 생성되면 키워드 영역을 강조한다. 추천 키워드가 없으면 질문 영역 강조를 유지한다.
+- `POST /analysis`, `GET /analysis/{id}` 호출 구조는 바꾸지 않았다.
+- 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
+
+## 2026-07-26 배포 API 문서 차이 재확인
+
+- 백엔드 폴더(`cheatft_api`)와 `cheatft_api/README.md`는 수정하지 않았다.
+- 배포 API를 실제 호출해 `cheatft_web` 문서의 현재 상태 문구를 갱신했다.
+- `GET /api/summary`는 `recentChecks` 3개를 반환한다.
+- `GET /api/reports`, `GET /api/posts`는 query parameter를 받아도 같은 dummy 응답과 `currentPage: 1`을 반환한다.
+- `GET /api/checks/{id}`는 `page=2&limit=5`에도 전체 12건과 `currentPage: 1`을 반환해 서버 페이지네이션이 아직 적용되지 않은 상태로 보인다. article `press`는 숫자가 아니라 언론사명 문자열이며, 제목/설명에는 HTML entity가 남을 수 있다.
+- `POST /api/checks`의 `type=url`은 202로 접수되지만 URL 본문 파싱이 아니라 검색어처럼 처리되며, 확인한 네이버 기사 URL은 기사 0건을 반환했다.
+- `GET /api/analysis/{id}`는 `limit=1`과 `limit=4`에 같은 결과를 반환하고 응답 body에 `limit` 필드가 없다.
+- `POST /api/signup` 중복 이메일은 현재 `500`, `이미 사용 중인 이메일입니다.` 메시지를 반환한다.
+- `GET /api/health`는 공통 응답 래핑 없이 `{ message }`만 반환한다.
+- `POST /api/posts`는 성공 시 `id`, `title`, `category`만 반환한다.
 
 ## 2026-07-19 신뢰도 분석 UI 흐름 조정
 
@@ -176,7 +217,7 @@
 - 배포 API 확인 결과:
   - `/api/summary`와 `/api/profile`은 200 응답.
   - `/api/me`는 토큰 없으면 401.
-  - `/api/login`은 현재 `UserModel.findByEmail is not a function` 메시지와 함께 401 응답. 로컬 `cheatft_api/src/models/user.model.js`가 사용자 모델이 아니라 checks 모델 내용으로 들어간 상태와 일치한다.
+  - 당시 `/api/login`은 `UserModel.findByEmail is not a function` 메시지와 함께 401 응답. 로컬 `cheatft_api/src/models/user.model.js`가 사용자 모델이 아니라 checks 모델 내용으로 들어간 상태와 일치했다. 이후 2026-07-16/2026-07-26 확인 기준 배포 로그인은 정상 동작한다.
   - `/api/checks/452`는 새 DB 기반 API에서는 기존 더미 id가 없어 404.
   - `/api/health`는 서버 상태 확인 라우트로 로컬 코드에 존재한다.
 - 배포 프론트 `https://cheatft.leegeon.com/`는 현재 Vite dev server 형태로 소스를 서빙한다. 확인 시 `#root`가 비어 있었고 배포 소스는 `/algo`가 아직 보호 라우트가 아닌 이전 프론트였다.
@@ -197,7 +238,7 @@
   - `https://cheatft.leegeon.com/`은 Vite dev HTML(`/@vite/client`, `/src/main.jsx`)을 서빙한다.
   - 배포된 `/src/App.jsx`는 `/src/services/apiClient.js`를 import하지만 서버에서 해당 파일이 404라 현재 프론트 배포 산출물이 불완전하다.
   - `/api/summary`, `/api/health`, `/api/checks`는 응답하므로 주된 실패 원인은 백엔드 전체 중단이 아니라 프론트 배포 방식/파일 누락이다.
-  - `/api/login`은 여전히 `UserModel.findByEmail is not a function` 오류를 반환한다.
+  - 당시 `/api/login`은 `UserModel.findByEmail is not a function` 오류를 반환했다. 이후 2026-07-16/2026-07-26 확인 기준 배포 로그인은 정상 동작한다.
 - UI 문구/구조 변경:
   - 사이트 전반의 `알고리즘 편향성` 표현을 `신뢰도` 중심 표현으로 바꿨다.
   - 뉴스 상세의 `편향성 지수`를 `신뢰도`로 바꾸고, 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역을 제거했다.
@@ -206,7 +247,7 @@
   - 홈 프로모션 배너의 `Cheat F/T 소개 보기 >` 버튼만 제거했다.
 - 홈/검증하기 실데이터 전환:
   - `HomeView.jsx`와 `VerificationView.jsx`에서 프론트 더미 데이터와 fallback 결과를 제거했다.
-  - 홈 최신 팩트체크는 `recentChecks.slice(0, 3)` 제한 없이 백엔드가 주는 항목을 모두 표시한다. 현재 배포 `/api/summary`가 `recentChecks` 1개만 주면 화면에도 1개만 나온다.
+  - 홈 최신 팩트체크는 `recentChecks.slice(0, 3)` 제한 없이 백엔드가 주는 항목을 모두 표시한다. 2026-07-26 배포 `/api/summary` 확인 기준 `recentChecks`는 3개다.
   - 검증하기는 텍스트 검색만 남기고 URL 링크 검색 탭을 제거했다.
   - 검색 결과는 `POST /checks` 후 `GET /checks/{id}`의 `articles`만 표시한다. 현재 실제 응답 필드는 `articleId`, `press`, `title`, `description`, `date`, `url` 중심이다.
   - 검증하기 초기 화면의 최신 팩트체크 카드와 검색 결과 카드는 제목 재검색이 아니라 뉴스 상세로 이동한다.
@@ -246,8 +287,8 @@
 - 주소는 `https://cheatft.leegeon.com/api`이고, 프론트 `.env.local`과 `.env.example`은 이 주소를 기준으로 맞췄다.
 - 백엔드 설명상 parameter 처리는 아직 구현되지 않아 입력과 무관하게 같은 더미 데이터가 반환될 수 있다.
 - `GET /summary` 실제 응답은 `todayStats`, `recentChecks`, `biasStatus`를 포함한다.
-- 2026-07-10 직접 확인한 `/summary`의 `recentChecks`는 1개였다.
-- `POST /checks`는 현재 `checkId: 452`를 반환했고, `GET /checks/452`는 기사 배열 `articles`에 1개 기사를 반환했다. 다만 응답의 `totalArticles`와 `pagination.totalItems`는 12로 표시된다.
+- 2026-07-10 당시 확인한 `/summary`의 `recentChecks`는 1개였다. 2026-07-26 재확인 기준은 3개다.
+- 2026-07-10 당시 `POST /checks`는 `checkId: 452`를 반환했고, `GET /checks/452`는 기사 배열 `articles`에 1개 기사를 반환했다. 2026-07-26 기준 새 DB 기반 응답에서는 새로 생성한 check id를 조회해야 한다.
 - 검증하기 화면은 API 응답으로 만든 결과에 `백엔드 API` 배지를 보여주고, 실패로 기존 예시를 표시할 때는 `프론트 목업` 배지를 보여준다.
 - API 요청이 성공했지만 `articles`가 비어 있으면 KBS/뉴스1 프론트 예시를 섞지 않고 빈 상태를 보여준다.
 - API 실패 시에만 기존 프론트 목업 예시로 fallback한다.
@@ -292,7 +333,7 @@
 - 아래 항목은 2026-07-12 당시 작업 기록이다. 현재 동작은 2026-07-15 백엔드 반영으로 일부 대체됐다.
 - 이 섹션의 기록 당시 `VerificationView.jsx`는 API가 성공하면 백엔드 API 결과만 보여주고, 프론트 더미데이터는 API 실패/미설정 fallback으로만 표시했다. 2026-07-15 이번 창 작업 이후 검증하기의 프론트 더미 fallback은 제거됐다.
 - 이 섹션의 기록 당시 카드에는 `백엔드 API` 또는 `프론트 더미` 배지와 출처 분류, 조회수, 연관도 값을 표시했다. 현재 검증하기 카드의 프론트 더미 배지는 제거됐다.
-- 정렬 select는 `최신순`, `조회수순`, `연관도순`을 제공한다. 현재 API 요청에는 `sort`를 보내지 않고, 프론트에서 현재 수신 결과를 정렬한다.
+- 정렬 select는 과거 `최신순`, `조회수순`, `연관도순`을 제공했다. 2026-07-26 이후 현재 검증하기 정렬은 `연관도순`, `최신순`만 제공한다.
 - `article.press`가 백엔드 `PRESS_MAPPING`의 oid 또는 언론사명으로 오면 `src/utils/press.js`에서 언론사명과 분류로 변환한다.
 - 이 섹션의 기록 당시 화면 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`, `프론트 더미`였다. 현재 검증하기 필터에서는 `프론트 더미`가 제거됐다.
 - `언론사(047)`처럼 백엔드 fallback 문자열에 oid가 들어간 경우도 백엔드 표로 보정한다.
@@ -305,7 +346,7 @@
 - `LoginView.jsx`는 이메일 형식 검증, 제출 중 입력/버튼 비활성화, `401`/`403`/API 미설정 오류 메시지를 보강했다.
 - 로그인 성공 시 `location.state.from`이 있으면 원래 접근하려던 경로로 복귀하고, 없으면 홈으로 이동한다.
 - `SignupView.jsx`는 이메일 형식, 닉네임 2~20자, 비밀번호 8자 이상, 비밀번호 확인 일치 검증을 추가했다.
-- 회원가입 실패 시 `409`는 이메일/닉네임 중복 안내로 표시하고, 성공 시 로그인 화면으로 이동한다.
+- 프론트는 회원가입 실패 시 `409` 이메일/닉네임 중복 안내를 처리하고, 성공 시 로그인 화면으로 이동한다. 2026-07-26 배포 API 확인 기준 중복 이메일은 현재 `500`으로 내려온다.
 - 당시 `App.jsx`는 `/mypage`, `/community/write`를 보호 경로로 처리했다. 2026-07-15 이후 `/mypage`는 제거됐고 `/community/write`, `/algo`가 보호 경로로 남아 있다.
 - 검증: `npm run lint`, `npm test` 통과.
 
@@ -330,7 +371,7 @@
   - API에서 온 제목/요약/게시글/상세 표시 문자열에 `cleanDisplayText()`를 적용했다.
 - 인증 메모:
   - 프론트 로그인/회원가입 UI와 API 호출 흐름은 있다.
-  - 실제 동작을 완성하려면 백엔드 `cheatft_api/src/models/user.model.js`를 user model로 복구하고 `findByEmail/createUser/findById`, DB users 테이블, bcrypt/JWT 흐름을 맞춰야 한다. 현재 배포 `/api/login`은 `UserModel.findByEmail is not a function` 오류가 알려져 있다.
+  - 이 인증 메모는 2026-07-15 당시 기록이다. 2026-07-16/2026-07-26 확인 기준 배포 `/api/login`, `/api/me`는 테스트 계정으로 정상 동작한다.
 - 검증:
   - `npm run lint` 통과
   - `npm test` 통과

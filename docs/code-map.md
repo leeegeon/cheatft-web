@@ -1,6 +1,6 @@
 # 코드맵
 
-마지막 갱신: 2026-07-19
+마지막 갱신: 2026-07-26
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 이 문서는 새 채팅에서 전체 코드를 다시 훑지 않도록 만든 지도이다. 정확한 구현 확인이 필요할 때만 해당 파일을 직접 연다.
@@ -26,6 +26,7 @@ C:\Users\eunhy\Desktop\동아리
 - `cheatft_web/docs/code-map.md`: 현재 파일. 프로젝트 구조와 파일별 역할.
 - `cheatft_web/docs/backend-contract.md`: 프론트 화면과 백엔드 API 구현의 최신 매핑.
 - `cheatft_web/docs/api-integration-log.md`: API 연동 작업 기록과 확인 방법.
+- `cheatft_web/docs/press-reliability.md`: 언론사별 분류, 신뢰도, AI 별점 참고값, 판단 이유 검토표.
 - `cheatft_web/docs/AGENTS.md`: Codex 작업 안내 백업/문서화본.
 - `cheatft_web/docs/backend-handoff.md`: 초기 백엔드 협의 제안 메모. 최신 계약 문서가 아니라 역사/협의용으로 본다.
 
@@ -79,10 +80,12 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
 - `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
 - `public/favicon.png`: 브라우저 주소창/탭용 Cheat F/T 아이콘. 첨부 이미지의 흰 배경을 투명 처리한 PNG.
-- `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, 화면 필터 분류, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적.
+- `src/data/pressReliability.js`: 언론사별 분류, 신뢰도 점수/라벨, AI 별점 참고값, 판단 이유 요약을 담은 사이트 반영 원본 데이터.
+- `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, `pressReliability.js` 기반 화면 필터 분류/신뢰도 조회, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적.
 - `src/utils/search.js`: 검색어 trim과 `/search?q=...` URL 생성.
 - `src/utils/text.js`: API 표시 문자열의 HTML entity 디코딩과 HTML 태그 제거.
 - `tests/search.test.js`: `normalizeSearchQuery`, `buildSearchPath` 단위 테스트.
+- `tests/press.test.js`: 언론사 oid/별칭/미등록 fallback의 분류·신뢰도 조회 단위 테스트.
 - `cheatft_web/docs/backend-handoff.md`: 프론트 관점 백엔드 협의 메모. 실제 최신 매핑은 `cheatft_web/docs/backend-contract.md`와 함께 볼 것.
 
 ## cheatft_web 라우팅
@@ -95,7 +98,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 | `/search?q=...` | `VerificationView` | 검색어가 있으면 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
 | `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
 | `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 표시. 직접 조회 API 없음 |
-| `/algo` | `AlgoView` | 보호 라우트. 질문 입력 후 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}`, AI 주요 인사이트 우선 표시, 실패 시 목업 |
+| `/algo` | `AlgoView` | 보호 라우트. 질문 입력 후 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}`, 질문/키워드 영역 단계 강조, AI 주요 인사이트 우선 표시, 실패 시 목업 |
 | `/report` | `ReportView` | `GET /reports` 우선, `keyword/date/score/page/limit` 전달, API/목업 출처 안내, 실패 시 리포트 목록/상세 목업. 내보내기/다운로드 버튼 없음 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
 | `/community/write` | `CommunityWriteView` | 보호 라우트. 글 작성 임시 저장, 등록 시 `POST /posts` |
@@ -110,26 +113,29 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - 검색 입력을 `onSearch`로 전달한다.
   - `getSummary()`로 홈 요약을 가져오고 API 응답만 표시한다. 실패 시 프론트 더미 fallback을 사용하지 않는다.
   - API 성공 시 `recentChecks` 또는 `biasStatus/reliabilityStatus.categories`가 빈 배열이어도 기본 목업으로 덮지 않고 빈 상태를 유지한다.
-  - 최신 팩트체크는 `slice(0, 3)` 제한 없이 백엔드가 주는 `recentChecks` 전체를 표시한다.
+  - 최신 팩트체크는 `slice(0, 3)` 제한 없이 백엔드가 주는 `recentChecks` 전체를 표시한다. 2026-07-26 배포 API 확인 기준 `recentChecks`는 3개다.
   - 최신 팩트체크 항목을 누르면 해당 제목으로 검색/검증 화면으로 이동한다.
   - 백엔드 명세: `GET /api/summary`.
 
 - `VerificationView.jsx`
   - `useSearchParams`로 `q`를 읽고, 검색어가 있으면 결과 목록을 보여준다.
-  - `runFactCheck()`로 `POST /checks`와 `GET /checks/{id}`를 순차 호출한다. 현재 결과 조회에는 `page=1&limit=10`만 전달하고, 정렬값은 백엔드로 보내지 않는다.
+  - `runFactCheck()`로 `POST /checks`와 `GET /checks/{id}`를 순차 호출한다. 현재 결과 조회에는 `page=1&limit=100`을 전달하고, 정렬값은 백엔드로 보내지 않는다.
+  - 검색 결과는 수신한 `articles` 배열을 프론트에서 정렬/필터링한 뒤 10건씩 페이지를 나눠 표시한다. 2026-07-26 배포 API 확인 기준 서버 `page/limit` 분할은 아직 적용되지 않아 클라이언트 페이지네이션으로 처리한다.
   - 검색어 없이 들어오면 `getSummary()`로 최신 팩트체크 목록을 표시한다.
   - 검색 결과는 백엔드 API 결과만 표시한다. 프론트 더미데이터 fallback, 예시 검색 버튼, URL 링크 검색 탭은 제거됐다.
-  - 결과 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `기타 출처`를 제공한다.
+  - 결과 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `전문/산업지`, `시사/탐사지`, `지역지`, `스포츠/연예지`, `영문매체`, `기타 출처`를 제공한다.
   - `src/utils/press.js`를 통해 백엔드 `PRESS_MAPPING`의 oid/name 표를 언론사명으로 변환한다. `언론사(047)` 같은 fallback 문자열도 처리한다.
+  - 백엔드 기사에 신뢰도 점수가 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도를 표시한다.
   - 언론사 로고 URL이 있으면 네이버 `office_logo` 이미지를 표시하고, 실패하면 기존 텍스트 배지를 표시한다.
   - `언론사(021)`처럼 미매핑 fallback 문자열이 등장하면 `recordObservedPress()`로 브라우저 `localStorage`에 누적한다. Console에서 `cheatFtPressList()`로 백엔드 전달용 목록을 복사한다.
   - `cleanDisplayText()`로 `&quot;` 같은 HTML entity를 표시 전에 디코딩한다.
-  - 정렬은 `최신순`, `조회수순`, `연관도순`을 제공한다. 백엔드 응답 필드가 있으면 `viewCount/views/readCount`, `relevanceScore/relevance/similarity`를 사용한다.
+  - 정렬은 `연관도순`, `최신순`을 제공한다. 백엔드 응답 필드가 있으면 `relevanceScore/relevance/similarity`를 사용하고, 현재 배포 API처럼 연관도 점수 필드가 없으면 백엔드 기본 반환 순서를 유지한다. 조회수순은 제거됐다.
   - 검색어 없는 초기 화면 카드와 검색 결과 카드 클릭은 제목 재검색이 아니라 `onArticleClick()`을 통해 `/article/:id` 뉴스 상세로 이동한다.
 
 - `DetailView.jsx`
   - 뉴스 상세와 커뮤니티 상세을 `type` prop으로 구분한다.
   - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽어 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 표시한다.
+  - 검증하기에서 전달된 언론사 기준 신뢰도 이유가 있으면 상세 오른쪽 신뢰도 패널에 분류와 판단 이유 요약을 표시한다.
   - 뉴스 상세 제목/본문은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역은 제거됐다.
   - 직접 id 조회 API는 아직 없다. 저장된 기사 정보가 없으면 선택한 뉴스 정보를 찾을 수 없다는 상태를 보여준다.
@@ -138,6 +144,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `AlgoView.jsx`
   - `activeTab`으로 관련 뉴스/반박 기사 탭 전환.
   - 질문 입력 후 프론트에서 추천 키워드 칩을 생성한다. 사용자가 키워드 칩을 선택하면 `runAnalysis()`로 `POST /analysis`와 `GET /analysis/{id}`를 호출한다.
+  - 입력 흐름을 직관적으로 보이게 하기 위해 기본/키워드 선택 직후에는 질문 영역, 추천 키워드 생성 직후에는 키워드 영역을 테두리와 배경으로 강조한다.
   - 메인 영역은 `AI 주요 인사이트`와 `신뢰도 분석 요약`을 먼저 표시하고, 관련 뉴스/반박 기사 탭은 그 아래 서브 섹션으로 표시한다.
   - `relatedArticles`, `counterArticles`, `insights`, `summaryStats`를 우선 사용하고 실패 시 목업을 사용한다.
   - 기사 변환에서 `description`, `publishedAt/createdAt/date`, `press/pressName/publisher/mediaName` 후보를 처리한다.
@@ -149,7 +156,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `ReportView.jsx`
   - `expandedId`, `innerTab`으로 리포트 펼침/요약 탭 제어.
   - `getReports()`로 `totalStats`, `reports`, `pagination`을 가져오고 실패 시 기존 목업을 사용한다.
-  - 검색어, 날짜 필터, 신뢰도 필터를 `keyword`, `date`, `score` query parameter로 전달한다.
+  - 검색어, 날짜 필터, 신뢰도 필터를 `keyword`, `date`, `score` query parameter로 전달한다. 2026-07-26 배포 API 확인 기준 실제 응답은 query와 무관한 dummy 고정값이며 `currentPage: 1`을 반환한다.
   - 상단 nav의 리포트 내보내기 버튼, `총 검색 시간` 통계 카드, 상세 요약 다운로드 버튼은 제거됐다.
   - 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 3개 카드로 표시한다.
   - 주요 출처는 `getPressLabel()`, `getPressLogoUrl()`, `recordObservedPress()`를 사용한다. API 리포트 제목/요약은 `cleanDisplayText()`로 디코딩한다.
@@ -159,7 +166,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `CommunityView.jsx`
   - `tab` query param으로 상단/사이드 탭 상태를 공유한다.
   - `getPosts()`로 게시글과 `communityStats`를 가져오고 실패 시 기존 목업을 사용한다.
-  - 탭/카테고리/검색어/페이지를 `category`, `keyword`, `page`, `limit` query parameter로 전달한다.
+  - 탭/카테고리/검색어/페이지를 `category`, `keyword`, `page`, `limit` query parameter로 전달한다. 2026-07-26 배포 API 확인 기준 실제 응답은 query와 무관한 dummy 고정값이며 `currentPage: 1`을 반환한다.
   - `글 작성하기` 버튼은 전역 상단바가 아니라 커뮤니티 목록 상단의 검색/필터 영역에 표시한다.
   - 오른쪽 정정 요청 배너의 `정정 요청하기` 버튼은 `/community/write`로 이동한다.
   - API 게시글 제목/본문/작성자/카테고리는 `cleanDisplayText()`로 HTML entity를 디코딩한다.
@@ -183,7 +190,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - email/nickname/password/passwordConfirm 필수, 이메일 형식, 닉네임 2~20자, 비밀번호 일치, 8자 이상 검증.
   - `signup()`으로 `POST /signup`을 호출한다.
   - 현재 명세에는 accessToken이 없어 성공 후 로그인 화면으로 이동한다.
-  - `409`는 이메일/닉네임 중복 안내로 표시하고, 제출 중에는 입력과 버튼을 비활성화한다.
+  - 프론트는 `409` 중복 오류 메시지를 별도로 처리하지만, 2026-07-26 배포 API 확인 기준 중복 이메일은 `500`과 `이미 사용 중인 이메일입니다.` 메시지로 내려온다.
 
 - `NotFoundView.jsx`
   - 전역 CSS의 status-page 스타일을 사용하는 404.
@@ -228,12 +235,12 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 현재 관측된 API 성격:
 
-- 공통 응답: `{ status, message, data }`.
-- `GET /api/summary`, `GET /api/reports`, `GET /api/posts`, `POST /api/posts`, `GET /api/profile`은 dummy controller 기반이며 query/auth/DB 저장을 거의 처리하지 않는다.
-- `POST /api/checks`는 optional auth이고, Naver API 키가 있으면 검색 결과를 저장한다. 키가 없으면 fallback article을 저장한다.
-- `GET /api/checks/:id`는 DB에 저장된 check/article을 조회한다.
-- `POST /api/analysis`, `GET /api/analysis/:id`는 `verifyToken`이 필요하지만 현재 분석값/기사/인사이트는 고정 샘플을 DB에 저장하는 stub 성격이다.
-- `POST /api/login`, `POST /api/signup`, `GET /api/me`는 `auth.service.js`가 `UserModel.findByEmail/createUser/findById`를 기대하지만, 현재 `src/models/user.model.js`가 checks model 코드라 정상 동작하지 않는다.
+- 대부분의 응답은 `{ status, message, data }` 형식이다. 단, `GET /api/health`는 공통 래핑 없이 `{ message }`만 반환한다.
+- `GET /api/summary`, `GET /api/reports`, `GET /api/posts`, `POST /api/posts`, `GET /api/profile`은 dummy controller 기반이며 query/auth/DB 저장을 거의 처리하지 않는다. 2026-07-26 배포 API 확인 기준 `reports/posts` query parameter는 실제 필터/페이지에 반영되지 않는다.
+- `POST /api/checks`는 optional auth이고, Naver API 키가 있으면 검색 결과를 저장한다. 키가 없거나 검색 결과가 없으면 빈 `articles` 또는 fallback article이 될 수 있다.
+- `GET /api/checks/:id`는 DB에 저장된 check/article을 조회한다. 현재 article 필드는 `articleId`, `press`, `title`, `description`, `date`, `url`이고 `press`는 숫자보다 언론사명 문자열로 내려온다.
+- `POST /api/analysis`, `GET /api/analysis/:id`는 `verifyToken`이 필요하지만 현재 분석값/기사/인사이트는 고정 샘플을 DB에 저장하는 stub 성격이다. `limit` query는 현재 결과 개수에 반영되지 않는다.
+- `POST /api/login`, `POST /api/signup`, `GET /api/me`는 2026-07-26 배포 API에서 정상 흐름을 확인했다. 단, 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
 - `GET /api/health`는 서버 상태 확인 라우트이다.
 
 세부 화면/API 매핑과 미정 사항은 `cheatft_web/docs/backend-contract.md`에 정리했다.
@@ -266,8 +273,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `.env.local`과 `.env.example`의 API 주소를 `https://cheatft.leegeon.com/api`로 맞췄다.
 - `VerificationView.jsx`는 API 응답 결과와 프론트 fallback 결과를 구분하는 상단 안내와 카드 배지를 표시한다.
 - API 성공 시 `articles`가 비어 있으면 프론트 KBS/뉴스1 예시를 섞지 않고 빈 결과 상태를 표시한다.
-- 2026-07-10 확인 기준 `GET /summary`의 `recentChecks`는 1개다.
-- 2026-07-10 확인 기준 `GET /checks/452`의 `articles` 배열은 1개지만, 응답의 `totalArticles`와 pagination 총합은 12로 표시된다.
+- 2026-07-10 당시 확인 기준 `GET /summary`의 `recentChecks`는 1개였다. 2026-07-26 배포 API 재확인 기준은 3개다.
+- 2026-07-10 당시 `GET /checks/452`의 `articles` 배열은 1개였지만, 응답의 `totalArticles`와 pagination 총합은 12로 표시됐다. 2026-07-26 기준 기존 더미 id `452`는 새 DB 기반 라우트에서 404로 관측됐다.
 - 검증 결과: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
 
 ## 2026-07-12 추가 변경/확인
@@ -305,7 +312,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/App.jsx`: `/algo`를 보호 라우트에 포함하고, 로그아웃 시 `/algo`에서도 홈으로 이동하도록 수정했다.
 - `cheatft_web/README.md`: `cheatft_api`를 명세 문서로만 설명하던 오래된 문구와 이동 전 docs 경로를 최신화했다.
 - 배포 확인: `https://cheatft.leegeon.com/`은 200 응답이지만 Vite dev HTML(`/@vite/client`, `/src/main.jsx`)을 서빙했고, 현재 배포 프론트는 과거 소스라 `/algo`가 보호되지 않은 상태로 보였다.
-- 배포 API 확인: `/api/summary`, `/api/profile`은 200, `/api/me`는 토큰 없이 401, `/api/checks/452`는 새 DB 백엔드 기준 404, `/api/login`은 `UserModel.findByEmail is not a function` 오류를 반환했다.
+- 당시 배포 API 확인: `/api/summary`, `/api/profile`은 200, `/api/me`는 토큰 없이 401, `/api/checks/452`는 새 DB 백엔드 기준 404, `/api/login`은 `UserModel.findByEmail is not a function` 오류를 반환했다. 2026-07-16/2026-07-26 확인 기준 배포 로그인과 `/api/me`는 정상 동작한다.
 - 검증 결과: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
 
 ## 2026-07-15 이번 창 UI/API 정리

@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getSummary, runFactCheck } from '../../services/cheatftApi.js';
-import { getPressCategory, getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { getPressCategory, getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 const PRESS_COLORS = ['#1a73e8', '#00c4b4', '#ea4335', '#8ab4f8', '#202124'];
 const SORT_LABELS = {
-  latest: '최신순',
-  views: '조회수순',
   relevance: '연관도순',
+  latest: '최신순',
 };
 const SOURCE_FILTERS = [
   { value: 'all', label: '전체 출처' },
@@ -16,8 +15,16 @@ const SOURCE_FILTERS = [
   { value: '종합지', label: '종합지' },
   { value: '경제지', label: '경제지' },
   { value: '인터넷/IT지', label: '인터넷/IT지' },
+  { value: '전문/산업지', label: '전문/산업지' },
+  { value: '시사/탐사지', label: '시사/탐사지' },
+  { value: '지역지', label: '지역지' },
+  { value: '스포츠/연예지', label: '스포츠/연예지' },
+  { value: '영문매체', label: '영문매체' },
   { value: '기타 출처', label: '기타 출처' },
 ];
+const CHECK_RESULT_FETCH_LIMIT = 100;
+const CHECK_RESULT_PAGE_SIZE = 10;
+
 function matchesSourceFilter(item, sourceFilter) {
   if (sourceFilter === 'all') return true;
   return item.sourceCategory === sourceFilter;
@@ -68,10 +75,6 @@ function getDateValue(value) {
 
 function sortResultsBy(items, sortBy) {
   return [...items].sort((a, b) => {
-    if (sortBy === 'views') {
-      return (b.viewCount || 0) - (a.viewCount || 0) || (a.sortIndex || 0) - (b.sortIndex || 0);
-    }
-
     if (sortBy === 'relevance') {
       return (b.relevanceScore || 0) - (a.relevanceScore || 0) || (a.sortIndex || 0) - (b.sortIndex || 0);
     }
@@ -105,13 +108,19 @@ function mapApiArticle(article, index) {
   recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
   const pressLabel = getPressLabel(pressValue);
   const articleDate = article.publishedAt || article.createdAt || article.date || article.pubDate || article.pub_date;
-  const scoreValue = normalizeReliabilityScore(
+  const apiScoreValue = normalizeReliabilityScore(
     article.reliabilityScore,
     article.reliability,
     article.trustScore,
     article.credibilityScore,
     article.score
   );
+  const pressReliability = getPressReliability(pressValue);
+  const scoreValue = apiScoreValue ?? pressReliability.reliabilityScore;
+  const usesPressReliability = apiScoreValue === null && pressReliability.reliabilityScore !== null;
+  const scoreText = article.reliabilityLabel
+    || article.credibilityLabel
+    || (apiScoreValue !== null ? getScoreText(scoreValue) : pressReliability.reliabilityLabel || getScoreText(scoreValue));
 
   return {
     articleId: article.articleId,
@@ -127,11 +136,15 @@ function mapApiArticle(article, index) {
     date: formatDate(articleDate),
     title: cleanDisplayText(article.title || article.headline, '제목 없음'),
     desc: cleanDisplayText(article.summary || article.description || article.content || article.url, '요약이 제공되지 않았습니다.'),
-    scoreText: article.reliabilityLabel || article.credibilityLabel || getScoreText(scoreValue),
+    scoreText,
     score: scoreValue === null ? '-' : `${scoreValue.toFixed(1).replace(/\.0$/, '')} / 5`,
     scoreColor: getScoreColor(scoreValue),
     rotation: scoreValue === null ? 0 : -99 + (scoreValue - 1) * 36,
-    hint: article.url ? '기사 원문 URL이 연결된 백엔드 결과입니다.' : '백엔드 기사 결과입니다.',
+    hint: usesPressReliability
+      ? `${pressLabel}의 언론사 기준 신뢰도입니다.`
+      : article.url ? '기사 원문 URL이 연결된 백엔드 결과입니다.' : '백엔드 기사 결과입니다.',
+    reliabilityReason: pressReliability.rationaleSummary,
+    reliabilityCategory: pressReliability.category,
     url: article.url,
   };
 }
@@ -190,11 +203,29 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const [apiError, setApiError] = useState('');
   const [recentChecks, setRecentChecks] = useState([]);
   const [latestStatus, setLatestStatus] = useState(query ? 'idle' : 'loading');
-  const [sortBy, setSortBy] = useState('latest');
+  const [sortBy, setSortBy] = useState('relevance');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [resultPageState, setResultPageState] = useState({ query: '', page: 1 });
+  const resultPage = resultPageState.query === query ? resultPageState.page : 1;
+
+  function setResultPage(nextPage) {
+    setResultPageState((previousState) => {
+      const previousPage = previousState.query === query ? previousState.page : 1;
+      return {
+        query,
+        page: typeof nextPage === 'function' ? nextPage(previousPage) : nextPage,
+      };
+    });
+  }
 
   function handleSortChange(nextSortBy) {
     setSortBy(nextSortBy);
+    setResultPage(1);
+  }
+
+  function handleSourceFilterChange(nextSourceFilter) {
+    setSourceFilter(nextSourceFilter);
+    setResultPage(1);
   }
 
   useEffect(() => {
@@ -204,7 +235,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
     let ignore = false;
 
-    runFactCheck(query, { page: 1, limit: 10 })
+    runFactCheck(query, { page: 1, limit: CHECK_RESULT_FETCH_LIMIT })
       .then((data) => {
         if (!ignore) {
           setCheckResult(data);
@@ -337,7 +368,20 @@ export default function VerificationView({ onSearch, onArticleClick }) {
       backgroundColor: source === 'api' ? '#e8f0fe' : '#f8f9fa',
       border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
     }),
-    emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' }
+    emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
+    pagination: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '18px' },
+    pageButton: (isActive, isDisabled) => ({
+      minWidth: '36px',
+      height: '36px',
+      padding: '0 10px',
+      borderRadius: '8px',
+      border: isActive ? '1px solid #0056d2' : '1px solid #dadce0',
+      backgroundColor: isActive ? '#0056d2' : '#ffffff',
+      color: isActive ? '#ffffff' : isDisabled ? '#bdc1c6' : '#3c4043',
+      fontWeight: 'bold',
+      cursor: isDisabled ? 'not-allowed' : 'pointer',
+    }),
+    paginationMeta: { fontSize: '13px', color: '#5f6368', textAlign: 'center', marginTop: '8px' }
   };
 
   const apiResults = Array.isArray(checkResult?.articles) ? checkResult.articles.map(mapApiArticle) : [];
@@ -346,6 +390,10 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const sortedLatestResults = sortResultsBy(latestResults, sortBy);
   const filteredApiResults = sortedApiResults.filter((result) => matchesSourceFilter(result, sourceFilter));
   const filteredLatestResults = sortedLatestResults.filter((result) => matchesSourceFilter(result, sourceFilter));
+  const resultTotalPages = Math.max(1, Math.ceil(filteredApiResults.length / CHECK_RESULT_PAGE_SIZE));
+  const currentResultPage = Math.min(resultPage, resultTotalPages);
+  const currentPageStartIndex = (currentResultPage - 1) * CHECK_RESULT_PAGE_SIZE;
+  const pagedApiResults = filteredApiResults.slice(currentPageStartIndex, currentPageStartIndex + CHECK_RESULT_PAGE_SIZE);
   const hasApiCheckResult = query && apiStatus === 'done';
   const hasApiLatestResult = !query && latestStatus === 'done';
   const isLoading = query && apiStatus === 'loading';
@@ -363,10 +411,12 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const totalArticles = hasApiCheckResult ? (checkResult?.totalArticles ?? apiResults.length) : apiResults.length;
   const queryResultGroups = hasApiCheckResult
     ? [
-        { key: 'api', label: `백엔드 API 결과 ${filteredApiResults.length}건`, source: 'api', items: filteredApiResults },
+        { key: 'api', label: `백엔드 API 결과 ${filteredApiResults.length}건`, source: 'api', items: pagedApiResults },
       ]
     : [];
   const searchTime = formatDateTime(checkResult?.searchTime);
+  const shouldShowPagination = query && hasApiCheckResult && filteredApiResults.length > CHECK_RESULT_PAGE_SIZE;
+  const pageNumbers = Array.from({ length: resultTotalPages }, (_, index) => index + 1);
 
   return (
     <div style={styles.container}>
@@ -413,7 +463,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                       : hasApiCheckResult && apiResults.length === 0
                       ? '백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다.'
                       : hasApiCheckResult
-                        ? `백엔드 API 기준 ${totalArticles}건을 표시합니다.`
+                        ? `백엔드 API 기준 ${totalArticles}건 중 최대 ${CHECK_RESULT_FETCH_LIMIT}건을 불러와 ${CHECK_RESULT_PAGE_SIZE}건씩 표시합니다.`
                         : '검색어를 입력하면 백엔드 검증 결과를 표시합니다.'}
                   {apiError && <span style={{ color: '#ea4335', marginLeft: '8px' }}>{apiError}</span>}
                 </div>
@@ -426,7 +476,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               <div style={{ display: 'flex', gap: '12px' }}>
                 <select
                   value={sourceFilter}
-                  onChange={(event) => setSourceFilter(event.target.value)}
+                  onChange={(event) => handleSourceFilterChange(event.target.value)}
                   style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
                   aria-label="출처 분류 필터"
                 >
@@ -440,9 +490,8 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                   style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
                   aria-label="검색 결과 정렬"
                 >
-                  <option value="latest">최신순</option>
-                  <option value="views">조회수순</option>
                   <option value="relevance">연관도순</option>
+                  <option value="latest">최신순</option>
                 </select>
               </div>
               <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>
@@ -506,6 +555,44 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                     </div>
                   </div>
                 ))}
+                {shouldShowPagination && (
+                  <>
+                    <div style={styles.pagination}>
+                      <button
+                        type="button"
+                        style={styles.pageButton(false, currentResultPage === 1)}
+                        onClick={() => setResultPage((page) => Math.max(1, page - 1))}
+                        disabled={currentResultPage === 1}
+                        aria-label="이전 결과 페이지"
+                      >
+                        이전
+                      </button>
+                      {pageNumbers.map((pageNumber) => (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          style={styles.pageButton(pageNumber === currentResultPage, false)}
+                          onClick={() => setResultPage(pageNumber)}
+                          aria-current={pageNumber === currentResultPage ? 'page' : undefined}
+                        >
+                          {pageNumber}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        style={styles.pageButton(false, currentResultPage === resultTotalPages)}
+                        onClick={() => setResultPage((page) => Math.min(resultTotalPages, page + 1))}
+                        disabled={currentResultPage === resultTotalPages}
+                        aria-label="다음 결과 페이지"
+                      >
+                        다음
+                      </button>
+                    </div>
+                    <div style={styles.paginationMeta}>
+                      {currentPageStartIndex + 1}-{Math.min(currentPageStartIndex + CHECK_RESULT_PAGE_SIZE, filteredApiResults.length)}번째 결과 표시
+                    </div>
+                  </>
+                )}
               </div>
             ))}
 
@@ -541,7 +628,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               <div style={{ display: 'flex', gap: '12px' }}>
                 <select
                   value={sourceFilter}
-                  onChange={(event) => setSourceFilter(event.target.value)}
+                  onChange={(event) => handleSourceFilterChange(event.target.value)}
                   style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
                   aria-label="출처 분류 필터"
                 >
@@ -555,9 +642,8 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                   style={{ padding: '8px 32px 8px 12px', borderRadius: '6px', border: '1px solid #dadce0', backgroundColor: '#fff', fontSize: '14px', outline: 'none' }}
                   aria-label="최신 팩트체크 정렬"
                 >
-                  <option value="latest">최신순</option>
-                  <option value="views">조회수순</option>
                   <option value="relevance">연관도순</option>
+                  <option value="latest">최신순</option>
                 </select>
               </div>
               <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>

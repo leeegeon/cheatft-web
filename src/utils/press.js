@@ -1,3 +1,5 @@
+import { PRESS_RELIABILITY_BY_NAME } from '../data/pressReliability.js'
+
 const BACKEND_PRESS_BY_OID = {
   '001': '연합뉴스',
   '003': '뉴시스',
@@ -17,6 +19,7 @@ const BACKEND_PRESS_BY_OID = {
   '119': '데일리안',
   '008': '머니투데이',
   '047': '오마이뉴스',
+  '144': '스포츠경향',
 }
 
 const PRESS_LOGO_BY_OID = {
@@ -46,27 +49,8 @@ const PRESS_NAME_ALIASES = {
   'SBS 뉴스': 'SBS',
   'YTN 뉴스': 'YTN',
   'TV조선 뉴스': 'TV조선',
-}
-
-const PRESS_CATEGORY_BY_NAME = {
-  연합뉴스: '방송/통신사',
-  뉴시스: '방송/통신사',
-  뉴스1: '방송/통신사',
-  KBS: '방송/통신사',
-  MBC: '방송/통신사',
-  SBS: '방송/통신사',
-  YTN: '방송/통신사',
-  한겨레: '종합지',
-  경향신문: '종합지',
-  조선일보: '종합지',
-  중앙일보: '종합지',
-  동아일보: '종합지',
-  한국경제: '경제지',
-  매일경제: '경제지',
-  이데일리: '경제지',
-  머니투데이: '경제지',
-  데일리안: '인터넷/IT지',
-  오마이뉴스: '인터넷/IT지',
+  '한국경제TV 뉴스': '한국경제TV',
+  'SBS Biz 뉴스': 'SBS Biz',
 }
 
 const OBSERVED_PRESS_STORAGE_KEY = 'cheat-ft-observed-press-map'
@@ -101,6 +85,12 @@ function normalizeFallbackPressName(value) {
   const label = String(value ?? '').trim()
   if (!label || /^\d{1,3}$/.test(label) || /^언론사\(\d{1,3}\)$/.test(label)) return ''
   return PRESS_NAME_ALIASES[label] || label.replace(/\s+뉴스$/, '')
+}
+
+function findReliabilityByName(pressLabel) {
+  return Object.values(PRESS_RELIABILITY_BY_NAME).find(
+    (entry) => normalizePressName(entry.name) === normalizePressName(pressLabel)
+  ) || null
 }
 
 function exposeObservedPressHelpers() {
@@ -162,13 +152,30 @@ export function getPressLabel(press) {
 
 export function getPressCategory(press) {
   const pressLabel = getPressLabel(press)
-  const matchedName = Object.keys(PRESS_CATEGORY_BY_NAME).find((name) => normalizePressName(name) === normalizePressName(pressLabel))
-  return matchedName ? PRESS_CATEGORY_BY_NAME[matchedName] : '기타 출처'
+  return findReliabilityByName(pressLabel)?.category || '기타 출처'
 }
 
 export function getPressLogoUrl(press) {
   const oid = getPressOid(press)
   return oid ? PRESS_LOGO_BY_OID[oid] || '' : ''
+}
+
+export function getPressReliability(press) {
+  const pressLabel = getPressLabel(press)
+  const reliability = findReliabilityByName(pressLabel)
+
+  if (!reliability) {
+    return {
+      name: pressLabel,
+      category: getPressCategory(press),
+      reliabilityScore: null,
+      reliabilityLabel: '확인중',
+      rationaleSummary: '아직 신뢰도 기준표에 없는 출처입니다. 원문과 다른 언론사 보도를 함께 확인하세요.',
+      aiReferenceStars: null,
+    }
+  }
+
+  return reliability
 }
 
 exposeObservedPressHelpers()

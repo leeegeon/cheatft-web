@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { runAnalysis } from '../../services/cheatftApi.js';
-import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
   const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
   recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
   const pressLabel = getPressLabel(pressValue);
+  const pressReliability = getPressReliability(pressValue);
 
   return {
     id: article.articleId ?? index,
@@ -17,7 +18,7 @@ function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
     desc: cleanDisplayText(article.summary || article.description, '백엔드 분석 결과에서 반환된 기사입니다.'),
     date: article.publishedAt || article.createdAt || article.date || '분석 결과',
     views: '-',
-    badge: article.reliabilityLabel || article.reliability || fallbackBadge,
+    badge: article.reliabilityLabel || article.reliability || pressReliability.reliabilityLabel || fallbackBadge,
   };
 }
 
@@ -57,10 +58,13 @@ export default function AlgoView() {
   const [analysisStatus, setAnalysisStatus] = useState('fallback');
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [guideFocus, setGuideFocus] = useState('question');
 
   const suggestKeywords = () => {
     setApiError('');
-    setSuggestedKeywords(buildKeywordSuggestions(question));
+    const nextSuggestions = buildKeywordSuggestions(question);
+    setSuggestedKeywords(nextSuggestions);
+    setGuideFocus(nextSuggestions.length > 0 ? 'keywords' : 'question');
   };
 
   const analyze = (nextKeyword = keyword) => {
@@ -68,6 +72,7 @@ export default function AlgoView() {
     if (!trimmedKeyword) return;
 
     setKeyword(trimmedKeyword);
+    setGuideFocus('question');
     setIsLoading(true);
     setApiError('');
     setAnalysisStatus('loading');
@@ -92,13 +97,21 @@ export default function AlgoView() {
     // Sidebar Styles
     sidebar: { width: '320px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '24px' },
     card: { backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e0e0e0' },
+    focusPanel: (isActive) => ({
+      padding: '16px',
+      borderRadius: '8px',
+      border: isActive ? '1px solid #0056d2' : '1px solid #e8eaed',
+      backgroundColor: isActive ? '#f7faff' : '#ffffff',
+      boxShadow: isActive ? '0 0 0 3px rgba(0, 86, 210, 0.12)' : 'none',
+      transition: 'border-color 0.2s, box-shadow 0.2s, background-color 0.2s',
+    }),
     cardTitle: { fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' },
     cardDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px' },
     inputLabel: { display: 'block', fontSize: '14px', color: '#3c4043', marginBottom: '8px', fontWeight: 'bold' },
     input: { width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', marginBottom: '16px', boxSizing: 'border-box', outline: 'none' },
-    questionInput: { width: '100%', minHeight: '108px', padding: '14px 16px', borderRadius: '12px', border: '1px solid #dadce0', fontSize: '14px', lineHeight: '1.5', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', resize: 'vertical' },
+    questionInput: { width: '100%', minHeight: '108px', padding: '14px 16px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', lineHeight: '1.5', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', resize: 'vertical' },
     primaryBtn: { width: '100%', padding: '12px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '12px' },
-    keywordPanel: { paddingTop: '8px', borderTop: '1px solid #f1f3f4', marginBottom: '16px' },
+    keywordPanel: { marginTop: '12px', marginBottom: '16px' },
     keywordTitle: { fontSize: '13px', fontWeight: 'bold', color: '#3c4043', marginBottom: '10px' },
     keywordChips: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
     keywordChip: (isActive) => ({
@@ -244,40 +257,45 @@ export default function AlgoView() {
       {/* Left Sidebar */}
       <div style={styles.sidebar}>
         <div style={styles.card}>
-          <div style={styles.cardTitle}>질문하기 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
-          <div style={styles.cardDesc}>분석하고 싶은 내용을 먼저 질문하면, 아래에 검색할 키워드를 제안합니다.</div>
-          <textarea
-            style={styles.questionInput}
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-                suggestKeywords();
-              }
-            }}
-            placeholder="예: 백신 부작용으로 사망자가 급증했다는 주장이 사실인가요?"
-            aria-label="분석 질문"
-          />
-          <button type="button" style={styles.primaryBtn} onClick={suggestKeywords}>
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
-            키워드 추천
-          </button>
+          <div style={styles.focusPanel(guideFocus === 'question')}>
+            <div style={styles.cardTitle}>질문하기 <span style={{color:'#80868b', fontSize:'14px'}}>ⓘ</span></div>
+            <div style={styles.cardDesc}>분석하고 싶은 내용을 먼저 질문하면, 아래에 검색할 키워드를 제안합니다.</div>
+            <textarea
+              style={styles.questionInput}
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onFocus={() => setGuideFocus('question')}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                  suggestKeywords();
+                }
+              }}
+              placeholder="예: 백신 부작용으로 사망자가 급증했다는 주장이 사실인가요?"
+              aria-label="분석 질문"
+            />
+            <button type="button" style={styles.primaryBtn} onClick={suggestKeywords}>
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
+              키워드 추천
+            </button>
+          </div>
           <div style={styles.keywordPanel}>
-            <div style={styles.keywordTitle}>추천 키워드</div>
-            <div style={styles.keywordChips}>
-              {suggestedKeywords.length === 0 ? (
-                <span style={{ fontSize: '13px', color: '#80868b' }}>질문을 입력하면 키워드가 표시됩니다.</span>
-              ) : suggestedKeywords.map((suggestedKeyword) => (
-                <button
-                  type="button"
-                  key={suggestedKeyword}
-                  style={styles.keywordChip(keyword === suggestedKeyword)}
-                  onClick={() => analyze(suggestedKeyword)}
-                  disabled={isLoading}
-                >
-                  {suggestedKeyword}
-                </button>
-              ))}
+            <div style={styles.focusPanel(guideFocus === 'keywords')}>
+              <div style={styles.keywordTitle}>추천 키워드</div>
+              <div style={styles.keywordChips}>
+                {suggestedKeywords.length === 0 ? (
+                  <span style={{ fontSize: '13px', color: '#80868b' }}>질문을 입력하면 키워드가 표시됩니다.</span>
+                ) : suggestedKeywords.map((suggestedKeyword) => (
+                  <button
+                    type="button"
+                    key={suggestedKeyword}
+                    style={styles.keywordChip(keyword === suggestedKeyword)}
+                    onClick={() => analyze(suggestedKeyword)}
+                    disabled={isLoading}
+                  >
+                    {suggestedKeyword}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div style={styles.selectRow}>

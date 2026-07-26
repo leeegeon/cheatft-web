@@ -31,6 +31,8 @@ function getDisplayArticle(article, isNews) {
     score: article?.score || '-',
     scoreText: article?.scoreText || '확인중',
     scoreColor: article?.scoreColor || '#dadce0',
+    reliabilityReason: article?.reliabilityReason || '',
+    reliabilityCategory: article?.reliabilityCategory || article?.sourceCategory || '',
   };
 }
 
@@ -91,6 +93,16 @@ export default function DetailView({ type }) {
           {isNews && (
             <div style={{ marginTop: '18px', fontSize: '15px', color: '#3c4043', fontWeight: 'bold' }}>
               {displayArticle.scoreText} <span style={{ color: '#80868b', fontWeight: 'normal' }}>{displayArticle.score}</span>
+            </div>
+          )}
+          {isNews && displayArticle.reliabilityCategory && (
+            <div style={{ marginTop: '8px', fontSize: '13px', color: '#5f6368' }}>
+              분류: {displayArticle.reliabilityCategory}
+            </div>
+          )}
+          {isNews && displayArticle.reliabilityReason && (
+            <div style={{ marginTop: '14px', padding: '14px', backgroundColor: '#ffffff', borderRadius: '10px', border: '1px solid #e0e0e0', color: '#5f6368', fontSize: '13px', lineHeight: '1.6' }}>
+              {displayArticle.reliabilityReason}
             </div>
           )}
 

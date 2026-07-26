@@ -1,12 +1,12 @@
 # 백엔드 협의 체크리스트
 
-마지막 갱신: 2026-07-15
+마지막 갱신: 2026-07-26
 
 이 문서는 프런트엔드에서 필요한 계약을 정리한 협의 메모입니다. 현재 백엔드 담당자 구현의 기준 위치는 `../../cheatft_api/src`이고, 프론트 화면별 최신 매핑은 `./backend-contract.md`에 정리되어 있습니다.
 
 주의: 아래 "제안 API 목록"은 초기 회의용 제안 경로를 보존한 것입니다. 실제 `cheatft_api`의 현재 경로는 `/api/login`, `/api/signup`, `/api/checks`, `/api/analysis`처럼 `/api/...` 형태입니다. 구현 전에는 `./backend-contract.md`의 차이 정리를 먼저 확인하세요.
 
-현재 배포 API는 `https://cheatft.leegeon.com/api`입니다. `summary/reports/posts/profile`은 dummy controller 응답이고, `auth/checks/analysis`는 실제 라우트/서비스/DB 흐름을 사용합니다. 2026-07-15 관측 기준 로그인은 `UserModel.findByEmail is not a function` 오류가 확인되었습니다.
+현재 배포 API는 `https://cheatft.leegeon.com/api`입니다. `summary/reports/posts/profile`은 dummy controller 응답이고, `auth/checks/analysis`는 실제 라우트/서비스/DB 흐름을 사용합니다. 2026-07-26 관측 기준 로그인과 `/api/me`는 테스트 계정으로 정상 동작합니다. 다만 `reports/posts` query, `checks` page/limit, `analysis` limit은 실제 결과에 반영되지 않고, 중복 회원가입은 현재 `409`가 아니라 `500`으로 내려옵니다.
 
 ## 먼저 결정할 항목
 
@@ -117,24 +117,37 @@
 - 명세 기반 도메인 API 함수: `src/services/cheatftApi.js`
 - 검색어 공유 URL: `/search?q=...`
 - 글 작성 초안: `sessionStorage`에 탭 단위 저장
-- 조회 화면은 API 응답을 우선 사용하고 실패 시 기존 목업으로 fallback
-- 검증하기 결과는 `백엔드 API` 또는 `프론트 목업` 배지로 데이터 출처 표시
+- 홈/검증하기는 API 응답을 우선 사용하고 실패 시 기존 목업으로 fallback하지 않음
+- 리포트/커뮤니티/알고리즘 분석은 아직 일부 목업 fallback 유지
 - 검증하기는 API 요청 성공 시 API의 `articles` 배열만 표시하고, 빈 배열이면 프론트 예시를 섞지 않고 빈 상태 표시
 - 로그인, 회원가입, 게시글 등록은 실패 시 오류 표시
 - 홈/검증하기 기본 화면은 `GET /summary`의 `recentChecks`로 최신 팩트체크 표시
-- 커뮤니티 목록은 `GET /posts`에 `category`, `keyword`, `page`, `limit` 전달
-- 리포트 목록은 `GET /reports`에 `keyword`, `date`, `score`, `page`, `limit` 전달
-- 마이페이지는 `GET /profile`의 성향 분포, 신뢰도 분포, 관심 주제, 뱃지, 최근 활동, 월간 요약까지 표시
+- 커뮤니티 목록은 `GET /posts`에 `category`, `keyword`, `page`, `limit` 전달. 2026-07-26 배포 API 기준 실제 응답은 query와 무관한 dummy 고정값
+- 리포트 목록은 `GET /reports`에 `keyword`, `date`, `score`, `page`, `limit` 전달. 2026-07-26 배포 API 기준 실제 응답은 query와 무관한 dummy 고정값
+- 마이페이지 화면/라우트는 제거됨. `/api/profile`은 공개 dummy endpoint로 남아 있음
 - 목업 데이터는 추후 `src/mocks/` 또는 `src/data/`로 분리 예정
 
 `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`처럼 `/api`까지 포함하면 프론트 서비스 함수는 `apiRequest('/login')`처럼 호출해야 합니다. `apiRequest('/api/login')`로 작성하면 `/api/api/login`이 됩니다.
 2026-07-15 현재 로컬 `../../cheatft_api`는 Express/PostgreSQL/JWT 기반 실제 백엔드 구현체입니다. 다만 실행에는 의존성, 환경변수, PostgreSQL 연결이 필요하고, Codex는 `cheatft_api`를 수정하지 않습니다. 최신 실제 관측값과 프론트 반영 내용은 `./backend-contract.md`를 우선 확인하세요.
 
+## 2026-07-26 배포 API 재확인
+
+- `GET /summary`의 `recentChecks`는 3개입니다.
+- `POST /signup` 성공 응답은 `id`, `email`, `nickname`, `level`, `user_title`, `created_at`입니다.
+- `POST /signup` 중복 이메일은 현재 `500`, `이미 사용 중인 이메일입니다.` 메시지를 반환합니다.
+- `POST /login`과 `GET /me`는 테스트 계정으로 정상 동작합니다.
+- `GET /checks/{id}`는 `page/limit`을 실제 분할에 반영하지 않고, article `press`는 숫자가 아니라 언론사명 문자열로 반환합니다.
+- `POST /checks`의 `type=url`은 202로 접수되지만 URL 본문 파싱이 아니라 검색어처럼 처리됩니다.
+- `GET /analysis/{id}`는 `limit` query를 실제 결과 개수에 반영하지 않고, 응답 body에 `limit` 필드가 없습니다.
+- `GET /reports`, `GET /posts`는 filter/page query와 무관하게 같은 dummy 응답을 반환합니다.
+- `POST /posts`는 성공 시 `id`, `title`, `category`만 반환합니다.
+- `GET /health`는 `{ status, message, data }` 공통 래핑이 아니라 `{ message }`만 반환합니다.
+
 ## 2026-07-10 배포 더미 API 확인
 
-- `GET /summary`의 `recentChecks`는 현재 1개입니다.
-- `POST /checks`는 현재 `checkId: 452`를 반환합니다.
-- `GET /checks/452`의 `articles` 배열은 현재 1개입니다.
+- 2026-07-10 당시 `GET /summary`의 `recentChecks`는 1개였습니다.
+- 2026-07-10 당시 `POST /checks`는 `checkId: 452`를 반환했습니다.
+- 2026-07-10 당시 `GET /checks/452`의 `articles` 배열은 1개였습니다.
 - 같은 응답에서 `totalArticles`와 `pagination.totalItems`는 12로 표시됩니다.
 - 따라서 현재 프런트 화면에 실제 카드로 렌더링되는 검증 기사 수는 1개이고, 총합 메타데이터는 12개로 표시될 수 있습니다.
 
