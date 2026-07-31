@@ -1,9 +1,10 @@
 # 프론트-백엔드 계약 지도
 
-마지막 갱신: 2026-07-26
+마지막 갱신: 2026-07-31
 기준 문서: `cheatft_api/src`, `cheatft_api/README.md`, `cheatft_web/docs/backend-handoff.md`, `cheatft_web/src`
 
 이 문서는 `cheatft_web` 화면과 `cheatft_api` 구현/명세를 빠르게 맞춰보기 위한 요약이다. 실제 동작은 `cheatft_api/src`를 우선 확인하고, README는 보조 명세로 본다.
+`cheatft_api/README.md`는 실제 구현 또는 배포 API보다 늦게 반영될 수 있으므로, API 연동 작업은 가능한 경우 실제 배포 API 응답 body와 `cheatft_api/src` 구현을 함께 확인한 뒤 진행한다.
 
 ## 현재 결론
 
@@ -20,6 +21,8 @@
 - 검증하기 언론사 표기는 백엔드 `src/services/checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 `src/utils/press.js`에서 정규화한다.
 - 2026-07-15 추가 보강으로 프론트는 알려진 oid에 네이버 `office_logo` 로고 URL을 매핑하고, `언론사(021)` 같은 미매핑 fallback 문자열은 브라우저 `localStorage`에 관측 목록으로 누적한다. 이는 백엔드에 전달할 보완 목록 수집용이며 서버 저장은 아니다.
 - 2026-07-26 이후 프론트는 `src/data/pressReliability.js`의 언론사 기준표로 분류와 신뢰도 fallback을 제공한다. 백엔드 기사에 신뢰도 점수가 없으면 언론사 기준 점수를 사용한다. 판단 이유 검토용 문서는 `docs/press-reliability.md`이다.
+- 2026-07-31 이후 뉴스 상세는 검증하기에서 전달된 기사 URL이 있으면 `POST /api/article`을 호출해 상세 본문, 기자, 입력 시간, 주제를 보강한다. 검증 결과의 `/mnews/article/` URL은 `/article/` 형식으로 정규화한다. 상세 API가 실패하면 별도 오류 노출 없이 기존 route state/sessionStorage 기사 정보를 유지한다.
+- 뉴스 상세 오른쪽 신뢰도 패널은 `낮음/보통/높음` 텍스트 축이 아니라 0~5 숫자 눈금과 현재 점수 마커로 표시한다.
 - `/algo`는 보호 라우트로 변경했다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 질문 영역 강조 → 추천 키워드 생성 후 키워드 영역 강조 → 키워드 선택 후 질문 영역 강조로 안내하며 API 호출 구조는 그대로 유지한다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
 - 2026-07-26 기준 `UserModel.findByEmail is not a function` 오류는 해결된 상태로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
@@ -43,6 +46,18 @@
 - `GET /api/analysis/{id}`: `analysisId`, `keyword`, `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination` 반환. `limit` query는 실제 결과 개수에 반영되지 않고, 관련/반박 기사 `press`는 숫자가 아니라 언론사명 문자열이다.
 - `POST /api/posts`: 성공 시 `id`, `title`, `category`만 반환한다.
 - `GET /api/health`: 공통 래핑 없이 `{ message }`만 반환한다.
+
+## 2026-07-31 백엔드 pull 후 상세 API 반영
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 백엔드 `main`의 2026-07-31 커밋에서 `POST /api/article`, `POST /api/keywords`가 추가된 것을 읽기 전용으로 확인했다.
+- `POST /api/article`는 body `{ url }`을 받고 네이버 뉴스 URL에 대해 `title`, `content`, `press`, `reporter`, `inputTime`, `topic`, `url` 형태의 기사 상세 예시를 반환한다.
+- 2026-07-31 직접 확인 기준 운영 API는 아직 `POST /api/article`이 배포되지 않아 `Cannot POST /api/article`을 반환한다. 프론트는 이 경우 목록 기사 정보만 유지한다.
+- 프론트 `src/services/cheatftApi.js`에 `getArticleFromUrl(url)`을 추가했다.
+- `DetailView.jsx`는 뉴스 상세 진입 시 기존 카드 데이터를 먼저 표시하고, `article.url`이 있으면 네이버 `/mnews/article/` URL을 `/article/`로 정규화한 뒤 `POST /article` 응답을 병합한다.
+- 상세 API 응답에는 현재 신뢰도 점수가 없으므로, 상세 화면은 백엔드/목록 데이터의 점수를 우선 사용하고 없으면 `src/data/pressReliability.js`의 언론사 기준 점수, 라벨, 판단 이유를 fallback으로 표시한다.
+- 상세 신뢰도 표시는 0~5 축의 진행 막대와 현재 점수 마커를 사용한다.
+- 저장된 기사 정보나 URL이 없는 `/article/:id` 직접 진입은 여전히 복원할 상세 요청 재료가 부족하다.
 
 ## 2026-07-16 인증/배포 계약 메모
 
@@ -268,7 +283,7 @@
 | 홈 요약 | `HomeView.jsx` | `GET /api/summary` | API 응답만 표시, 실패/빈 배열은 오류/빈 상태, 프론트 더미 fallback 없음 |
 | 검색/검증 요청 | `HomeView.jsx`, `VerificationView.jsx` | `POST /api/checks` | 검색어 이동 후 API 요청 |
 | 검증 결과 | `VerificationView.jsx` | `GET /api/checks/{id}` | API 응답만 표시, URL 링크 검색 제거, 프론트 더미 fallback 없음, 백엔드 `PRESS_MAPPING` 기반 출처 필터와 로컬 정렬 제공 |
-| 뉴스 상세 | `DetailView.jsx` | 명세 없음 | 클릭한 기사 객체를 route state/sessionStorage로 표시. 직접 조회용 상세 API 없음 |
+| 뉴스 상세 | `DetailView.jsx` | `POST /api/article` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 상세 API 응답을 병합. 상세 API 실패는 화면 오류로 노출하지 않음. 저장 정보 없는 직접 진입은 제한적 |
 | 알고리즘 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 추천 키워드 칩 선택 시 API 요청, 백엔드는 Bearer token 요구 |
 | 알고리즘 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}` | 보호 라우트, API 우선, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
 | 리포트 목록 | `ReportView.jsx` | `GET /api/reports` | API 우선, `keyword/date/score/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
@@ -290,6 +305,7 @@
 | POST | `/api/login` | 로그인 | `accessToken`, `userId` |
 | GET | `/api/me` | 인증 사용자 정보 | Bearer token 필요. 2026-07-26 배포 API 정상 조회 확인 |
 | POST | `/api/checks` | 팩트체크 요청 | `checkId` |
+| POST | `/api/article` | 네이버 뉴스 URL 상세 조회 | `title`, `content`, `press`, `reporter`, `inputTime`, `topic`, `url` |
 | GET | `/api/checks/{id}` | 검증 결과 | `checkId`, `query`, `articles`, `pagination`; `page/limit` 미구현, pagination은 현재 `1/1/articles.length` |
 | POST | `/api/analysis` | 알고리즘 분석 요청 | `analysisId` |
 | GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`; `limit` query 미구현, 응답 `limit` 없음 |
@@ -313,7 +329,7 @@
 
 현재 백엔드 명세에 없지만 화면이 자연스럽게 필요로 하는 항목:
 
-- `GET /api/articles/{id}` 또는 `GET /api/checks/{checkId}/articles/{articleId}`: `DetailView` 뉴스 상세 직접 진입/새로고침/공유 링크 지원용
+- 저장 정보 없는 `/article/:id` 직접 진입 지원용 article id 기반 조회 API. 현재 `POST /api/article`는 URL이 있을 때만 상세 보강에 사용할 수 있다.
 - `GET /api/checks/{id}` article 필드 확정: `press` 번호 또는 언론사명, `publishedAt`, `viewCount`, `relevanceScore`, `articleId`, `url`, `summary`
 - `POST /api/checks`의 `type=url` 실제 처리 방식 확정. 현재는 URL 본문 분석이 아니라 검색어처럼 처리된다.
 - `GET /api/posts/{id}`: 커뮤니티 상세용

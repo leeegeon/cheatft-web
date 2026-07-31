@@ -55,6 +55,14 @@ export function getCheckResult(id, params = {}) {
   return apiData(buildPath(`/checks/${id}`, params))
 }
 
+export function getArticleFromUrl(url) {
+  return apiData('/article', {
+    method: 'POST',
+    body: { url },
+    auth: false,
+  })
+}
+
 export async function runFactCheck(content, params = {}) {
   const request = await requestCheck({ content })
   return request?.checkId ? getCheckResult(request.checkId, params) : request

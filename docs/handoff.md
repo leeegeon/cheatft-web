@@ -1,6 +1,6 @@
 # Handoff
 
-마지막 갱신: 2026-07-26
+마지막 갱신: 2026-07-31
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 새 채팅에서 이어받을 때는 루트 `AGENTS.md` → `cheatft_web/AGENTS.md` → 이 파일 순서로 본다. 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다.
@@ -24,6 +24,7 @@
 3. 필요할 때만 `docs/README.md`, `code-map.md`, `backend-contract.md`, `api-integration-log.md`, `cheatft_web/README.md`를 추가로 읽는다.
 4. 실제 구현 확인이 필요한 파일만 추가로 연다.
 5. 백엔드 확인이 필요하면 `cheatft_api`의 관련 파일을 읽기 전용으로만 확인한다. `cheatft_api`는 절대 수정하지 않는다.
+6. `cheatft_api/README.md`는 실제 구현/배포 API보다 늦게 반영될 수 있으므로, API 연동 작업은 README만 믿지 말고 가능한 경우 실제 배포 API 응답과 `cheatft_api/src` 구현을 함께 확인한다.
 
 ## 문서 갱신 원칙
 
@@ -53,9 +54,22 @@
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
 - 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
 - API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
+- 뉴스 상세: 검증하기 카드 클릭으로 전달된 기사 객체를 route state/sessionStorage에서 먼저 표시하고, 지원되는 네이버 기사 URL이 있으면 `/mnews/article/`을 `/article/`로 정규화한 뒤 `POST /article`로 상세 본문/기자/입력 시간/주제를 보강한다. 상세 API가 실패하면 오류 문구 없이 목록 기사 정보를 유지한다. 신뢰도 점수는 백엔드/목록 값을 우선 사용하고 없으면 `src/data/pressReliability.js`의 언론사 기준표를 사용하며, 오른쪽 패널은 0~5 눈금과 현재 점수 마커로 표시한다.
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 반응형: `App.jsx`는 내부 `main` 세로 스크롤을 제거하고 브라우저 기본 페이지 스크롤을 사용한다. `src/index.css`는 검증하기, 신뢰도 분석, 리포트, 커뮤니티, 상세, 로그인/회원가입의 노트북 절반 폭/모바일 폭 보정을 담당한다. 신뢰도 분석과 리포트는 충분한 폭에서는 좌우형과 가로 통계를 유지하고 좁은 폭에서만 세로형으로 전환한다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-07-31 뉴스 상세 API 반영
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 백엔드 pull 후 `POST /api/article`, `POST /api/keywords` 추가를 읽기 전용으로 확인했다.
+- 운영 API 직접 확인 기준 `POST /api/article`은 아직 배포되지 않아 `Cannot POST /api/article`을 반환한다.
+- `src/services/cheatftApi.js`에 `getArticleFromUrl(url)`을 추가했다.
+- `DetailView.jsx`는 뉴스 상세 진입 시 지원되는 `article.url`이 있으면 `/mnews/article/`을 `/article/`로 정규화해 `POST /article`을 호출하고, 응답의 `content`, `press`, `reporter`, `inputTime`, `topic`을 기존 카드 데이터와 병합한다.
+- 상세 API 실패는 화면 오류로 노출하지 않고 목록 기사 정보를 유지한다.
+- 상세 화면 신뢰도는 API/목록 데이터의 점수를 우선하고, 점수가 없으면 언론사 기준 신뢰도와 판단 이유를 표시한다. 시각화는 0~5 눈금과 현재 점수 마커를 사용한다.
+- 저장된 기사 정보나 URL이 없는 `/article/:id` 직접 진입은 아직 완전 복원할 수 없다.
+- 검증: `npm run lint`, `npm test` 통과.
 
 ## 2026-07-26 홈 외 화면 반응형/스크롤 정리
 

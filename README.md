@@ -88,14 +88,17 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 
 현재 백엔드는 `summary/reports/posts/profile` 계열은 dummy controller 응답이고, `auth/checks/analysis` 계열은 실제 라우트/서비스/DB 흐름을 사용합니다. 2026-07-26 기준 배포 API의 회원가입, 로그인, `/me`는 테스트 계정으로 동작 확인했습니다.
 
+`cheatft_api/README.md`는 실제 구현 또는 배포 API보다 늦게 갱신될 수 있습니다. API 연동 작업은 README만 기준으로 판단하지 말고, 가능한 경우 실제 배포 API 응답과 `cheatft_api/src` 구현을 함께 확인한 뒤 반영합니다.
+
 ## API 연동 상태
 
-2026-07-26 기준 다음 화면은 백엔드 명세 경로를 호출합니다.
+2026-07-31 기준 다음 화면은 백엔드 명세 경로를 호출합니다.
 
 | 화면 | 호출 API | fallback |
 |---|---|---|
 | 홈 | `GET /summary` | 프론트 더미 fallback 없음 |
 | 검증하기 | `POST /checks`, `GET /checks/{id}?page=1&limit=100`, 기본 화면 `GET /summary` | 프론트 더미 fallback 없음, 검색 결과는 10건씩 화면 페이지네이션 |
+| 뉴스 상세 | `POST /article` | 검증하기에서 전달된 네이버 기사 URL이 있으면 상세 API를 호출하고, 실패 시 별도 오류 노출 없이 목록에서 받은 기사 정보 표시 |
 | 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 질문 입력 후 추천 키워드 선택 시 분석 호출, 질문/키워드 영역 단계 강조, 기존 분석 결과 목업 |
 | 리포트 | `GET /reports?keyword=&date=&score=&page=&limit=` | 기존 리포트 목록 목업, 현재 배포 API는 query와 무관한 고정 응답 |
 | 커뮤니티 | `GET /posts?category=&keyword=&page=&limit=` | 기존 게시글/참여 현황 목업, 현재 배포 API는 query와 무관한 고정 응답 |
@@ -139,7 +142,8 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 - 사람이 검토하기 쉬운 이유 표는 `docs/press-reliability.md`에서 확인합니다. `파일/신뢰도`의 AI 별점 이미지는 참고값으로만 반영했습니다.
 - 검증하기는 텍스트 검색만 지원합니다. URL 링크 검색 탭은 제거됐습니다. 배포 API는 `type=url` 요청도 `202`로 받지만 URL 본문 파싱 없이 검색어처럼 저장되며, 확인한 네이버 기사 URL 요청은 기사 0건을 반환했습니다.
 - 검증하기 카드와 최신 팩트체크 카드는 제목 재검색이 아니라 `/article/:id` 뉴스 상세로 이동합니다.
-- 뉴스 상세는 클릭한 기사 객체를 route state와 `sessionStorage`로 받아 표시합니다. 직접 URL 진입이나 저장 정보 없는 새로고침을 완전히 지원하려면 별도 상세 API가 필요합니다.
+- 뉴스 상세는 클릭한 기사 객체를 route state와 `sessionStorage`로 먼저 표시하고, 기사 URL이 있으면 `POST /article`로 백엔드 상세 정보를 불러와 본문/기자/입력 시간/주제를 보강합니다. 검증 결과의 `https://n.news.naver.com/mnews/article/...` URL은 백엔드가 받는 `https://n.news.naver.com/article/...` 형식으로 정규화합니다. 2026-07-31 확인 기준 운영 API는 아직 `POST /api/article`이 배포되지 않아 상세 API 실패 시 별도 오류 문구 없이 목록에서 받은 기사 정보를 유지합니다.
+- 뉴스 상세 신뢰도는 백엔드/목록 데이터의 점수를 우선 쓰고, 점수가 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도와 판단 이유를 표시합니다. 오른쪽 신뢰도 패널은 0~5 눈금과 현재 점수 위치로 시각화합니다. 저장 정보 없는 직접 URL 진입은 여전히 복원할 기사 URL이 없어 제한적입니다.
 - 신뢰도 분석(`/algo`)은 질문을 입력하면 프론트에서 추천 키워드 칩을 제시하고, 사용자가 키워드를 선택할 때 `POST /analysis`, `GET /analysis/{id}`를 호출합니다. 기본값과 키워드 선택 직후에는 질문 영역을 강조하고, 추천 키워드가 생성되면 키워드 영역을 강조합니다. 화면은 AI 주요 인사이트와 분석 요약을 관련 뉴스보다 먼저 보여줍니다.
 - 팩트체크 리포트(`/report`)는 상단 리포트 내보내기, 총 검색 시간, 요약 다운로드 버튼을 표시하지 않습니다. 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 중심으로 보여줍니다.
 - 커뮤니티와 팩트체크 리포트는 전역 상단바를 다른 화면과 동일하게 사용합니다. 커뮤니티 글 작성 버튼은 상단바가 아니라 커뮤니티 목록 상단의 검색/필터 영역에 표시합니다.

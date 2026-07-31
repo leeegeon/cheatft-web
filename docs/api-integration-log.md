@@ -1,8 +1,9 @@
 # API 연동 작업 로그
 
-마지막 갱신: 2026-07-26
+마지막 갱신: 2026-07-31
 대상: `cheatft_web`
 백엔드 폴더 수정 여부: 최종 상태 기준 수정하지 않음. 2026-07-16 실수로 인증 컨트롤러를 수정했으나 즉시 원상복구함.
+API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포 API보다 늦게 반영될 수 있으므로, API 연동 작업은 가능한 경우 실제 배포 API 응답과 `cheatft_api/src` 구현을 함께 확인한다.
 
 ## 작업 목적
 
@@ -27,6 +28,26 @@
 같은 날짜에 배포 API 실제 응답과 `cheatft_web` 문서의 현재 상태를 다시 대조했다. `cheatft_api/README.md`는 수정하지 않았고, 프론트 문서에는 실제 응답 기준 차이를 반영했다.
 
 같은 날짜에 홈 외 화면의 반응형/스크롤 구조를 정리했다. API 호출 구조는 바꾸지 않았고, 검증하기/신뢰도 분석/리포트/커뮤니티/상세/인증 화면이 노트북 절반 폭과 모바일 폭에서 깨지지 않도록 전역 CSS 보정을 추가했다. 앱 본문은 내부 이중 세로 스크롤 대신 브라우저 기본 페이지 스크롤을 사용한다.
+
+2026-07-31 추가 작업으로 백엔드 pull 후 새로 확인된 `POST /api/article`을 뉴스 상세 화면에 연결했다. 검증하기 카드 클릭으로 전달된 기사 URL이 있으면 상세 API로 본문/기자/입력 시간/주제를 보강하고, 실패하면 별도 오류 문구 없이 목록에서 받은 기사 정보를 그대로 표시한다. 상세 API 응답에 신뢰도 점수가 없으면 기존 언론사 기준 신뢰도 표를 사용하고, 상세 패널은 0~5 눈금과 현재 점수 마커로 표시한다.
+
+## 2026-07-31 뉴스 상세 API 반영
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 백엔드 2026-07-31 pull 내용에서 `POST /api/article`과 `POST /api/keywords` 추가를 확인했다.
+- 2026-07-31 운영 API 직접 확인 기준 `POST /api/article`은 아직 배포되지 않아 `Cannot POST /api/article`을 반환한다.
+- 프론트 변경:
+  - `src/services/cheatftApi.js`: `getArticleFromUrl(url)` 추가.
+  - `DetailView.jsx`: 뉴스 상세 진입 시 `article.url`이 있으면 네이버 `/mnews/article/` URL을 `/article/` 형식으로 정규화해 `POST /article` 호출 후 기존 route state/sessionStorage 기사 데이터와 병합.
+  - `DetailView.jsx`: 상세 API 실패는 빨간 오류 문구로 노출하지 않고 목록 기사 정보만 유지.
+  - `DetailView.jsx`: 상세 API의 `content`, `press`, `reporter`, `inputTime`, `topic` 필드를 표시 후보로 추가.
+  - `DetailView.jsx`: 상세 API 또는 목록 데이터의 신뢰도 점수를 우선 표시하고, 없으면 `src/data/pressReliability.js`의 언론사 기준 점수/라벨/판단 이유를 표시.
+  - `DetailView.jsx`: 오른쪽 신뢰도 패널을 `낮음/보통/높음` 텍스트 축에서 0~5 숫자 눈금과 현재 점수 마커가 있는 진행 막대로 변경.
+- 제약:
+  - `POST /article`은 URL 기반 상세 보강 API라 저장 정보나 URL이 없는 `/article/:id` 직접 진입은 아직 완전 복원할 수 없다.
+- 검증:
+  - `npm run lint` 통과.
+  - `npm test` 통과.
 
 ## 2026-07-26 홈 외 화면 반응형/스크롤 정리
 
@@ -181,6 +202,7 @@
 |---|---|---|
 | 홈 | `HomeView.jsx` | `GET /summary` |
 | 검증하기 | `VerificationView.jsx` | `POST /checks`, `GET /checks/{id}` |
+| 뉴스 상세 | `DetailView.jsx` | `POST /article` |
 | 알고리즘 분석 | `AlgoView.jsx` | `POST /analysis`, `GET /analysis/{id}` |
 | 리포트 | `ReportView.jsx` | `GET /reports?keyword=&date=&score=&page=&limit=` |
 | 커뮤니티 | `CommunityView.jsx` | `GET /posts?category=&keyword=&page=&limit=` |

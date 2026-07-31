@@ -1,4 +1,7 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { getArticleFromUrl } from '../../services/cheatftApi.js';
+import { getPressCategory, getPressLabel, getPressReliability } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 function getStoredArticle(id) {
@@ -8,6 +11,97 @@ function getStoredArticle(id) {
   } catch {
     return null;
   }
+}
+
+function getSupportedArticleDetailUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.hostname !== 'n.news.naver.com') return '';
+
+    const articleMatch = parsedUrl.pathname.match(/^\/(?:mnews\/)?article\/(\d+)\/(\d+)$/);
+    if (!articleMatch) return '';
+
+    const [, oid, aid] = articleMatch;
+    return `https://n.news.naver.com/article/${oid}/${aid}${parsedUrl.search}`;
+  } catch {
+    return '';
+  }
+}
+
+function getOptionalNumber(...values) {
+  const matched = values.find((value) => value !== undefined && value !== null && value !== '' && value !== '-');
+  if (matched === undefined) return null;
+
+  const numericValue = typeof matched === 'string'
+    ? Number(matched.match(/\d+(?:\.\d+)?/)?.[0])
+    : Number(matched);
+
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function normalizeReliabilityScore(...values) {
+  const numericValue = getOptionalNumber(...values);
+  if (numericValue === null) return null;
+  return Math.max(0, Math.min(5, numericValue > 5 ? numericValue / 20 : numericValue));
+}
+
+function getScoreText(scoreValue) {
+  if (scoreValue === null) return '확인중';
+  if (scoreValue >= 4) return '신뢰 가능';
+  if (scoreValue >= 3) return '보통';
+  return '주의';
+}
+
+function getScoreColor(scoreValue) {
+  if (scoreValue === null) return '#dadce0';
+  if (scoreValue >= 4) return '#8bc34a';
+  if (scoreValue >= 3) return '#fbbc04';
+  return '#ff9800';
+}
+
+function getArticlePressValue(article) {
+  return article?.press ?? article?.pressName ?? article?.publisher ?? article?.mediaName ?? article?.pub;
+}
+
+function getReliabilityDisplay(article) {
+  const pressValue = getArticlePressValue(article);
+  const apiScoreValue = normalizeReliabilityScore(
+    article?.reliabilityScore,
+    article?.reliability,
+    article?.trustScore,
+    article?.credibilityScore,
+    article?.scoreValue,
+    article?.score
+  );
+  const pressReliability = getPressReliability(pressValue);
+  const scoreValue = apiScoreValue ?? pressReliability.reliabilityScore;
+
+  return {
+    scoreText: article?.scoreText
+      || article?.reliabilityLabel
+      || article?.credibilityLabel
+      || (apiScoreValue !== null ? getScoreText(scoreValue) : pressReliability.reliabilityLabel || getScoreText(scoreValue)),
+    scoreValue,
+    score: scoreValue === null ? '-' : `${scoreValue.toFixed(1).replace(/\.0$/, '')} / 5`,
+    scoreColor: article?.scoreColor || getScoreColor(scoreValue),
+    reliabilityReason: article?.reliabilityReason || pressReliability.rationaleSummary,
+    reliabilityCategory: article?.reliabilityCategory || article?.sourceCategory || pressReliability.category || getPressCategory(pressValue),
+  };
+}
+
+function mergeArticleDetail(baseArticle, detailArticle) {
+  return {
+    ...baseArticle,
+    ...detailArticle,
+    articleId: detailArticle?.articleId ?? baseArticle?.articleId,
+    scoreText: detailArticle?.scoreText ?? baseArticle?.scoreText,
+    scoreValue: detailArticle?.scoreValue ?? baseArticle?.scoreValue,
+    score: detailArticle?.score ?? baseArticle?.score,
+    scoreColor: detailArticle?.scoreColor ?? baseArticle?.scoreColor,
+    reliabilityReason: detailArticle?.reliabilityReason ?? baseArticle?.reliabilityReason,
+    reliabilityCategory: detailArticle?.reliabilityCategory ?? baseArticle?.reliabilityCategory,
+    sourceCategory: detailArticle?.sourceCategory ?? baseArticle?.sourceCategory,
+  };
 }
 
 function getDisplayArticle(article, isNews) {
@@ -21,18 +115,20 @@ function getDisplayArticle(article, isNews) {
     };
   }
 
+  const reliability = getReliabilityDisplay(article);
+  const pressValue = getArticlePressValue(article);
+  const reporter = cleanDisplayText(article?.reporter || article?.author, '');
+  const pressLabel = cleanDisplayText(getPressLabel(pressValue), '언론사 미상');
+
   return {
     title: cleanDisplayText(article?.title, '선택한 뉴스 정보를 찾을 수 없습니다.'),
-    author: cleanDisplayText(article?.pub || article?.press || article?.publisher, '언론사 미상'),
-    date: article?.date || '날짜 미상',
+    author: reporter ? `${pressLabel} · ${reporter}` : pressLabel,
+    date: article?.inputTime || article?.date || article?.publishedAt || article?.createdAt || article?.pubDate || article?.pub_date || '날짜 미상',
     views: article?.viewCount ? article.viewCount.toLocaleString('ko-KR') : '-',
-    body: cleanDisplayText(article?.desc || article?.summary || article?.description, '목록에서 전달된 기사 요약이 없습니다.'),
+    body: cleanDisplayText(article?.content || article?.body || article?.desc || article?.summary || article?.description, '목록에서 전달된 기사 요약이 없습니다.'),
     url: article?.url,
-    score: article?.score || '-',
-    scoreText: article?.scoreText || '확인중',
-    scoreColor: article?.scoreColor || '#dadce0',
-    reliabilityReason: article?.reliabilityReason || '',
-    reliabilityCategory: article?.reliabilityCategory || article?.sourceCategory || '',
+    topic: cleanDisplayText(article?.topic, ''),
+    ...reliability,
   };
 }
 
@@ -40,8 +136,49 @@ export default function DetailView({ type }) {
   const location = useLocation();
   const { id } = useParams();
   const isNews = type === '뉴스';
-  const article = location.state?.article || getStoredArticle(id);
+  const stateArticle = location.state?.article;
+  const initialArticle = useMemo(() => stateArticle || getStoredArticle(id), [id, stateArticle]);
+  const [detailResult, setDetailResult] = useState({ url: '', status: 'idle', article: null, error: '' });
+  const detailUrl = isNews ? getSupportedArticleDetailUrl(initialArticle?.url) : '';
+  const activeDetailResult = detailResult.url === detailUrl
+    ? detailResult
+    : { url: detailUrl, status: detailUrl ? 'loading' : 'idle', article: null, error: '' };
+  const article = activeDetailResult.article ? mergeArticleDetail(initialArticle, activeDetailResult.article) : initialArticle;
+  const detailStatus = activeDetailResult.status;
   const displayArticle = getDisplayArticle(article, isNews);
+  const reliabilityPercent = displayArticle.scoreValue === null || displayArticle.scoreValue === undefined
+    ? 0
+    : Math.max(0, Math.min(100, (displayArticle.scoreValue / 5) * 100));
+  const reliabilityTicks = [0, 1, 2, 3, 4, 5];
+
+  useEffect(() => {
+    if (!detailUrl) {
+      return;
+    }
+
+    let ignore = false;
+
+    getArticleFromUrl(detailUrl)
+      .then((detailArticle) => {
+        if (ignore) return;
+        const mergedArticle = mergeArticleDetail(initialArticle, detailArticle);
+        sessionStorage.setItem(`cheat-ft-article-${id}`, JSON.stringify(mergedArticle));
+        setDetailResult({ url: detailUrl, status: 'done', article: detailArticle, error: '' });
+      })
+      .catch((error) => {
+        if (ignore) return;
+        setDetailResult({
+          url: detailUrl,
+          status: 'error',
+          article: null,
+          error: error.message || '기사 상세 정보를 불러오지 못했습니다.',
+        });
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [detailUrl, id, initialArticle]);
 
   return (
     <div className="detail-page" style={{ display: 'flex', padding: '40px', gap: '40px', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh' }}>
@@ -58,6 +195,9 @@ export default function DetailView({ type }) {
         <div style={{ lineHeight: '1.8', fontSize: '18px', color: '#3c4043', minHeight: '300px', whiteSpace: 'pre-wrap' }}>
           {displayArticle.body}
         </div>
+        {isNews && detailStatus === 'loading' && (
+          <div style={{ marginTop: '20px', color: '#5f6368', fontSize: '14px' }}>백엔드 기사 상세 정보를 불러오는 중입니다.</div>
+        )}
 
         {isNews && displayArticle.url && (
           <a
@@ -86,9 +226,40 @@ export default function DetailView({ type }) {
       <div className="detail-aside" style={{ flex: 1, backgroundColor: '#f8f9fa', padding: '32px', borderRadius: '16px', height: 'fit-content', border: '1px solid #e0e0e0' }}>
         <div style={{ marginBottom: isNews ? 0 : '32px' }}>
           <strong style={{ display: 'block', marginBottom: '16px', fontSize: '18px' }}>신뢰도</strong>
-          <div style={{ height: '12px', background: 'linear-gradient(to right, #ea4335, #fbbc04, #34a853)', borderRadius: '6px' }}></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '8px', color: '#5f6368', fontWeight: 'bold' }}>
-            <span>낮음</span><span>보통</span><span>높음</span>
+          <div
+            aria-label={`신뢰도 ${displayArticle.score}`}
+            style={{ position: 'relative', paddingTop: '10px', paddingBottom: '18px' }}
+          >
+            <div style={{ height: '12px', backgroundColor: '#e8eaed', borderRadius: '999px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${reliabilityPercent}%`,
+                  height: '100%',
+                  background: 'linear-gradient(to right, #ea4335, #fbbc04, #34a853)',
+                  borderRadius: '999px',
+                }}
+              ></div>
+            </div>
+            {isNews && displayArticle.scoreValue !== null && displayArticle.scoreValue !== undefined && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${reliabilityPercent}%`,
+                  top: '3px',
+                  width: '4px',
+                  height: '26px',
+                  borderRadius: '999px',
+                  backgroundColor: displayArticle.scoreColor,
+                  boxShadow: '0 0 0 3px #ffffff, 0 1px 6px rgba(60,64,67,0.22)',
+                  transform: 'translateX(-50%)',
+                }}
+              ></div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', marginTop: '10px', fontSize: '12px', color: '#5f6368', fontWeight: 'bold' }}>
+              {reliabilityTicks.map((tick) => (
+                <span key={tick} style={{ textAlign: tick === 0 ? 'left' : tick === 5 ? 'right' : 'center' }}>{tick}</span>
+              ))}
+            </div>
           </div>
           {isNews && (
             <div style={{ marginTop: '18px', fontSize: '15px', color: '#3c4043', fontWeight: 'bold' }}>
@@ -98,6 +269,11 @@ export default function DetailView({ type }) {
           {isNews && displayArticle.reliabilityCategory && (
             <div style={{ marginTop: '8px', fontSize: '13px', color: '#5f6368' }}>
               분류: {displayArticle.reliabilityCategory}
+            </div>
+          )}
+          {isNews && displayArticle.topic && (
+            <div style={{ marginTop: '8px', fontSize: '13px', color: '#5f6368' }}>
+              주제: {displayArticle.topic}
             </div>
           )}
           {isNews && displayArticle.reliabilityReason && (

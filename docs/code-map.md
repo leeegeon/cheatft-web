@@ -1,6 +1,6 @@
 # 코드맵
 
-마지막 갱신: 2026-07-26
+마지막 갱신: 2026-07-31
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 이 문서는 새 채팅에서 전체 코드를 다시 훑지 않도록 만든 지도이다. 정확한 구현 확인이 필요할 때만 해당 파일을 직접 연다.
@@ -78,7 +78,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 홈 외 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
-- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
+- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/article`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
 - `public/favicon.png`: 브라우저 주소창/탭용 Cheat F/T 아이콘. 첨부 이미지의 흰 배경을 투명 처리한 PNG.
 - `src/data/pressReliability.js`: 언론사별 분류, 신뢰도 점수/라벨, AI 별점 참고값, 판단 이유 요약을 담은 사이트 반영 원본 데이터.
 - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, `pressReliability.js` 기반 화면 필터 분류/신뢰도 조회, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적.
@@ -97,7 +97,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 | `/` | `HomeView` | 홈, `GET /summary` 응답만 표시. 프론트 더미 fallback 없음. 최신 팩트체크는 백엔드 `recentChecks` 전체 표시 |
 | `/search?q=...` | `VerificationView` | 검색어가 있으면 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
 | `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
-| `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 표시. 직접 조회 API 없음 |
+| `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 `POST /article`로 상세 본문/기자/입력 시간/주제를 보강. API 실패는 화면 오류로 노출하지 않음 |
 | `/algo` | `AlgoView` | 보호 라우트. 질문 입력 후 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}`, 질문/키워드 영역 단계 강조, AI 주요 인사이트 우선 표시, 실패 시 목업 |
 | `/report` | `ReportView` | `GET /reports` 우선, `keyword/date/score/page/limit` 전달, API/목업 출처 안내, 실패 시 리포트 목록/상세 목업. 내보내기/다운로드 버튼 없음 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
@@ -135,11 +135,13 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 - `DetailView.jsx`
   - 뉴스 상세와 커뮤니티 상세을 `type` prop으로 구분한다.
-  - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽어 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 표시한다.
-  - 검증하기에서 전달된 언론사 기준 신뢰도 이유가 있으면 상세 오른쪽 신뢰도 패널에 분류와 판단 이유 요약을 표시한다.
+  - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽어 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 먼저 표시한다.
+  - 기사 URL이 지원되는 네이버 뉴스 형식이면 `/mnews/article/`을 `/article/`로 정규화한 뒤 `POST /article`을 호출해 상세 API의 본문, 기자, 입력 시간, 주제 정보를 병합한다. 실패하면 화면 오류 없이 목록에서 받은 기사 정보를 유지한다.
+  - 백엔드/목록 데이터의 신뢰도 점수를 우선 표시하고, 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도와 판단 이유를 오른쪽 신뢰도 패널에 표시한다.
+  - 오른쪽 신뢰도 패널은 0~5 숫자 눈금, 점수만큼 채워지는 막대, 현재 점수 마커로 신뢰도를 시각화한다.
   - 뉴스 상세 제목/본문은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역은 제거됐다.
-  - 직접 id 조회 API는 아직 없다. 저장된 기사 정보가 없으면 선택한 뉴스 정보를 찾을 수 없다는 상태를 보여준다.
+  - 직접 id 조회 API는 아직 없다. 저장된 기사 정보나 URL이 없으면 선택한 뉴스 정보를 찾을 수 없다는 상태를 보여준다.
   - 커뮤니티 상세은 아직 placeholder 성격이 남아 있다. 커뮤니티 상세/댓글 API도 없음.
 
 - `AlgoView.jsx`
