@@ -31,11 +31,26 @@ API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포
 
 2026-07-31 추가 작업으로 백엔드 pull 후 새로 확인된 `POST /api/article`을 뉴스 상세 화면에 연결했다. 검증하기 카드 클릭으로 전달된 기사 URL이 있으면 상세 API로 본문/기자/입력 시간/주제를 보강하고, 실패하면 별도 오류 문구 없이 목록에서 받은 기사 정보를 그대로 표시한다. 상세 API 응답에 신뢰도 점수가 없으면 기존 언론사 기준 신뢰도 표를 사용하고, 상세 패널은 0~5 눈금과 현재 점수 마커로 표시한다.
 
+2026-07-31 사용자 전달 메모 기준 `cheatft_api/README.md`와 운영 API 사이에 추가 차이가 있다. 공통 응답 포맷은 `/health`와 404 HTML 응답에는 적용되지 않고, `POST /checks`는 `type`과 `content`가 모두 필요하다. README에 문서화된 `POST /article`, `POST /keywords`는 운영 API에 아직 미배포라 `Cannot POST ...` HTML 응답을 반환한다. `GET /summary`의 `recentChecks` 3개는 모두 `id: 1`일 수 있다.
+
+2026-07-31 추가 작업으로 백엔드 `checks.service.js`의 확장된 `PRESS_MAPPING`을 읽기 전용으로 확인하고, 프론트 `src/utils/press.js`에도 69개 oid/name 매핑을 맞췄다. 네이버 언론사 홈에서 확인한 `office_logo` URL 69개를 추가해 검증하기/신뢰도 분석/리포트의 언론사 배지에 이미지 로고가 출력되게 했다. 이미지 로드 실패 시에는 기존 텍스트 배지 fallback을 유지한다.
+
+2026-07-31 임시 파일 정리로 과거 Vite 로그 파일, preview/dev 로그 파일, 전체 스캔 산출물 `.understand-anything/`, 코드에서 참조하지 않는 기본/레거시 에셋(`hero.png`, `react.svg`, `vite.svg`, `icons.svg`, `favicon.svg`)을 삭제했다. `cheatft_api`는 수정하지 않았다.
+
+2026-07-31 미매핑 언론사 재관측으로 배포 API에 30개 키워드(`정치`, `경제`, `사회`, `국제`, `문화`, `스포츠`, `연예`, `인공지능`, `반도체`, `코로나`, `기후`, `부동산`, `주식`, `금리`, `소상공인`, `검찰`, `국회`, `입시`, `세금`, `탄소중립`, `태풍`, `과학`, `IT`, `삼성전자`, `SK하이닉스`, `건강`, `교육`, `대통령`, `청년`, `금융`)를 요청했다. 응답에는 아직 `언론사(002)`처럼 보이는 값도 있었지만, 현재 로컬 백엔드 `PRESS_MAPPING` 69개와 대조해 소스에도 없는 oid만 `docs/observed-unmapped-press-names.csv`에 이름 확인본으로 남겼다. 관리 단순화를 위해 원본 관측 CSV는 제거하고 이 파일 하나를 기준으로 본다. 남은 후보는 `293: 블로터`, `586: 시사저널`이다.
+
+2026-07-31 추가 작업으로 백엔드 69개 매핑 중 신뢰도 기준표에 없던 12개(`스포츠조선`, `노컷뉴스`, `스타뉴스`, `OSEN`, `일간스포츠`, `스포츠동아`, `MBC연예`, `MK스포츠`, `연합뉴스TV`, `스포츠서울`, `뉴스엔`, `비즈워치`)를 `src/data/pressReliability.js`와 `docs/press-reliability.md`에 추가했다. 기존 AI 별점 자료에 없던 항목이라 `aiReferenceStars`는 `null`로 두고, 운영 기준에 따라 점수/라벨/판단 이유를 새로 산정했다. 확인 결과 백엔드 `PRESS_MAPPING` 69개 모두 신뢰도 기준으로 연결된다.
+
+2026-07-31 추가 작업으로 검증하기 카드와 뉴스 상세 화면의 신뢰도 표시 기준을 `src/utils/reliability.js`로 통합했다. 백엔드/목록 점수는 5점 만점으로 정규화하며, 10점 척도 값은 `/2`, 100점 척도 값은 `/20`으로 환산한다. 라벨과 색상은 현재 `높음` 3.9 이상 초록, `보통` 3.3 이상 3.9 미만 노랑, `주의` 3.3 미만 빨강으로 통일했다.
+
+2026-07-31 추가 조정으로 검색 결과가 `높음`과 `보통`에 과하게 몰리는 문제를 줄이기 위해 신뢰도 라벨 기준을 기존 `높음` 3.7 이상, `보통` 3.0 이상에서 `높음` 3.9 이상, `보통` 3.3 이상으로 상향했다. 기준 조정 후 전체 신뢰도 표 91개 기준 분포는 `높음` 19개(20.9%), `보통` 51개(56.0%), `주의` 21개(23.1%)이고, 백엔드 매핑 69개 기준 분포는 `높음` 17개(24.6%), `보통` 32개(46.4%), `주의` 20개(29.0%)이다.
+
 ## 2026-07-31 뉴스 상세 API 반영
 
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
 - 백엔드 2026-07-31 pull 내용에서 `POST /api/article`과 `POST /api/keywords` 추가를 확인했다.
 - 2026-07-31 운영 API 직접 확인 기준 `POST /api/article`은 아직 배포되지 않아 `Cannot POST /api/article`을 반환한다.
+- 2026-07-31 사용자 전달 메모 기준 `POST /api/keywords`도 운영 API에는 아직 미배포라 토큰이 있어도 `Cannot POST /api/keywords`를 반환한다.
 - 프론트 변경:
   - `src/services/cheatftApi.js`: `getArticleFromUrl(url)` 추가.
   - `DetailView.jsx`: 뉴스 상세 진입 시 `article.url`이 있으면 네이버 `/mnews/article/` URL을 `/article/` 형식으로 정규화해 `POST /article` 호출 후 기존 route state/sessionStorage 기사 데이터와 병합.
@@ -111,11 +126,13 @@ API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포
   - `GET /api/posts`: `category/keyword/page/limit`을 바꿔도 같은 dummy 응답과 `currentPage: 1`.
   - `POST /api/signup`: 성공 시 `id/email/nickname/level/user_title/created_at`, 중복 이메일은 현재 `500`.
   - `POST /api/login`, `GET /api/me`: 테스트 계정으로 정상 확인.
-  - `POST /api/checks`: `type=url`도 202로 받지만 URL 본문 파싱 없이 검색어처럼 저장된다.
+- `POST /api/checks`: `type=url`도 202로 받지만 URL 본문 파싱 없이 검색어처럼 저장된다.
+- `POST /api/checks`: README에는 `content`만 필수처럼 보이나, 실제 배포 API는 `type`과 `content`가 모두 필요하고 `content`만 보내면 `400`을 반환한다.
   - `GET /api/checks/{id}`: `page/limit` 미반영, article `press`는 숫자보다 언론사명 문자열, 제목/설명에는 HTML entity가 남을 수 있음.
   - `GET /api/analysis/{id}`: `limit` query 미반영, 응답 `limit` 필드 없음, 기사 `press`는 언론사명 문자열.
   - `POST /api/posts`: 성공 시 `id/title/category`만 반환.
-  - `GET /api/health`: 공통 래핑 없이 `{ message }` 반환.
+- `GET /api/health`: 공통 래핑 없이 `{ message }` 반환.
+- 404와 미배포 라우트 응답은 공통 `{ status, message, data }` JSON이 아니라 HTML일 수 있다.
 
 ## 2026-07-19 신뢰도 분석 화면 흐름 조정
 

@@ -15,8 +15,7 @@ C:\Users\eunhy\Desktop\동아리
 ├─ 자료/            기획안, 가이드 PDF
 ├─ 파일/            이미지와 기타 자료
 ├─ 세미나/          Claude 설정/스킬 관련 압축 자료
-├─ cheatft_web/docs/ Codex 온보딩, 코드맵, API 계약 요약
-└─ .understand-anything/ 2026-07-15 understand 스캔 산출물
+└─ cheatft_web/docs/ Codex 온보딩, 코드맵, API 계약 요약
 ```
 
 ## docs
@@ -29,6 +28,7 @@ C:\Users\eunhy\Desktop\동아리
 - `cheatft_web/docs/press-reliability.md`: 언론사별 분류, 신뢰도, AI 별점 참고값, 판단 이유 검토표.
 - `cheatft_web/docs/AGENTS.md`: Codex 작업 안내 백업/문서화본.
 - `cheatft_web/docs/backend-handoff.md`: 초기 백엔드 협의 제안 메모. 최신 계약 문서가 아니라 역사/협의용으로 본다.
+- `cheatft_web/docs/observed-unmapped-press-names.csv`: 배포 API 재검색에서 관측됐고 현재 백엔드 `PRESS_MAPPING`에도 없는 fallback oid를 네이버 언론사 홈 이름까지 확인한 목록. 관리 단순화를 위해 이 CSV 하나만 유지한다.
 
 ## cheatft_web 개요
 
@@ -63,8 +63,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 - `node_modules/`: 재스캔 제외
 - `dist/`: 빌드 산출물, 재스캔 제외
-- `build.log`, `build_utf8.log`: 과거 Vite build 로그. `build_utf8.log`는 21 modules transformed까지 확인됨.
-- `.understand-anything/`: 2026-07-15 전체 스캔 산출물. 일반 코드 맥락 파악 때는 제외.
+- 과거 Vite build 로그와 `.understand-anything/` 전체 스캔 산출물은 2026-07-31 임시 파일 정리에서 삭제했다.
 
 ## cheatft_web 주요 파일
 
@@ -80,8 +79,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
 - `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/article`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
 - `public/favicon.png`: 브라우저 주소창/탭용 Cheat F/T 아이콘. 첨부 이미지의 흰 배경을 투명 처리한 PNG.
-- `src/data/pressReliability.js`: 언론사별 분류, 신뢰도 점수/라벨, AI 별점 참고값, 판단 이유 요약을 담은 사이트 반영 원본 데이터.
-- `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, `pressReliability.js` 기반 화면 필터 분류/신뢰도 조회, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적.
+- `src/data/pressReliability.js`: 언론사별 분류, 신뢰도 점수/라벨, AI 별점 참고값, 판단 이유 요약을 담은 사이트 반영 원본 데이터. 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 모두 신뢰도 기준으로 연결된다.
+- `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, `pressReliability.js` 기반 화면 필터 분류/신뢰도 조회, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적. 2026-07-31 기준 백엔드 69개 oid와 프론트 oid/name 및 로고 매핑을 맞췄다.
+- `src/utils/reliability.js`: 검증하기/뉴스 상세 공용 신뢰도 표시 기준. 입력 점수를 5점 만점으로 정규화하고, `높음` 3.9 이상, `보통` 3.3 이상 3.9 미만, `주의` 3.3 미만 라벨과 색상/게이지 채움 비율을 반환한다.
 - `src/utils/search.js`: 검색어 trim과 `/search?q=...` URL 생성.
 - `src/utils/text.js`: API 표시 문자열의 HTML entity 디코딩과 HTML 태그 제거.
 - `tests/search.test.js`: `normalizeSearchQuery`, `buildSearchPath` 단위 테스트.
@@ -125,7 +125,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - 검색 결과는 백엔드 API 결과만 표시한다. 프론트 더미데이터 fallback, 예시 검색 버튼, URL 링크 검색 탭은 제거됐다.
   - 결과 필터는 `전체 출처`, `방송/통신사`, `종합지`, `경제지`, `인터넷/IT지`, `전문/산업지`, `시사/탐사지`, `지역지`, `스포츠/연예지`, `영문매체`, `기타 출처`를 제공한다.
   - `src/utils/press.js`를 통해 백엔드 `PRESS_MAPPING`의 oid/name 표를 언론사명으로 변환한다. `언론사(047)` 같은 fallback 문자열도 처리한다.
-  - 백엔드 기사에 신뢰도 점수가 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도를 표시한다.
+  - 백엔드 기사에 신뢰도 점수가 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도를 표시한다. 점수/라벨/색상/게이지 채움 비율은 `src/utils/reliability.js`의 5점 만점 공통 기준을 쓴다.
   - 언론사 로고 URL이 있으면 네이버 `office_logo` 이미지를 표시하고, 실패하면 기존 텍스트 배지를 표시한다.
   - `언론사(021)`처럼 미매핑 fallback 문자열이 등장하면 `recordObservedPress()`로 브라우저 `localStorage`에 누적한다. Console에서 `cheatFtPressList()`로 백엔드 전달용 목록을 복사한다.
   - `cleanDisplayText()`로 `&quot;` 같은 HTML entity를 표시 전에 디코딩한다.
@@ -138,7 +138,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽어 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 먼저 표시한다.
   - 기사 URL이 지원되는 네이버 뉴스 형식이면 `/mnews/article/`을 `/article/`로 정규화한 뒤 `POST /article`을 호출해 상세 API의 본문, 기자, 입력 시간, 주제 정보를 병합한다. 실패하면 화면 오류 없이 목록에서 받은 기사 정보를 유지한다.
   - 백엔드/목록 데이터의 신뢰도 점수를 우선 표시하고, 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도와 판단 이유를 오른쪽 신뢰도 패널에 표시한다.
-  - 오른쪽 신뢰도 패널은 0~5 숫자 눈금, 점수만큼 채워지는 막대, 현재 점수 마커로 신뢰도를 시각화한다.
+  - 오른쪽 신뢰도 패널은 `src/utils/reliability.js`의 5점 만점 공통 기준으로 0~5 숫자 눈금, 점수만큼 채워지는 막대, 현재 점수 마커를 표시한다.
   - 뉴스 상세 제목/본문은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역은 제거됐다.
   - 직접 id 조회 API는 아직 없다. 저장된 기사 정보나 URL이 없으면 선택한 뉴스 정보를 찾을 수 없다는 상태를 보여준다.
@@ -397,6 +397,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `public/favicon.png`
   - 사용자가 제공한 Cheat F/T 돋보기 아이콘 이미지를 주소창 아이콘용 PNG로 추가했다.
   - 흰색/거의 흰색 배경은 투명 처리했고 512x512 캔버스에 약간의 여백을 뒀다.
+- 2026-07-31 임시 파일 정리에서 사용하지 않는 기본/레거시 에셋 `src/assets/hero.png`, `src/assets/react.svg`, `src/assets/vite.svg`, `public/icons.svg`, `public/favicon.svg`를 삭제했다.
 - 검증:
   - `npm run lint`: 통과
   - `npm test`: 통과

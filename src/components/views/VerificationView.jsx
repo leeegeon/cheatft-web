@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getSummary, runFactCheck } from '../../services/cheatftApi.js';
 import { getPressCategory, getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
+import {
+  formatReliabilityScore,
+  getReliabilityColor,
+  getReliabilityGaugeFillPercent,
+  getReliabilityLabel,
+  normalizeReliabilityScoreValue,
+} from '../../utils/reliability.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 const PRESS_COLORS = ['#1a73e8', '#00c4b4', '#ea4335', '#8ab4f8', '#202124'];
@@ -34,32 +41,6 @@ function getNumericValue(...values) {
   const matched = values.find((value) => value !== undefined && value !== null && value !== '');
   const numericValue = Number(matched);
   return Number.isFinite(numericValue) ? numericValue : 0;
-}
-
-function getOptionalNumber(...values) {
-  const matched = values.find((value) => value !== undefined && value !== null && value !== '');
-  const numericValue = Number(matched);
-  return Number.isFinite(numericValue) ? numericValue : null;
-}
-
-function normalizeReliabilityScore(...values) {
-  const numericValue = getOptionalNumber(...values);
-  if (numericValue === null) return null;
-  return Math.max(1, Math.min(5, numericValue > 5 ? numericValue / 20 : numericValue));
-}
-
-function getScoreText(scoreValue) {
-  if (scoreValue === null) return '확인중';
-  if (scoreValue >= 4) return '신뢰 가능';
-  if (scoreValue >= 3) return '보통';
-  return '주의';
-}
-
-function getScoreColor(scoreValue) {
-  if (scoreValue === null) return '#dadce0';
-  if (scoreValue >= 4) return '#8bc34a';
-  if (scoreValue >= 3) return '#fbbc04';
-  return '#ff9800';
 }
 
 function getDateValue(value) {
@@ -108,7 +89,7 @@ function mapApiArticle(article, index) {
   recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
   const pressLabel = getPressLabel(pressValue);
   const articleDate = article.publishedAt || article.createdAt || article.date || article.pubDate || article.pub_date;
-  const apiScoreValue = normalizeReliabilityScore(
+  const apiScoreValue = normalizeReliabilityScoreValue(
     article.reliabilityScore,
     article.reliability,
     article.trustScore,
@@ -118,9 +99,9 @@ function mapApiArticle(article, index) {
   const pressReliability = getPressReliability(pressValue);
   const scoreValue = apiScoreValue ?? pressReliability.reliabilityScore;
   const usesPressReliability = apiScoreValue === null && pressReliability.reliabilityScore !== null;
-  const scoreText = article.reliabilityLabel
-    || article.credibilityLabel
-    || (apiScoreValue !== null ? getScoreText(scoreValue) : pressReliability.reliabilityLabel || getScoreText(scoreValue));
+  const scoreText = scoreValue !== null
+    ? getReliabilityLabel(scoreValue)
+    : article.reliabilityLabel || article.credibilityLabel || pressReliability.reliabilityLabel || getReliabilityLabel(scoreValue);
 
   return {
     articleId: article.articleId,
@@ -137,9 +118,9 @@ function mapApiArticle(article, index) {
     title: cleanDisplayText(article.title || article.headline, '제목 없음'),
     desc: cleanDisplayText(article.summary || article.description || article.content || article.url, '요약이 제공되지 않았습니다.'),
     scoreText,
-    score: scoreValue === null ? '-' : `${scoreValue.toFixed(1).replace(/\.0$/, '')} / 5`,
-    scoreColor: getScoreColor(scoreValue),
-    rotation: scoreValue === null ? 0 : -99 + (scoreValue - 1) * 36,
+    score: formatReliabilityScore(scoreValue),
+    scoreColor: getReliabilityColor(scoreValue),
+    gaugeFillPercent: getReliabilityGaugeFillPercent(scoreValue),
     hint: usesPressReliability
       ? `${pressLabel}의 언론사 기준 신뢰도입니다.`
       : article.url ? '기사 원문 URL이 연결된 백엔드 결과입니다.' : '백엔드 기사 결과입니다.',
@@ -163,7 +144,7 @@ function getRecentCheckTitle(check) {
 function mapRecentCheck(check, index) {
   const result = normalizeCheckResult(check.result);
   const title = getRecentCheckTitle(check);
-  const scoreValue = normalizeReliabilityScore(
+  const scoreValue = normalizeReliabilityScoreValue(
     check.reliabilityScore,
     check.reliability,
     check.trustScore,
@@ -186,10 +167,10 @@ function mapRecentCheck(check, index) {
     date: check.timeAgo || '방금 전',
     title,
     desc: cleanDisplayText(check.summary || check.description, `검증 결과: ${result || '확인중'}`),
-    scoreText: check.reliabilityLabel || check.credibilityLabel || getScoreText(scoreValue),
-    score: scoreValue === null ? '-' : `${scoreValue.toFixed(1).replace(/\.0$/, '')} / 5`,
-    scoreColor: getScoreColor(scoreValue),
-    rotation: scoreValue === null ? 0 : -99 + (scoreValue - 1) * 36,
+    scoreText: scoreValue !== null ? getReliabilityLabel(scoreValue) : check.reliabilityLabel || check.credibilityLabel || getReliabilityLabel(scoreValue),
+    score: formatReliabilityScore(scoreValue),
+    scoreColor: getReliabilityColor(scoreValue),
+    gaugeFillPercent: getReliabilityGaugeFillPercent(scoreValue),
     hint: '카드를 누르면 이 주제로 상세 검증을 요청합니다.',
   };
 }
@@ -328,8 +309,16 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     linkBtn: { color: '#0056d2', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' },
     gaugeContainer: { width: '180px', display: 'flex', flexDirection: 'column', alignItems: 'center' },
     gaugeTitle: { fontSize: '13px', color: '#5f6368', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '4px' },
-    gaugeArc: () => ({ width: '120px', height: '60px', overflow: 'hidden', position: 'relative', marginBottom: '8px' }),
-    gaugeArcInner: (color, percent) => ({ width: '120px', height: '120px', borderRadius: '50%', border: '16px solid #f1f3f4', borderTopColor: color, borderRightColor: color, transform: `rotate(${percent}deg)`, boxSizing: 'border-box' }),
+    gaugeArc: () => ({ width: '120px', height: '70px', position: 'relative', marginBottom: '0' }),
+    gaugeArcSvg: { display: 'block', width: '120px', height: '70px' },
+    gaugeArcTrack: { fill: 'none', stroke: '#f1f3f4', strokeWidth: 16 },
+    gaugeArcFill: (color, fillPercent) => ({
+      fill: 'none',
+      stroke: color,
+      strokeWidth: 16,
+      strokeDasharray: `${fillPercent} 100`,
+      transition: 'stroke-dasharray 0.25s ease',
+    }),
     gaugeScore: { fontWeight: 'bold', fontSize: '16px', color: '#202124', textAlign: 'center', marginTop: '-20px' },
     gaugeSub: { fontSize: '12px', color: '#80868b', marginTop: '4px' },
     gaugeHint: { fontSize: '12px', color: '#80868b', textAlign: 'center', marginTop: '12px', lineHeight: '1.4' },
@@ -546,8 +535,11 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                     <div className="verification-card-divider" style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
                     <div className="verification-gauge" style={styles.gaugeContainer}>
                       <div className="verification-gauge-title" style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
-                      <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)}>
-                        <div style={styles.gaugeArcInner(res.scoreColor, res.rotation)}></div>
+                      <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)} aria-hidden="true">
+                        <svg style={styles.gaugeArcSvg} viewBox="0 0 120 70">
+                          <path style={styles.gaugeArcTrack} d="M 12 60 A 48 48 0 0 1 108 60" pathLength="100" />
+                          <path style={styles.gaugeArcFill(res.scoreColor, res.gaugeFillPercent)} d="M 12 60 A 48 48 0 0 1 108 60" pathLength="100" />
+                        </svg>
                       </div>
                       <div className="verification-gauge-score" style={styles.gaugeScore}>{res.scoreText}</div>
                       <div className="verification-gauge-sub" style={styles.gaugeSub}>{res.score}</div>
@@ -683,8 +675,11 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 <div className="verification-card-divider" style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
                 <div className="verification-gauge" style={styles.gaugeContainer}>
                   <div className="verification-gauge-title" style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
-                  <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)}>
-                    <div style={styles.gaugeArcInner(res.scoreColor, res.rotation)}></div>
+                  <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)} aria-hidden="true">
+                    <svg style={styles.gaugeArcSvg} viewBox="0 0 120 70">
+                      <path style={styles.gaugeArcTrack} d="M 12 60 A 48 48 0 0 1 108 60" pathLength="100" />
+                      <path style={styles.gaugeArcFill(res.scoreColor, res.gaugeFillPercent)} d="M 12 60 A 48 48 0 0 1 108 60" pathLength="100" />
+                    </svg>
                   </div>
                   <div className="verification-gauge-score" style={styles.gaugeScore}>{res.scoreText}</div>
                   <div className="verification-gauge-sub" style={styles.gaugeSub}>{res.score}</div>

@@ -16,7 +16,7 @@
   - 작업 기록/검증 로그: `docs/api-integration-log.md`
   - 실행/배포/환경변수/현재 제약: `README.md`
 - 실제 작업에 필요한 소스 파일만 추가로 연다.
-- `node_modules/`, `dist/`, lock/minified 파일, `.understand-anything/`은 의존성/빌드 문제 분석이 필요할 때만 확인한다.
+- `node_modules/`, `dist/`, lock/minified 파일은 의존성/빌드 문제 분석이 필요할 때만 확인한다.
 
 ## 백엔드 원칙
 

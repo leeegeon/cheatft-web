@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { getArticleFromUrl } from '../../services/cheatftApi.js';
 import { getPressCategory, getPressLabel, getPressReliability } from '../../utils/press.js';
+import {
+  formatReliabilityScore,
+  getReliabilityColor,
+  getReliabilityLabel,
+  normalizeReliabilityScoreValue,
+  RELIABILITY_SCORE_MAX,
+} from '../../utils/reliability.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 function getStoredArticle(id) {
@@ -28,44 +35,13 @@ function getSupportedArticleDetailUrl(url) {
   }
 }
 
-function getOptionalNumber(...values) {
-  const matched = values.find((value) => value !== undefined && value !== null && value !== '' && value !== '-');
-  if (matched === undefined) return null;
-
-  const numericValue = typeof matched === 'string'
-    ? Number(matched.match(/\d+(?:\.\d+)?/)?.[0])
-    : Number(matched);
-
-  return Number.isFinite(numericValue) ? numericValue : null;
-}
-
-function normalizeReliabilityScore(...values) {
-  const numericValue = getOptionalNumber(...values);
-  if (numericValue === null) return null;
-  return Math.max(0, Math.min(5, numericValue > 5 ? numericValue / 20 : numericValue));
-}
-
-function getScoreText(scoreValue) {
-  if (scoreValue === null) return '확인중';
-  if (scoreValue >= 4) return '신뢰 가능';
-  if (scoreValue >= 3) return '보통';
-  return '주의';
-}
-
-function getScoreColor(scoreValue) {
-  if (scoreValue === null) return '#dadce0';
-  if (scoreValue >= 4) return '#8bc34a';
-  if (scoreValue >= 3) return '#fbbc04';
-  return '#ff9800';
-}
-
 function getArticlePressValue(article) {
   return article?.press ?? article?.pressName ?? article?.publisher ?? article?.mediaName ?? article?.pub;
 }
 
 function getReliabilityDisplay(article) {
   const pressValue = getArticlePressValue(article);
-  const apiScoreValue = normalizeReliabilityScore(
+  const apiScoreValue = normalizeReliabilityScoreValue(
     article?.reliabilityScore,
     article?.reliability,
     article?.trustScore,
@@ -77,13 +53,12 @@ function getReliabilityDisplay(article) {
   const scoreValue = apiScoreValue ?? pressReliability.reliabilityScore;
 
   return {
-    scoreText: article?.scoreText
-      || article?.reliabilityLabel
-      || article?.credibilityLabel
-      || (apiScoreValue !== null ? getScoreText(scoreValue) : pressReliability.reliabilityLabel || getScoreText(scoreValue)),
+    scoreText: scoreValue !== null
+      ? getReliabilityLabel(scoreValue)
+      : article?.scoreText || article?.reliabilityLabel || article?.credibilityLabel || pressReliability.reliabilityLabel || getReliabilityLabel(scoreValue),
     scoreValue,
-    score: scoreValue === null ? '-' : `${scoreValue.toFixed(1).replace(/\.0$/, '')} / 5`,
-    scoreColor: article?.scoreColor || getScoreColor(scoreValue),
+    score: formatReliabilityScore(scoreValue),
+    scoreColor: getReliabilityColor(scoreValue),
     reliabilityReason: article?.reliabilityReason || pressReliability.rationaleSummary,
     reliabilityCategory: article?.reliabilityCategory || article?.sourceCategory || pressReliability.category || getPressCategory(pressValue),
   };
@@ -148,8 +123,8 @@ export default function DetailView({ type }) {
   const displayArticle = getDisplayArticle(article, isNews);
   const reliabilityPercent = displayArticle.scoreValue === null || displayArticle.scoreValue === undefined
     ? 0
-    : Math.max(0, Math.min(100, (displayArticle.scoreValue / 5) * 100));
-  const reliabilityTicks = [0, 1, 2, 3, 4, 5];
+    : Math.max(0, Math.min(100, (displayArticle.scoreValue / RELIABILITY_SCORE_MAX) * 100));
+  const reliabilityTicks = Array.from({ length: RELIABILITY_SCORE_MAX + 1 }, (_, index) => index);
 
   useEffect(() => {
     if (!detailUrl) {

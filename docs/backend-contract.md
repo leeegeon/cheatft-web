@@ -15,18 +15,24 @@
 - 프론트는 주요 화면에서 실제 API를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시한다.
 - `src/services/apiClient.js`는 API base URL, JSON 요청/오류 처리, Bearer 토큰 첨부를 담당하고, `src/services/cheatftApi.js`가 명세 기반 도메인 함수를 제공한다.
 - 백엔드 명세의 실제 경로는 `/api/...` 형태이다.
+- 공통 응답 포맷은 대부분 `{ status, message, data }`지만, `/api/health`와 라우트 미배포/404 HTML 응답처럼 예외가 있다.
 - 백엔드 폴더는 2026-07-05, 2026-07-10, 2026-07-12, 2026-07-15 프론트 연동 작업에서 수정하지 않았다.
 - 프론트는 API 성공 후 빈 배열을 받으면 프론트 목업을 섞지 않고 빈 상태를 보여주는 방향으로 보강했다.
 - 검증하기 검색 결과는 API 성공 시 백엔드 결과만 표시한다. 2026-07-15 이후 검증하기의 API 실패/미설정 프론트 더미데이터 fallback도 제거됐다.
-- 검증하기 언론사 표기는 백엔드 `src/services/checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 `src/utils/press.js`에서 정규화한다.
+- 검증하기 언론사 표기는 백엔드 `src/services/checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 `src/utils/press.js`에서 정규화한다. 2026-07-31 기준 백엔드 69개 oid와 프론트 oid/name 및 로고 매핑이 일치한다.
 - 2026-07-15 추가 보강으로 프론트는 알려진 oid에 네이버 `office_logo` 로고 URL을 매핑하고, `언론사(021)` 같은 미매핑 fallback 문자열은 브라우저 `localStorage`에 관측 목록으로 누적한다. 이는 백엔드에 전달할 보완 목록 수집용이며 서버 저장은 아니다.
+- 2026-07-31 추가 보강으로 새 백엔드 매핑을 반영해 `src/utils/press.js`의 oid/name 표를 69개로 확장하고, 네이버 언론사 홈에서 확인한 `office_logo` URL 69개를 추가했다. 이미지 로드 실패 시에는 텍스트 배지를 fallback으로 유지한다.
+- 2026-07-31 배포 API 30개 키워드 재검색 결과를 현재 백엔드 `PRESS_MAPPING`과 대조했을 때 아직 소스에도 없는 fallback oid는 `293: 블로터`, `586: 시사저널`이다. 최신 미매핑 CSV는 이름 확인까지 포함한 `docs/observed-unmapped-press-names.csv` 하나만 본다.
 - 2026-07-26 이후 프론트는 `src/data/pressReliability.js`의 언론사 기준표로 분류와 신뢰도 fallback을 제공한다. 백엔드 기사에 신뢰도 점수가 없으면 언론사 기준 점수를 사용한다. 판단 이유 검토용 문서는 `docs/press-reliability.md`이다.
+- 신뢰도 화면 표시는 `src/utils/reliability.js`에서 5점 만점으로 정규화한다. 10점 척도 값은 `/2`, 100점 척도 값은 `/20`으로 환산하고, 라벨 기준은 `높음` 3.9 이상, `보통` 3.3 이상 3.9 미만, `주의` 3.3 미만이다.
+- 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개는 모두 `pressReliability.js`의 신뢰도 점수/라벨/판단 이유로 연결된다. `동행미디어 시대`는 프론트 alias를 통해 `동행미디어` 기준을 사용한다.
 - 2026-07-31 이후 뉴스 상세는 검증하기에서 전달된 기사 URL이 있으면 `POST /api/article`을 호출해 상세 본문, 기자, 입력 시간, 주제를 보강한다. 검증 결과의 `/mnews/article/` URL은 `/article/` 형식으로 정규화한다. 상세 API가 실패하면 별도 오류 노출 없이 기존 route state/sessionStorage 기사 정보를 유지한다.
 - 뉴스 상세 오른쪽 신뢰도 패널은 `낮음/보통/높음` 텍스트 축이 아니라 0~5 숫자 눈금과 현재 점수 마커로 표시한다.
 - `/algo`는 보호 라우트로 변경했다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 질문 영역 강조 → 추천 키워드 생성 후 키워드 영역 강조 → 키워드 선택 후 질문 영역 강조로 안내하며 API 호출 구조는 그대로 유지한다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
 - 2026-07-26 기준 `UserModel.findByEmail is not a function` 오류는 해결된 상태로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
 - 2026-07-26 기준 `GET /api/summary`는 `recentChecks` 3개를 반환한다.
+- 2026-07-31 전달 메모 기준 실제 `GET /api/summary`의 `recentChecks` 3개는 모두 `id: 1`로 내려올 수 있다.
 - 2026-07-26 기준 `GET /api/checks/{id}?page=1&limit=100`은 `경제` 검색어에서 `totalArticles: 12`, `articles.length: 12`, `pagination.totalPages: 1`로 관측됐다. `page=2&limit=5`도 12건 전체와 `currentPage: 1`을 반환해 서버 페이지네이션은 아직 적용되지 않은 상태로 보이며, 프론트는 최대 100건 수신 후 10건씩 클라이언트 페이지네이션한다.
 - 2026-07-26 기준 `GET /api/reports`, `GET /api/posts`는 query parameter를 받아도 같은 dummy 응답과 `currentPage: 1`을 반환한다.
 - 2026-07-26 기준 `GET /api/analysis/{id}?limit=1`과 `limit=4`는 같은 결과를 반환하고, 응답 body에 `limit` 필드는 없다.
@@ -40,7 +46,7 @@
 - `POST /api/signup`: 성공 시 `id`, `email`, `nickname`, `level`, `user_title`, `created_at` 반환. 중복 이메일은 현재 `409`가 아니라 `500`으로 내려온다.
 - `POST /api/login`: 성공 시 `accessToken`, `userId`, `nickname` 반환.
 - `GET /api/me`: 토큰 없으면 `401`, 유효 토큰이면 `id`, `email`, `nickname`, `level`, `user_title`, `created_at` 반환.
-- `POST /api/checks`: `type=text`, `type=url` 모두 `202`와 `checkId`를 반환한다. 다만 `type=url`은 URL 본문 파싱 없이 검색어처럼 저장되며, 확인한 네이버 기사 URL 요청은 기사 0건이었다.
+- `POST /api/checks`: 실제 배포 API는 body에 `type`과 `content`가 모두 필요하다. `content`만 보내면 `400`이 내려온다. `type=text`, `type=url` 모두 `202`와 `checkId`를 반환하지만, `type=url`은 URL 본문 파싱 없이 검색어처럼 저장되며 확인한 네이버 기사 URL 요청은 기사 0건이었다.
 - `GET /api/checks/{id}`: 기사 필드는 `articleId`, `press`, `title`, `description`, `date`, `url`이다. `press`는 README 예시처럼 숫자가 아니라 `"연합뉴스"` 또는 `"언론사(050)"` 같은 문자열이다. 제목/설명에는 `&quot;` 같은 HTML entity가 남을 수 있다.
 - `POST /api/analysis`: 인증 필요. 성공 메시지는 `분석이 성공적으로 요청되었습니다.`이고 `analysisId`를 반환한다.
 - `GET /api/analysis/{id}`: `analysisId`, `keyword`, `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination` 반환. `limit` query는 실제 결과 개수에 반영되지 않고, 관련/반박 기사 `press`는 숫자가 아니라 언론사명 문자열이다.
@@ -53,6 +59,7 @@
 - 백엔드 `main`의 2026-07-31 커밋에서 `POST /api/article`, `POST /api/keywords`가 추가된 것을 읽기 전용으로 확인했다.
 - `POST /api/article`는 body `{ url }`을 받고 네이버 뉴스 URL에 대해 `title`, `content`, `press`, `reporter`, `inputTime`, `topic`, `url` 형태의 기사 상세 예시를 반환한다.
 - 2026-07-31 직접 확인 기준 운영 API는 아직 `POST /api/article`이 배포되지 않아 `Cannot POST /api/article`을 반환한다. 프론트는 이 경우 목록 기사 정보만 유지한다.
+- 2026-07-31 전달 메모 기준 운영 API는 `POST /api/keywords`도 아직 배포되지 않아 토큰이 있어도 `Cannot POST /api/keywords` HTML 응답을 반환한다.
 - 프론트 `src/services/cheatftApi.js`에 `getArticleFromUrl(url)`을 추가했다.
 - `DetailView.jsx`는 뉴스 상세 진입 시 기존 카드 데이터를 먼저 표시하고, `article.url`이 있으면 네이버 `/mnews/article/` URL을 `/article/`로 정규화한 뒤 `POST /article` 응답을 병합한다.
 - 상세 API 응답에는 현재 신뢰도 점수가 없으므로, 상세 화면은 백엔드/목록 데이터의 점수를 우선 사용하고 없으면 `src/data/pressReliability.js`의 언론사 기준 점수, 라벨, 판단 이유를 fallback으로 표시한다.
@@ -306,6 +313,7 @@
 | GET | `/api/me` | 인증 사용자 정보 | Bearer token 필요. 2026-07-26 배포 API 정상 조회 확인 |
 | POST | `/api/checks` | 팩트체크 요청 | `checkId` |
 | POST | `/api/article` | 네이버 뉴스 URL 상세 조회 | `title`, `content`, `press`, `reporter`, `inputTime`, `topic`, `url` |
+| POST | `/api/keywords` | 키워드 추출 | README/로컬 백엔드에는 문서화/구현 확인. 2026-07-31 운영 API에는 아직 미배포 |
 | GET | `/api/checks/{id}` | 검증 결과 | `checkId`, `query`, `articles`, `pagination`; `page/limit` 미구현, pagination은 현재 `1/1/articles.length` |
 | POST | `/api/analysis` | 알고리즘 분석 요청 | `analysisId` |
 | GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`; `limit` query 미구현, 응답 `limit` 없음 |
@@ -332,6 +340,7 @@
 - 저장 정보 없는 `/article/:id` 직접 진입 지원용 article id 기반 조회 API. 현재 `POST /api/article`는 URL이 있을 때만 상세 보강에 사용할 수 있다.
 - `GET /api/checks/{id}` article 필드 확정: `press` 번호 또는 언론사명, `publishedAt`, `viewCount`, `relevanceScore`, `articleId`, `url`, `summary`
 - `POST /api/checks`의 `type=url` 실제 처리 방식 확정. 현재는 URL 본문 분석이 아니라 검색어처럼 처리된다.
+- `POST /api/checks` 요청 body를 README처럼 `content`만 받을지, 현재 배포 API처럼 `type`과 `content`를 모두 필수로 둘지 문서화.
 - `GET /api/posts/{id}`: 커뮤니티 상세용
 - `GET /api/posts/{id}/comments`, `POST /api/posts/{id}/comments`: 댓글 목록/작성
 - `POST /api/logout` 또는 토큰 만료/갱신 정책
@@ -375,7 +384,7 @@
    - 2026-07-26 배포 API 확인 기준 `checks`, `reports`, `posts`, `analysis`의 page/limit/filter query는 실제 분할/필터에 반영되지 않는다.
 
 6. 점수/라벨 체계
-   - 신뢰도: 화면은 0~5 또는 1~5 점수와 `신뢰 가능`, `주의` 같은 라벨을 사용한다.
+   - 신뢰도: 화면 게이지는 0~5 축을 사용하고, 실제 표시 점수는 5점 만점으로 정규화한다. 라벨은 `높음`, `보통`, `주의`, `확인중`을 사용한다.
    - 편향성: 화면은 긍정/중도/부정과 0~100 bias score를 사용한다.
    - 백엔드가 숫자만 줄지, 라벨/색상/설명까지 줄지 정해야 한다.
 

@@ -13,9 +13,10 @@
 - 로컬 `cheatft_api`는 이제 Express/PostgreSQL/JWT 기반 Node 백엔드 코드와 API 명세 `README.md`를 포함한다.
 - `cheatft_api`는 확인/분석을 위해 읽을 수 있다. 단, 앞으로 Codex는 `cheatft_api`를 수정하지 않는다. 로그인/회원가입 구현처럼 표현이 넓은 요청도 프론트만 수정하고, 백엔드는 읽기 전용으로만 확인한다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다. 일부 라우트는 실제 DB/토큰/네이버 뉴스 검색 흐름이고, `summary/reports/posts/profile`은 아직 더미 컨트롤러 중심이다. 2026-07-26 재확인 기준 `reports/posts` query, `analysis` limit, `checks` page/limit은 실제 결과 분할/필터에 반영되지 않는다.
+- 2026-07-31 전달 메모 기준 `cheatft_api/README.md`와 운영 API 차이가 더 있다. `/health`, 404, 미배포 라우트 HTML 응답은 공통 `{ status, message, data }` 포맷이 아니고, `POST /checks`는 `type`과 `content`가 모두 필요하다. README에 문서화된 `POST /article`, `POST /keywords`는 운영 API에 아직 미배포 상태다.
 - `cheatft_web`과 `cheatft_api`는 각각 `.git`이 있지만 Codex sandbox 사용자 기준으로 `dubious ownership`가 발생한다. Git 상태 확인이 필요하면 safe.directory 설정 여부를 먼저 확인한다.
 - `cheatft_web`에는 `node_modules/`와 `dist/`가 이미 있으나 생성물/의존성 폴더이므로 일반 맥락 파악 때는 다시 훑지 않는다.
-- `.understand-anything/`은 2026-07-15 전체 스캔용 산출물이다. 일반 맥락 파악 때는 다시 훑지 않는다.
+- 2026-07-31 임시 파일 정리에서 과거 전체 스캔 산출물 `.understand-anything/`과 프론트 로그 파일을 삭제했다.
 
 ## 빠른 시작 절차
 
@@ -52,7 +53,10 @@
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
 - 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다. 2026-07-26 배포 API 확인 기준 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
-- 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
+- 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 oid와 로고 URL 69개를 프론트에 반영했고, 이미지 로드에 실패하면 기존 텍스트 배지가 보인다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
+- 언론사 신뢰도: 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 모두 `src/data/pressReliability.js`의 점수/라벨/판단 이유로 연결된다. 기존 AI 별점 자료에 없던 새 12개는 `aiReferenceStars: null`로 두고 Codex 운영 기준으로 산정했다.
+- 신뢰도 UI 기준: `src/utils/reliability.js`가 검증하기/뉴스 상세 공통 기준이다. 화면 점수는 5점 만점으로 정규화하고, 10점 척도 값은 `/2`, 100점 척도 값은 `/20`으로 환산한다. 라벨/색상 기준은 `높음` 3.9 이상 초록(`#34a853`), `보통` 3.3 이상 3.9 미만 노랑(`#fbbc04`), `주의` 3.3 미만 빨강(`#ea4335`)이다.
+- 2026-07-31 배포 API 30개 키워드 재검색 후 현재 백엔드 소스에도 없는 미매핑 oid는 `293: 블로터`, `586: 시사저널`만 남겼다. 최신 목록은 이름 확인까지 포함한 `docs/observed-unmapped-press-names.csv` 하나만 본다.
 - API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
 - 뉴스 상세: 검증하기 카드 클릭으로 전달된 기사 객체를 route state/sessionStorage에서 먼저 표시하고, 지원되는 네이버 기사 URL이 있으면 `/mnews/article/`을 `/article/`로 정규화한 뒤 `POST /article`로 상세 본문/기자/입력 시간/주제를 보강한다. 상세 API가 실패하면 오류 문구 없이 목록 기사 정보를 유지한다. 신뢰도 점수는 백엔드/목록 값을 우선 사용하고 없으면 `src/data/pressReliability.js`의 언론사 기준표를 사용하며, 오른쪽 패널은 0~5 눈금과 현재 점수 마커로 표시한다.
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
@@ -64,10 +68,14 @@
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
 - 백엔드 pull 후 `POST /api/article`, `POST /api/keywords` 추가를 읽기 전용으로 확인했다.
 - 운영 API 직접 확인 기준 `POST /api/article`은 아직 배포되지 않아 `Cannot POST /api/article`을 반환한다.
+- 사용자 전달 메모 기준 `POST /api/keywords`도 운영 API에는 아직 배포되지 않아 토큰이 있어도 `Cannot POST /api/keywords` HTML 응답을 반환한다.
+- 사용자 전달 메모 기준 `POST /api/checks`는 README와 달리 `type`과 `content`가 모두 필요하고, `content`만 보내면 `400`을 반환한다.
+- 사용자 전달 메모 기준 `GET /api/summary`의 `recentChecks` 3개는 모두 `id: 1`로 내려올 수 있다.
 - `src/services/cheatftApi.js`에 `getArticleFromUrl(url)`을 추가했다.
 - `DetailView.jsx`는 뉴스 상세 진입 시 지원되는 `article.url`이 있으면 `/mnews/article/`을 `/article/`로 정규화해 `POST /article`을 호출하고, 응답의 `content`, `press`, `reporter`, `inputTime`, `topic`을 기존 카드 데이터와 병합한다.
 - 상세 API 실패는 화면 오류로 노출하지 않고 목록 기사 정보를 유지한다.
 - 상세 화면 신뢰도는 API/목록 데이터의 점수를 우선하고, 점수가 없으면 언론사 기준 신뢰도와 판단 이유를 표시한다. 시각화는 0~5 눈금과 현재 점수 마커를 사용한다.
+- 검증하기 카드 게이지와 상세 화면 마커는 `src/utils/reliability.js`의 5점 만점 공통 기준을 사용한다.
 - 저장된 기사 정보나 URL이 없는 `/article/:id` 직접 진입은 아직 완전 복원할 수 없다.
 - 검증: `npm run lint`, `npm test` 통과.
 
@@ -167,7 +175,7 @@
   - `cheatft_web/index.html`의 `lang`을 `ko`, title을 `Cheat F/T`로 변경했다.
   - favicon 참조를 `/favicon.png`로 바꿨다.
   - `cheatft_web/public/favicon.png`는 사용자가 제공한 Cheat F/T 돋보기 아이콘 이미지의 흰 배경을 투명 처리한 512x512 PNG다.
-  - 기존 `public/favicon.svg`는 남아 있지만 현재 `index.html`에서는 사용하지 않는다.
+  - 기존 미사용 `public/favicon.svg`는 2026-07-31 임시 파일 정리에서 삭제했다.
 - 검증:
   - `npm run lint` 통과
   - `npm test` 통과
@@ -229,6 +237,7 @@
 
 - `understand` 스킬의 pre-flight를 실행했고, 플러그인 core 빌드를 위해 `pnpm install`, `pnpm approve-builds --all`, `pnpm --filter @understand-anything/core build`를 수행했다.
 - `.understand-anything/.understandignore`와 `intermediate/scan-result.json`, `intermediate/batches.json`이 생성됐다.
+- 위 `.understand-anything/` 산출물은 2026-07-31 임시 파일 정리에서 삭제했다.
 - scan 결과는 92개 파일, 8개 semantic batch였다. `node_modules`, `.git`, `dist`, lock/minified 파일은 기본 ignore 대상이다.
 - 스캔에는 `세미나/claude/__MACOSX` 압축 부산물과 `회의록` 변환본도 포함됐다. 문서 최신화 기준으로는 `cheatft_web`, `cheatft_api`, `cheatft_web/docs`를 우선 신뢰한다.
 - 루트 `.git`은 실제 저장소로 동작하지 않고, 하위 프로젝트 git은 `dubious ownership`가 재현됐다.
