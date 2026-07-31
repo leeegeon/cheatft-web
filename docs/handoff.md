@@ -47,11 +47,11 @@
 - 실행 위치: `C:\Users\eunhy\Desktop\동아리\cheatft_web`
 - 권장 Node: `.nvmrc` 기준 Node 22
 - 프레임워크: React 19, React Router 7, Vite 8
-- 화면 데이터: 홈/검증하기는 프론트 더미 fallback을 제거하고 백엔드 API 응답만 표시한다. 리포트/커뮤니티/알고리즘 분석 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다.
+- 화면 데이터: 홈/검증하기/신뢰도 분석은 프론트 더미 fallback을 제거하고 백엔드 API 응답만 표시한다. 리포트/커뮤니티 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다.
 - API 응답이 성공했지만 배열이 비어 있으면 해당 빈 상태를 그대로 보여주며 프론트 목업을 섞지 않는다. 검증하기 검색 결과는 API 실패 시에도 프론트 더미데이터를 섞지 않고 오류/빈 상태를 보여준다.
 - 현재 API 기본 URL: `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
-- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다. 2026-07-26 배포 API 확인 기준 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
+- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. `/algo` 분석 요청이 401/403을 받으면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 보낸다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다. 2026-07-26 배포 API 확인 기준 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
 - 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 oid와 로고 URL 69개를 프론트에 반영했고, 이미지 로드에 실패하면 기존 텍스트 배지가 보인다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
 - 언론사 신뢰도: 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 모두 `src/data/pressReliability.js`의 점수/라벨/판단 이유로 연결된다. 기존 AI 별점 자료에 없던 새 12개는 `aiReferenceStars: null`로 두고 Codex 운영 기준으로 산정했다.
@@ -62,6 +62,21 @@
 - 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 반응형: `App.jsx`는 내부 `main` 세로 스크롤을 제거하고 브라우저 기본 페이지 스크롤을 사용한다. `src/index.css`는 검증하기, 신뢰도 분석, 리포트, 커뮤니티, 상세, 로그인/회원가입의 노트북 절반 폭/모바일 폭 보정을 담당한다. 신뢰도 분석과 리포트는 충분한 폭에서는 좌우형과 가로 통계를 유지하고 좁은 폭에서만 세로형으로 전환한다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-07-31 신뢰도 분석 실제 API 기준 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 운영 API에 테스트 계정으로 로그인한 뒤 `POST /api/analysis`, `GET /api/analysis/{id}?limit=4`를 직접 호출해 실제 응답을 확인했다.
+- 실제 응답은 `analysisId`, `keyword`, `biasAnalysis.positiveCount/neutralCount/negativeCount/biasScore`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination` 구조다.
+- 현재 운영 API의 분석 기사 항목은 `articleId`, `press`, `title`, `stance` 중심이며 `description/date/url/views`는 오지 않는다.
+- `AlgoView.jsx`에서 기존 정적 관련/반박 기사 목업과 실패 시 fallback 표시를 제거했다.
+- 분석 전에는 빈 안내를 보여주고, API 성공 시 받은 배열만 표시한다. API 실패 시 예시 기사를 섞지 않고 오류와 빈 상태를 보여준다.
+- 선택된 키워드는 추천 키워드 칩 클릭뿐 아니라 `선택 키워드 분석` 버튼으로도 실행할 수 있다.
+- 정적 검색 시간, `더보기`, 상세 보기 버튼, 조회수 표시처럼 실제 응답에 없는 UI를 제거했다.
+- 신뢰도 게이지와 요약 카드는 실제 `biasAnalysis`와 `summaryStats` 기준으로 갱신된다.
+- 신뢰도 게이지의 호 위 라벨/건수 텍스트가 겹쳐 보이는 문제를 줄이기 위해 SVG 내부 텍스트를 제거하고, 중앙 점수/등급과 하단 높음/보통/주의 미니 카드로 분리했다.
+- 추가 확인에서 잘못된 Bearer token으로 `POST /api/analysis`를 호출하면 운영 API가 `403 유효하지 않은 토큰입니다.`를 반환하는 것을 확인했다. 이 경우 프론트는 실패 상태를 반복 표시하지 않고 세션을 정리한 뒤 로그인 화면으로 이동한다.
+- 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `npm run build` 통과. 기본 셸 `npm run build`는 기존 Node/Vite 네이티브 이슈로 `43 modules transformed` 뒤 실패했다.
 
 ## 2026-07-31 뉴스 상세 API 반영
 
@@ -436,7 +451,7 @@ npm run check
 
 `README.md`와 기존 메모에 따르면 Node 24 계열에서는 Vite 프로덕션 빌드가 네이티브 예외로 종료된 이력이 있다. Node 22 LTS에서 검증하는 것을 우선한다.
 
-연동 확인은 브라우저 개발자도구 Network 탭에서 `summary`, `checks`, `analysis`, `reports`, `posts`, `login`, `signup` 요청이 나가는지 확인한다. 홈/검증하기는 API 실패 시 더미 결과를 섞지 않으므로 오류/빈 상태를 확인한다. 리포트/커뮤니티/알고리즘 분석 등 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류가 보인다.
+연동 확인은 브라우저 개발자도구 Network 탭에서 `summary`, `checks`, `analysis`, `reports`, `posts`, `login`, `signup` 요청이 나가는지 확인한다. 홈/검증하기/신뢰도 분석은 API 실패 시 더미 결과를 섞지 않으므로 오류/빈 상태를 확인한다. 리포트/커뮤니티 등 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류가 보인다.
 
 ## 백엔드/API 요약
 
@@ -468,7 +483,7 @@ npm run check
 - 백엔드 담당자와 인증 방식, 오류 응답, 토큰 만료/갱신, 페이지네이션, 비동기 분석 상태 조회 방식 확정
 - 검증하기의 조회수/연관도/언론사 필드명을 백엔드 실제 응답과 최종 확정
 - 실제 백엔드 응답 필드가 더 풍부해지면 화면별 변환 로직 정리
-- 남은 프론트 목업 배열은 리포트/알고리즘 분석/커뮤니티 등 필요한 화면별로 분리하거나 제거
+- 남은 프론트 목업 배열은 리포트/커뮤니티 등 필요한 화면별로 분리하거나 제거
 
 ## 자료 폴더 주의
 

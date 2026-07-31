@@ -1,6 +1,6 @@
 # Cheat F/T frontend
 
-가짜뉴스 검증, 출처 신빙성 확인, 추천 알고리즘 신뢰도 분석을 위한 React 프런트엔드입니다. 현재 배포 API를 우선 호출합니다. 홈/검증하기는 프론트 더미 fallback을 제거하고 백엔드 API 응답, 오류, 빈 상태를 그대로 보여줍니다. 리포트/커뮤니티/알고리즘 분석 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있습니다.
+가짜뉴스 검증, 출처 신빙성 확인, 추천 알고리즘 신뢰도 분석을 위한 React 프런트엔드입니다. 현재 배포 API를 우선 호출합니다. 홈/검증하기/신뢰도 분석은 프론트 더미 fallback을 제거하고 백엔드 API 응답, 오류, 빈 상태를 그대로 보여줍니다. 리포트/커뮤니티 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있습니다.
 
 ## 문서 갱신 원칙
 
@@ -82,7 +82,7 @@ $r.Content.Substring(0, 80)
 VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 ```
 
-환경변수가 있으면 백엔드 API를 우선 호출합니다. 홈/검증하기는 API 실패 시 프론트 더미 결과를 섞지 않습니다. 리포트/커뮤니티/알고리즘 분석 일부 화면에는 아직 실패 시 목업 fallback이 남아 있고, 로그인/회원가입/게시글 등록은 실패 시 오류를 보여줍니다. API 호출 공통 처리는 `src/services/apiClient.js`, 도메인별 호출 함수는 `src/services/cheatftApi.js`에 있습니다.
+환경변수가 있으면 백엔드 API를 우선 호출합니다. 홈/검증하기/신뢰도 분석은 API 실패 시 프론트 더미 결과를 섞지 않습니다. 리포트/커뮤니티 일부 화면에는 아직 실패 시 목업 fallback이 남아 있고, 로그인/회원가입/게시글 등록은 실패 시 오류를 보여줍니다. API 호출 공통 처리는 `src/services/apiClient.js`, 도메인별 호출 함수는 `src/services/cheatftApi.js`에 있습니다.
 
 주의: 현재 `../cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체와 API 명세를 함께 포함합니다. 로컬 실행에는 PostgreSQL 접속 정보, JWT secret, 네이버 API 키 등 환경변수가 필요합니다. 프론트 로컬 개발의 기본 API 주소는 `https://cheatft.leegeon.com/api`입니다.
 
@@ -99,7 +99,7 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 | 홈 | `GET /summary` | 프론트 더미 fallback 없음 |
 | 검증하기 | `POST /checks`, `GET /checks/{id}?page=1&limit=100`, 기본 화면 `GET /summary` | 프론트 더미 fallback 없음, 검색 결과는 10건씩 화면 페이지네이션 |
 | 뉴스 상세 | `POST /article` | 검증하기에서 전달된 네이버 기사 URL이 있으면 상세 API를 호출하고, 실패 시 별도 오류 노출 없이 목록에서 받은 기사 정보 표시 |
-| 알고리즘 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 질문 입력 후 추천 키워드 선택 시 분석 호출, 질문/키워드 영역 단계 강조, 기존 분석 결과 목업 |
+| 신뢰도 분석 | `POST /analysis`, `GET /analysis/{id}` | 보호 라우트, 질문 입력 후 추천 키워드 선택 시 분석 호출, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면으로 이동, 프론트 목업 fallback 없음 |
 | 리포트 | `GET /reports?keyword=&date=&score=&page=&limit=` | 기존 리포트 목록 목업, 현재 배포 API는 query와 무관한 고정 응답 |
 | 커뮤니티 | `GET /posts?category=&keyword=&page=&limit=` | 기존 게시글/참여 현황 목업, 현재 배포 API는 query와 무관한 고정 응답 |
 | 글 작성 | `POST /posts` | 실패 시 오류, 임시 저장 가능 |
@@ -115,14 +115,14 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 3. `npm run dev`로 프론트를 실행합니다.
 4. 브라우저 개발자도구 Network 탭에서 `summary`, `checks`, `analysis`, `reports`, `posts`, `login`, `signup` 요청을 확인합니다.
 
-홈/검증하기는 API 실패 시 더미 결과를 섞지 않으므로 오류/빈 상태를 확인합니다. 리포트/커뮤니티/알고리즘 분석처럼 fallback이 남아 있는 화면은 Network 탭의 요청/응답 상태로 실제 연동 여부를 확인합니다. 로그인, 회원가입, 게시글 등록은 실패 시 오류 메시지를 보여줍니다.
+홈/검증하기/신뢰도 분석은 API 실패 시 더미 결과를 섞지 않으므로 오류/빈 상태를 확인합니다. 리포트/커뮤니티처럼 fallback이 남아 있는 화면은 Network 탭의 요청/응답 상태로 실제 연동 여부를 확인합니다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류 메시지를 보여줍니다.
 
 ## 주요 경로
 
 - `/`: 홈
 - `/search?q=검색어`: 팩트체크 검색
 - `/article/:id`: 뉴스 상세
-- `/algo`: 알고리즘 분석, 로그인 필요
+- `/algo`: 신뢰도 분석, 로그인 필요
 - `/report`: 검증 리포트
 - `/community`: 커뮤니티
 - `/community/write`: 글 작성 및 탭 단위 임시 저장
@@ -133,7 +133,7 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 
 ## 현재 제약
 
-- 홈/검증하기는 API 응답을 우선 사용하고 실패 시 목업으로 fallback하지 않습니다. 알고리즘 분석, 리포트, 커뮤니티에는 아직 일부 목업 fallback이 남아 있습니다.
+- 홈/검증하기/신뢰도 분석은 API 응답을 우선 사용하고 실패 시 목업으로 fallback하지 않습니다. 리포트와 커뮤니티에는 아직 일부 목업 fallback이 남아 있습니다.
 - 홈 최신 팩트체크와 검증하기 기본 화면의 최신 팩트체크는 `GET /summary`의 `recentChecks`를 사용합니다. 2026-07-26 배포 API 재확인 기준 `recentChecks`는 3개입니다.
 - 2026-07-31 전달 메모 기준 `GET /summary`의 `recentChecks` 3개는 모두 `id: 1`로 내려올 수 있어, 카드 이동 시 프론트에서 기사 객체를 route state와 `sessionStorage`로 함께 전달합니다.
 - 검증하기 API 요청이 성공하면 API의 `articles` 배열만 사용합니다. `articles`가 비어 있으면 프론트 예시를 섞지 않고 빈 상태를 표시합니다. 다른 조회 화면도 API 성공 후 빈 배열을 목업으로 덮지 않습니다.
@@ -149,7 +149,7 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 - 뉴스 상세는 클릭한 기사 객체를 route state와 `sessionStorage`로 먼저 표시하고, 기사 URL이 있으면 `POST /article`로 백엔드 상세 정보를 불러와 본문/기자/입력 시간/주제를 보강합니다. 검증 결과의 `https://n.news.naver.com/mnews/article/...` URL은 백엔드가 받는 `https://n.news.naver.com/article/...` 형식으로 정규화합니다. 2026-07-31 확인 기준 운영 API는 아직 `POST /api/article`이 배포되지 않아 상세 API 실패 시 별도 오류 문구 없이 목록에서 받은 기사 정보를 유지합니다.
 - README에 문서화된 `POST /api/keywords`도 2026-07-31 전달 메모 기준 운영 API에는 아직 미배포라 토큰이 있어도 `Cannot POST /api/keywords` HTML 응답을 반환합니다.
 - 뉴스 상세 신뢰도는 백엔드/목록 데이터의 점수를 우선 쓰고, 점수가 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도와 판단 이유를 표시합니다. 오른쪽 신뢰도 패널은 `src/utils/reliability.js`의 공통 기준으로 0~5 눈금과 현재 점수 위치를 시각화합니다. 저장 정보 없는 직접 URL 진입은 여전히 복원할 기사 URL이 없어 제한적입니다.
-- 신뢰도 분석(`/algo`)은 질문을 입력하면 프론트에서 추천 키워드 칩을 제시하고, 사용자가 키워드를 선택할 때 `POST /analysis`, `GET /analysis/{id}`를 호출합니다. 기본값과 키워드 선택 직후에는 질문 영역을 강조하고, 추천 키워드가 생성되면 키워드 영역을 강조합니다. 화면은 AI 주요 인사이트와 분석 요약을 관련 뉴스보다 먼저 보여줍니다.
+- 신뢰도 분석(`/algo`)은 질문을 입력하면 프론트에서 추천 키워드 칩을 제시하고, 사용자가 키워드를 선택하거나 `선택 키워드 분석`을 누를 때 `POST /analysis`, `GET /analysis/{id}`를 호출합니다. 실제 운영 응답의 `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`만 표시하며, API 실패 시 기존 예시 기사를 섞지 않습니다. 현재 운영 API의 기사 항목은 `articleId`, `press`, `title`, `stance` 중심이고 `description/date/url`은 오지 않으므로 화면에서도 해당 값을 지어내지 않습니다. 신뢰도 게이지는 호 위 텍스트를 제거하고, 점수와 등급은 중앙에, 높음/보통/주의 건수는 별도 미니 카드로 표시합니다.
 - 팩트체크 리포트(`/report`)는 상단 리포트 내보내기, 총 검색 시간, 요약 다운로드 버튼을 표시하지 않습니다. 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 중심으로 보여줍니다.
 - 커뮤니티와 팩트체크 리포트는 전역 상단바를 다른 화면과 동일하게 사용합니다. 커뮤니티 글 작성 버튼은 상단바가 아니라 커뮤니티 목록 상단의 검색/필터 영역에 표시합니다.
 - 홈 외 주요 화면도 노트북 절반 폭과 모바일 폭에서 깨지지 않도록 반응형 보정을 적용했습니다. 신뢰도 분석/리포트는 넓이가 충분하면 기존 좌우형과 가로 통계를 유지하고, 좁은 폭에서만 세로형으로 전환합니다. 앱 본문은 내부 이중 세로 스크롤 대신 브라우저 기본 페이지 스크롤을 사용합니다.
@@ -158,6 +158,7 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 - 커뮤니티 목록은 `category`, `keyword`, `page`, `limit` query parameter를 `GET /posts`에 전달하지만 현재 배포 API는 해당 query를 적용하지 않고 같은 dummy 응답과 `currentPage: 1`을 반환합니다.
 - 신뢰도 분석 결과 조회는 `limit` query를 전달할 수 있지만 현재 배포 API는 `limit=1`과 `limit=4`에 같은 결과를 반환하고, 응답 body에 `limit` 필드는 없습니다.
 - 로그인은 `/login` 응답의 accessToken을 `localStorage`에 저장하고, 이후 API 요청에 Bearer 토큰으로 첨부합니다. accessToken이 없으면 실패로 처리합니다. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시합니다.
+- 신뢰도 분석 요청에서 백엔드가 `401` 또는 `403`을 반환하면 저장된 accessToken과 현재 사용자 정보를 삭제하고 로그인 화면으로 이동합니다. 오래된 토큰이 남아 있어 `/algo` 화면에는 들어왔지만 분석 요청만 계속 실패하는 상태를 방지합니다.
 - 회원가입은 `/signup`을 호출하지만 현재 명세에는 accessToken이 없어 성공 후 로그인 화면으로 이동합니다. 2026-07-26 배포 API 확인 기준 중복 이메일은 `409`가 아니라 `500`과 `이미 사용 중인 이메일입니다.` 메시지로 내려옵니다.
 - 게시물 등록은 `/posts`로 전송합니다. 실패하면 오류를 보여주고 임시 저장은 유지됩니다.
 - `GET /health`는 서버 상태 확인용으로 존재하지만 `{ status, message, data }` 공통 래핑이 아니라 `{ message }`만 반환합니다.

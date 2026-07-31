@@ -24,6 +24,7 @@ export default function LoginView({ onLogin }) {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const noticeMessage = location.state?.noticeMessage || location.state?.signupMessage || '';
 
   const styles = {
     container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', backgroundColor: '#f8f9fa', padding: '40px' },
@@ -74,7 +75,7 @@ export default function LoginView({ onLogin }) {
         <div style={styles.title}>Cheat F/T 로그인</div>
         <div style={styles.subtitle}>신뢰할 수 있는 진실의 시작, 환영합니다.</div>
         
-        {location.state?.signupMessage && <div className="integration-notice" role="status">{location.state.signupMessage}</div>}
+        {noticeMessage && <div className="integration-notice" role="status">{noticeMessage}</div>}
         <form onSubmit={handleSubmit}>
           <div style={styles.formGroup}>
             <label htmlFor="login-email" style={styles.label}>이메일 주소</label>

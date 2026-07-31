@@ -50,6 +50,20 @@ export default function App() {
     }
   };
 
+  const handleAuthExpired = () => {
+    clearAccessToken();
+    clearCurrentUser();
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    navigate('/login', {
+      replace: true,
+      state: {
+        from: { pathname: location.pathname, search: location.search },
+        noticeMessage: '로그인이 만료되었거나 인증 정보가 올바르지 않습니다. 다시 로그인해주세요.',
+      },
+    });
+  };
+
   const userDisplayName = currentUser?.nickname?.trim()
     || currentUser?.name?.trim()
     || currentUser?.email?.split('@')[0]
@@ -141,7 +155,7 @@ export default function App() {
           <Route path="/community" element={<CommunityView onPostClick={(id = 1) => navigate(`/community/${id}`)} />} />
           <Route path="/community/write" element={requireLogin(<CommunityWriteView />)} />
           <Route path="/community/:id" element={<DetailView type="커뮤니티" />} />
-          <Route path="/algo" element={requireLogin(<AlgoView />)} />
+          <Route path="/algo" element={requireLogin(<AlgoView onAuthExpired={handleAuthExpired} />)} />
           <Route path="/report" element={<ReportView />} />
           <Route path="/login" element={<LoginView onLogin={handleLogin} />} />
           <Route path="/signup" element={<SignupView />} />

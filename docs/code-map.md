@@ -32,7 +32,7 @@ C:\Users\eunhy\Desktop\동아리
 
 ## cheatft_web 개요
 
-Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 리포트/커뮤니티/알고리즘 분석 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
+Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기/신뢰도 분석은 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 리포트/커뮤니티 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
 
 기술 스택:
 
@@ -72,7 +72,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `eslint.config.js`: JS recommended, React Hooks, React Refresh 설정. `dist`는 ignore.
 - `index.html`: Vite HTML 진입점. 문서 제목은 `Cheat F/T`, favicon은 `public/favicon.png`를 참조한다.
 - `src/main.jsx`: `BrowserRouter`로 `App`을 감싸서 렌더링.
-- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심. 앱 본문은 내부 이중 세로 스크롤 없이 브라우저 기본 페이지 스크롤을 사용한다.
+- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심. 신뢰도 분석 API가 401/403 인증 실패를 받으면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 이동시키는 `handleAuthExpired()`를 `AlgoView`에 전달한다. 앱 본문은 내부 이중 세로 스크롤 없이 브라우저 기본 페이지 스크롤을 사용한다.
   - `/report`, `/community`용 별도 오른쪽 상단 버튼 분기는 제거되어 다른 화면과 같은 상단바를 사용한다.
 - `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 홈 외 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
 - `src/App.css`: 현재 비어 있음.
@@ -98,7 +98,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 | `/search?q=...` | `VerificationView` | 검색어가 있으면 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
 | `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
 | `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 `POST /article`로 상세 본문/기자/입력 시간/주제를 보강. API 실패는 화면 오류로 노출하지 않음 |
-| `/algo` | `AlgoView` | 보호 라우트. 질문 입력 후 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}`, 질문/키워드 영역 단계 강조, AI 주요 인사이트 우선 표시, 실패 시 목업 |
+| `/algo` | `AlgoView` | 보호 라우트. 질문 입력 후 추천 키워드 칩 선택 또는 선택 키워드 분석 버튼으로 `POST /analysis` 후 `GET /analysis/{id}`, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 프론트 목업 fallback 없음 |
 | `/report` | `ReportView` | `GET /reports` 우선, `keyword/date/score/page/limit` 전달, API/목업 출처 안내, 실패 시 리포트 목록/상세 목업. 내보내기/다운로드 버튼 없음 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
 | `/community/write` | `CommunityWriteView` | 보호 라우트. 글 작성 임시 저장, 등록 시 `POST /posts` |
@@ -147,14 +147,17 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `AlgoView.jsx`
   - `activeTab`으로 관련 뉴스/반박 기사 탭 전환.
   - 질문 입력 후 프론트에서 추천 키워드 칩을 생성한다. 사용자가 키워드 칩을 선택하면 `runAnalysis()`로 `POST /analysis`와 `GET /analysis/{id}`를 호출한다.
+  - 선택된 키워드는 별도 `선택 키워드 분석` 버튼으로도 다시 분석할 수 있다.
   - 입력 흐름을 직관적으로 보이게 하기 위해 기본/키워드 선택 직후에는 질문 영역, 추천 키워드 생성 직후에는 키워드 영역을 테두리와 배경으로 강조한다.
   - 메인 영역은 `AI 주요 인사이트`와 `신뢰도 분석 요약`을 먼저 표시하고, 관련 뉴스/반박 기사 탭은 그 아래 서브 섹션으로 표시한다.
-  - `relatedArticles`, `counterArticles`, `insights`, `summaryStats`를 우선 사용하고 실패 시 목업을 사용한다.
-  - 기사 변환에서 `description`, `publishedAt/createdAt/date`, `press/pressName/publisher/mediaName` 후보를 처리한다.
+  - `biasAnalysis`, `relatedArticles`, `counterArticles`, `insights`, `summaryStats`, `pagination`을 실제 운영 API 응답 기준으로 표시하고 실패 시 목업을 사용하지 않는다.
+  - `POST /analysis` 또는 `GET /analysis/{id}`에서 401/403이 오면 `onAuthExpired()`를 호출해 저장 토큰을 비우고 로그인 화면으로 보낸다.
+  - 기사 변환에서 `articleId`, `press`, `title`, `stance`를 우선 처리한다. 현재 운영 API에 없는 `description/date/url/views`는 지어내지 않는다.
+  - 신뢰도 게이지는 호 안쪽 라벨/건수 텍스트를 제거하고, 중앙 점수/등급과 하단 높음/보통/주의 미니 카드로 분리해 겹침을 피한다.
   - 언론사는 `src/utils/press.js`의 `getPressLabel()`로 백엔드 oid/name 표에 맞춰 정규화하고, `getPressLogoUrl()` 로고 이미지와 `recordObservedPress()` 미매핑 oid 관측 저장을 사용한다.
   - API 기사 제목/설명은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 관련/반박 기사 또는 인사이트 배열이 비어 있으면 목업을 섞지 않고 빈 상태/빈 안내를 표시한다.
-  - API 응답 표시 중인지, 프론트 목업 fallback인지 상단 안내로 구분한다.
+  - API 응답 표시, 로딩, 오류, 분석 전 상태를 상단 안내로 구분한다.
   - `분석 안내` 버튼은 제거됐다. 넓이가 충분하면 좌우형 레이아웃과 신뢰도 요약 가로 배치를 유지하고, 좁은 폭에서만 세로형으로 전환한다.
 
 - `ReportView.jsx`
@@ -191,6 +194,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
   - accessToken이 없거나 API 기본 URL이 없으면 오류 메시지를 보여준다. `401`, `403`도 별도 메시지로 표시한다.
   - 제출 중에는 입력과 버튼을 비활성화한다.
   - 보호 라우트에서 로그인 화면으로 온 경우 성공 후 원래 경로로 돌아간다.
+  - `location.state.noticeMessage`가 있으면 로그인 폼 위 안내로 표시한다.
 
 - `SignupView.jsx`
   - email/nickname/password/passwordConfirm 필수, 이메일 형식, 닉네임 2~20자, 비밀번호 일치, 8자 이상 검증.

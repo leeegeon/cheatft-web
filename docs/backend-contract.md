@@ -28,7 +28,7 @@
 - 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개는 모두 `pressReliability.js`의 신뢰도 점수/라벨/판단 이유로 연결된다. `동행미디어 시대`는 프론트 alias를 통해 `동행미디어` 기준을 사용한다.
 - 2026-07-31 이후 뉴스 상세는 검증하기에서 전달된 기사 URL이 있으면 `POST /api/article`을 호출해 상세 본문, 기자, 입력 시간, 주제를 보강한다. 검증 결과의 `/mnews/article/` URL은 `/article/` 형식으로 정규화한다. 상세 API가 실패하면 별도 오류 노출 없이 기존 route state/sessionStorage 기사 정보를 유지한다.
 - 뉴스 상세 오른쪽 신뢰도 패널은 `낮음/보통/높음` 텍스트 축이 아니라 0~5 숫자 눈금과 현재 점수 마커로 표시한다.
-- `/algo`는 보호 라우트로 변경했다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 질문 영역 강조 → 추천 키워드 생성 후 키워드 영역 강조 → 키워드 선택 후 질문 영역 강조로 안내하며 API 호출 구조는 그대로 유지한다.
+- `/algo`는 보호 라우트다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 질문 영역 강조 → 추천 키워드 생성 후 키워드 영역 강조 → 키워드 선택 또는 선택 키워드 분석 버튼으로 API 호출이다. 실제 운영 응답의 `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`만 표시하고 실패 시 프론트 목업 fallback을 쓰지 않는다. `POST /analysis` 또는 `GET /analysis/{id}`가 401/403을 반환하면 프론트는 저장 토큰과 현재 사용자 정보를 지우고 로그인 화면으로 이동한다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
 - 2026-07-26 기준 `UserModel.findByEmail is not a function` 오류는 해결된 상태로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
 - 2026-07-26 기준 `GET /api/summary`는 `recentChecks` 3개를 반환한다.
@@ -291,8 +291,8 @@
 | 검색/검증 요청 | `HomeView.jsx`, `VerificationView.jsx` | `POST /api/checks` | 검색어 이동 후 API 요청 |
 | 검증 결과 | `VerificationView.jsx` | `GET /api/checks/{id}` | API 응답만 표시, URL 링크 검색 제거, 프론트 더미 fallback 없음, 백엔드 `PRESS_MAPPING` 기반 출처 필터와 로컬 정렬 제공 |
 | 뉴스 상세 | `DetailView.jsx` | `POST /api/article` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 상세 API 응답을 병합. 상세 API 실패는 화면 오류로 노출하지 않음. 저장 정보 없는 직접 진입은 제한적 |
-| 알고리즘 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 추천 키워드 칩 선택 시 API 요청, 백엔드는 Bearer token 요구 |
-| 알고리즘 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}` | 보호 라우트, API 우선, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
+| 신뢰도 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 추천 키워드 칩 선택 또는 선택 키워드 분석 버튼으로 API 요청, 백엔드는 Bearer token 요구 |
+| 신뢰도 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}` | 보호 라우트, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 실패 시 목업 fallback 없음 |
 | 리포트 목록 | `ReportView.jsx` | `GET /api/reports` | API 우선, `keyword/date/score/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
 | 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
 | 커뮤니티 작성 | `CommunityWriteView.jsx` | `POST /api/posts` | 보호 라우트, 등록 버튼에서 API 요청 |

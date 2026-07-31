@@ -45,6 +45,32 @@ API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포
 
 2026-07-31 추가 조정으로 검색 결과가 `높음`과 `보통`에 과하게 몰리는 문제를 줄이기 위해 신뢰도 라벨 기준을 기존 `높음` 3.7 이상, `보통` 3.0 이상에서 `높음` 3.9 이상, `보통` 3.3 이상으로 상향했다. 기준 조정 후 전체 신뢰도 표 91개 기준 분포는 `높음` 19개(20.9%), `보통` 51개(56.0%), `주의` 21개(23.1%)이고, 백엔드 매핑 69개 기준 분포는 `높음` 17개(24.6%), `보통` 32개(46.4%), `주의` 20개(29.0%)이다.
 
+2026-07-31 추가 작업으로 신뢰도 분석 화면(`/algo`)을 실제 운영 API 응답 기준으로 정리했다. 테스트 계정으로 `POST /api/analysis`, `GET /api/analysis/{id}?limit=4`를 직접 호출해 응답 구조를 확인했고, 현재 기사 항목은 `articleId`, `press`, `title`, `stance` 중심이며 `description/date/url/views`가 오지 않는 것을 기준으로 화면 표시를 조정했다. `AlgoView.jsx`의 정적 관련/반박 기사 목업과 실패 시 fallback 표시를 제거했고, 분석 전/로딩/API 응답/오류 상태를 분리했다. 신뢰도 게이지와 요약은 실제 `biasAnalysis`와 `summaryStats`를 사용한다.
+
+## 2026-07-31 신뢰도 분석 실제 API 기준 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 운영 API 직접 확인 결과:
+  - `POST /api/analysis`: Bearer token 필요, 성공 시 `analysisId` 반환.
+  - `GET /api/analysis/{id}?limit=4`: `analysisId`, `keyword`, `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination` 반환.
+  - `limit` query는 현재 결과 개수에 반영되지 않는다.
+  - 관련/반박 기사에는 현재 `articleId`, `press`, `title`, `stance`가 내려오며, 날짜/요약/원문 URL/조회수 필드는 없다.
+- 프론트 변경:
+  - `AlgoView.jsx`: 분석 전 상태를 빈 안내로 표시.
+  - `AlgoView.jsx`: API 실패 시 기존 예시 기사 fallback을 제거하고 오류/빈 상태만 표시.
+  - `AlgoView.jsx`: 실제 `stance`를 기사 배지로 표시하고, 없는 `description/date/views`는 지어내지 않음.
+  - `AlgoView.jsx`: 정적 검색 시간, `더보기`, 신뢰도 분석 자세히 보기 버튼 제거.
+  - `AlgoView.jsx`: 선택된 키워드를 다시 분석하는 `선택 키워드 분석` 버튼 추가.
+  - `AlgoView.jsx`: 신뢰도 게이지 SVG 내부 라벨/건수 텍스트를 제거하고, 점수/등급은 중앙에, 높음/보통/주의 건수는 하단 미니 카드로 분리.
+  - `App.jsx`, `AlgoView.jsx`, `LoginView.jsx`: 잘못되거나 만료된 토큰으로 분석 요청이 401/403을 반환하면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 이동하며 안내 메시지를 표시.
+- 검증:
+  - 운영 API 직접 호출 통과.
+  - 잘못된 Bearer token으로 `POST /api/analysis` 호출 시 운영 API가 `403 유효하지 않은 토큰입니다.`를 반환하는 것 확인.
+  - `npm run lint` 통과.
+  - `npm test` 통과.
+  - Codex 번들 Node 기반 `npm run build` 통과.
+  - 기본 셸 `npm run build`는 기존 Node/Vite 네이티브 이슈로 `43 modules transformed` 뒤 실패.
+
 ## 2026-07-31 뉴스 상세 API 반영
 
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
@@ -427,7 +453,7 @@ npm run dev
 - `login`
 - `signup`
 
-홈/검증하기는 API 실패 시 프론트 더미 결과를 섞지 않는다. 리포트/커뮤니티/알고리즘 분석 등 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류 메시지를 보여준다.
+홈/검증하기/신뢰도 분석은 API 실패 시 프론트 더미 결과를 섞지 않는다. 리포트/커뮤니티 등 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류 메시지를 보여준다.
 
 ## 검증 결과
 
