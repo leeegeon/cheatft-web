@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { recommendKeywords, runAnalysis } from '../../services/cheatftApi.js';
-import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
-import { getReliabilityLabel, normalizeReliabilityScoreValue } from '../../utils/reliability.js';
+import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 const SCORE_COLORS = {
@@ -53,37 +52,7 @@ function getReliabilityTone(score) {
   };
 }
 
-function normalizeReliabilityBadge(value, fallbackBadge = '보통') {
-  const label = cleanDisplayText(value, '');
-  if (label === '높음' || label === '보통' || label === '주의') return label;
-  if (label === '낮음' || label === '반박' || label === '부정') return '주의';
-  if (label === '중도' || label === '중립') return '보통';
-  if (label === '긍정') return '높음';
-  return fallbackBadge;
-}
-
-function getArticleReliabilityBadge(article, pressValue, fallbackBadge) {
-  const scoreValue = normalizeReliabilityScoreValue(
-    article.reliabilityScore,
-    article.reliability,
-    article.trustScore,
-    article.credibilityScore,
-    article.score
-  );
-
-  if (scoreValue !== null) return getReliabilityLabel(scoreValue);
-
-  const explicitLabel = normalizeReliabilityBadge(article.reliabilityLabel || article.credibilityLabel, '');
-  if (explicitLabel) return explicitLabel;
-
-  const pressReliability = getPressReliability(pressValue);
-  if (pressReliability.reliabilityLabel) return pressReliability.reliabilityLabel;
-
-  const stance = cleanDisplayText(article.stance, '');
-  return normalizeReliabilityBadge(stance, fallbackBadge);
-}
-
-function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
+function mapAnalysisArticle(article, index, fallbackStance = '중립') {
   const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
   recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
 
@@ -102,7 +71,7 @@ function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
     desc: description,
     date,
     url,
-    badge: getArticleReliabilityBadge(article, pressValue, fallbackBadge),
+    badge: cleanDisplayText(article.stance, fallbackStance),
   };
 }
 
@@ -366,6 +335,7 @@ export default function AlgoView({ onAuthExpired }) {
     badge: (type) => {
       const colors = {
         긍정: { bg: '#e6f4ea', text: '#137333' },
+        중립: { bg: '#fef7e0', text: '#b06000' },
         중도: { bg: '#fef7e0', text: '#b06000' },
         반박: { bg: '#fce8e6', text: '#c5221f' },
         높음: { bg: '#e6f4ea', text: '#137333' },
@@ -422,14 +392,14 @@ export default function AlgoView({ onAuthExpired }) {
   const displayRelatedList = useMemo(() => {
     if (!hasApiAnalysis) return [];
     return Array.isArray(analysisData?.relatedArticles)
-      ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '높음'))
+      ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '중립'))
       : [];
   }, [analysisData, hasApiAnalysis]);
 
   const displayCounterList = useMemo(() => {
     if (!hasApiAnalysis) return [];
     return Array.isArray(analysisData?.counterArticles)
-      ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '주의'))
+      ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '반박'))
       : [];
   }, [analysisData, hasApiAnalysis]);
 
@@ -553,15 +523,15 @@ export default function AlgoView({ onAuthExpired }) {
 
           <div style={styles.metricRow}>
             <div style={styles.metricItem}>
-              <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.high)} />높음</div>
+              <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.high)} />긍정</div>
               <div style={{ ...styles.metricValue, color: SCORE_COLORS.high }}>{positiveCount}건</div>
             </div>
             <div style={styles.metricItem}>
-              <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.normal)} />보통</div>
+              <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.normal)} />중립</div>
               <div style={{ ...styles.metricValue, color: SCORE_COLORS.normal }}>{neutralCount}건</div>
             </div>
             <div style={styles.metricItem}>
-              <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.low)} />주의</div>
+              <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.low)} />반박</div>
               <div style={{ ...styles.metricValue, color: SCORE_COLORS.low }}>{negativeCount}건</div>
             </div>
           </div>

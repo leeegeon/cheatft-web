@@ -154,8 +154,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
   - 메인 영역은 `AI 주요 인사이트`와 `신뢰도 분석 요약`을 먼저 표시하고, 관련 뉴스/반박 기사 탭은 그 아래 서브 섹션으로 표시한다.
   - `biasAnalysis`, `relatedArticles`, `counterArticles`, `insights`, `summaryStats`, `pagination`을 실제 운영 API 응답 기준으로 표시하고 실패 시 목업을 사용하지 않는다.
   - `POST /analysis` 또는 `GET /analysis/{id}`에서 401/403이 오면 `onAuthExpired()`를 호출해 저장 토큰을 비우고 로그인 화면으로 보낸다.
-  - 기사 변환에서 `articleId`, `press`, `title`, `stance`를 우선 처리한다. 기사 배지는 API/언론사 기준 신뢰도를 우선해 `높음/보통/주의` 체계로 표시하고, 점수/라벨이 없으면 stance를 같은 체계로 변환한다. `url/link/originalLink`가 있으면 카드 클릭 시 원문을 새 탭으로 열고, 현재 운영 API처럼 URL이 없으면 지어내지 않는다.
-  - 신뢰도 게이지는 호 안쪽 라벨/건수 텍스트를 제거하고, 중앙 점수/등급과 하단 높음/보통/주의 미니 카드로 분리해 겹침을 피한다.
+  - 기사 변환에서 `articleId`, `press`, `title`, `stance`를 우선 처리한다. 기사 배지는 백엔드 `stance` 값인 `긍정`, `중립`, `반박`을 그대로 표시한다. `url/link/originalLink`가 있으면 카드 클릭 시 원문을 새 탭으로 열고, 현재 운영 API처럼 URL이 없으면 지어내지 않는다.
+  - 신뢰도 게이지는 호 안쪽 라벨/건수 텍스트를 제거하고, 중앙 점수/등급과 하단 긍정/중립/반박 미니 카드로 분리해 겹침을 피한다.
   - 언론사는 `src/utils/press.js`의 `getPressLabel()`로 백엔드 oid/name 표에 맞춰 정규화하고, `getPressLogoUrl()` 로고 이미지와 `recordObservedPress()` 미매핑 oid 관측 저장을 사용한다.
   - API 기사 제목/설명은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 관련/반박 기사 또는 인사이트 배열이 비어 있으면 목업을 섞지 않고 빈 상태/빈 안내를 표시한다.
