@@ -1016,10 +1016,6 @@ button:disabled {
     flex-direction: column !important;
   }
 
-  .report-view-toggle {
-    align-self: flex-start;
-  }
-
   .report-card-content-row {
     gap: 14px !important;
   }
@@ -1028,11 +1024,31 @@ button:disabled {
     padding: 16px !important;
   }
 
-  .report-source-group,
-  .report-article-list-item {
+  .report-card-title-row {
+    align-items: center !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .report-card-title-row > button {
+    flex: 0 0 auto;
+  }
+
+  .report-card-title-row > span:first-of-type {
+    flex: 1 1 180px;
+  }
+
+  .report-source-group {
     align-items: flex-start !important;
     flex-direction: column !important;
     gap: 10px !important;
+  }
+
+  .report-article-list-item {
+    align-items: flex-start !important;
+    flex-direction: row !important;
+    gap: 8px !important;
   }
 
   .report-article-list-publisher,
@@ -1040,6 +1056,11 @@ button:disabled {
   .report-article-list-action {
     width: auto !important;
     text-align: left !important;
+  }
+
+  .report-article-list-action {
+    margin-left: auto;
+    white-space: nowrap;
   }
 
   .community-post-topline {

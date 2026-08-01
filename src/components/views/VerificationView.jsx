@@ -15,6 +15,8 @@ const PRESS_COLORS = ['#1a73e8', '#00c4b4', '#ea4335', '#8ab4f8', '#202124'];
 const SORT_LABELS = {
   relevance: '연관도순',
   latest: '최신순',
+  reliabilityDesc: '신뢰도 높은순',
+  reliabilityAsc: '신뢰도 낮은순',
 };
 const SOURCE_FILTERS = [
   { value: 'all', label: '전체 출처' },
@@ -58,6 +60,18 @@ function sortResultsBy(items, sortBy) {
   return [...items].sort((a, b) => {
     if (sortBy === 'relevance') {
       return (b.relevanceScore || 0) - (a.relevanceScore || 0) || (a.sortIndex || 0) - (b.sortIndex || 0);
+    }
+
+    if (sortBy === 'reliabilityDesc') {
+      const aScore = a.reliabilitySortScore ?? Number.NEGATIVE_INFINITY;
+      const bScore = b.reliabilitySortScore ?? Number.NEGATIVE_INFINITY;
+      return bScore - aScore || (a.sortIndex || 0) - (b.sortIndex || 0);
+    }
+
+    if (sortBy === 'reliabilityAsc') {
+      const aScore = a.reliabilitySortScore ?? Number.POSITIVE_INFINITY;
+      const bScore = b.reliabilitySortScore ?? Number.POSITIVE_INFINITY;
+      return aScore - bScore || (a.sortIndex || 0) - (b.sortIndex || 0);
     }
 
     return getDateValue(b.date) - getDateValue(a.date) || (a.sortIndex || 0) - (b.sortIndex || 0);
@@ -119,6 +133,7 @@ function mapApiArticle(article, index) {
     desc: cleanDisplayText(article.summary || article.description || article.content || article.url, '요약이 제공되지 않았습니다.'),
     scoreText,
     score: formatReliabilityScore(scoreValue),
+    reliabilitySortScore: scoreValue,
     scoreColor: getReliabilityColor(scoreValue),
     gaugeFillPercent: getReliabilityGaugeFillPercent(scoreValue),
     hint: usesPressReliability
@@ -169,6 +184,7 @@ function mapRecentCheck(check, index) {
     desc: cleanDisplayText(check.summary || check.description, `검증 결과: ${result || '확인중'}`),
     scoreText: scoreValue !== null ? getReliabilityLabel(scoreValue) : check.reliabilityLabel || check.credibilityLabel || getReliabilityLabel(scoreValue),
     score: formatReliabilityScore(scoreValue),
+    reliabilitySortScore: scoreValue,
     scoreColor: getReliabilityColor(scoreValue),
     gaugeFillPercent: getReliabilityGaugeFillPercent(scoreValue),
     hint: '카드를 누르면 이 주제로 상세 검증을 요청합니다.',
@@ -358,6 +374,11 @@ export default function VerificationView({ onSearch, onArticleClick }) {
       border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
     }),
     emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
+    loadingOverlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(32, 33, 36, 0.36)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '24px' },
+    loadingDialog: { width: 'min(420px, 100%)', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #d2e3fc', padding: '28px', boxShadow: '0 20px 60px rgba(32, 33, 36, 0.22)', textAlign: 'center' },
+    loadingSpinner: { width: '42px', height: '42px', borderRadius: '50%', border: '4px solid #d2e3fc', borderTopColor: '#0056d2', margin: '0 auto 18px', animation: 'spin 1s linear infinite' },
+    loadingTitle: { fontSize: '18px', fontWeight: '800', color: '#202124', marginBottom: '8px' },
+    loadingDesc: { fontSize: '14px', color: '#5f6368', lineHeight: '1.6' },
     pagination: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '18px' },
     pageButton: (isActive, isDisabled) => ({
       minWidth: '36px',
@@ -409,6 +430,15 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
   return (
     <div className="verification-page" style={styles.container}>
+      {isLoading && (
+        <div style={styles.loadingOverlay} role="status" aria-live="polite">
+          <div style={styles.loadingDialog}>
+            <div className="loading-spinner" style={styles.loadingSpinner} aria-hidden="true" />
+            <div style={styles.loadingTitle}>검증 결과를 불러오는 중입니다</div>
+            <div style={styles.loadingDesc}>백엔드 API에서 관련 기사를 수집하고 신뢰도 기준을 적용하고 있습니다. 잠시만 기다려주세요.</div>
+          </div>
+        </div>
+      )}
       <div style={styles.leftPanel}>
         <div style={styles.searchCard}>
           <div style={styles.titleInfo}>무엇을 검증할까요?</div>
@@ -481,9 +511,11 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 >
                   <option value="relevance">연관도순</option>
                   <option value="latest">최신순</option>
+                  <option value="reliabilityDesc">신뢰도 높은순</option>
+                  <option value="reliabilityAsc">신뢰도 낮은순</option>
                 </select>
               </div>
-              <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>
+              <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신뢰도 등급 안내 ⓘ</div>
             </div>
 
             {queryResultGroups.length === 0 || queryResultGroups.every((group) => group.items.length === 0) ? (
@@ -534,7 +566,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                     </div>
                     <div className="verification-card-divider" style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
                     <div className="verification-gauge" style={styles.gaugeContainer}>
-                      <div className="verification-gauge-title" style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
+                      <div className="verification-gauge-title" style={styles.gaugeTitle}>신뢰도 등급 ⓘ</div>
                       <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)} aria-hidden="true">
                         <svg style={styles.gaugeArcSvg} viewBox="0 0 120 70">
                           <path style={styles.gaugeArcTrack} d="M 12 60 A 48 48 0 0 1 108 60" pathLength="100" />
@@ -594,9 +626,9 @@ export default function VerificationView({ onSearch, onArticleClick }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#202124', marginBottom: '8px' }}>최종 판단은 사용자의 몫입니다</div>
-                <div style={{ fontSize: '14px', color: '#5f6368', lineHeight: '1.5' }}>Cheat F/T는 출처의 신빙성을 객관적으로 평가할 뿐, 정보의 진위 여부를 단정하지 않습니다.<br/>다양한 출처를 참고하여 스스로 판단해주세요.</div>
+                <div style={{ fontSize: '14px', color: '#5f6368', lineHeight: '1.5' }}>Cheat F/T는 출처의 신뢰도를 객관적으로 평가할 뿐, 정보의 진위 여부를 단정하지 않습니다.<br/>다양한 출처를 참고하여 스스로 판단해주세요.</div>
               </div>
-              <button style={{ padding: '10px 20px', backgroundColor: '#ffffff', color: '#0056d2', border: '1px solid #d2e3fc', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>신빙성 등급 안내 보기 ⓘ</button>
+              <button style={{ padding: '10px 20px', backgroundColor: '#ffffff', color: '#0056d2', border: '1px solid #d2e3fc', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>신뢰도 등급 안내 보기 ⓘ</button>
             </div>
           </>
         ) : (
@@ -636,9 +668,11 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 >
                   <option value="relevance">연관도순</option>
                   <option value="latest">최신순</option>
+                  <option value="reliabilityDesc">신뢰도 높은순</option>
+                  <option value="reliabilityAsc">신뢰도 낮은순</option>
                 </select>
               </div>
-              <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신빙성 등급 안내 ⓘ</div>
+              <div style={{ fontSize: '13px', color: '#5f6368', cursor: 'pointer' }}>신뢰도 등급 안내 ⓘ</div>
             </div>
 
             {displayResults.length === 0 ? (
@@ -674,7 +708,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 </div>
                 <div className="verification-card-divider" style={{ width: '1px', backgroundColor: '#f1f3f4', margin: '0 24px' }}></div>
                 <div className="verification-gauge" style={styles.gaugeContainer}>
-                  <div className="verification-gauge-title" style={styles.gaugeTitle}>신빙성 등급 ⓘ</div>
+                  <div className="verification-gauge-title" style={styles.gaugeTitle}>신뢰도 등급 ⓘ</div>
                   <div className="verification-gauge-arc" style={styles.gaugeArc(res.scoreColor)} aria-hidden="true">
                     <svg style={styles.gaugeArcSvg} viewBox="0 0 120 70">
                       <path style={styles.gaugeArcTrack} d="M 12 60 A 48 48 0 0 1 108 60" pathLength="100" />

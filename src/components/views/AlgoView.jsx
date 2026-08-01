@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { recommendKeywords, runAnalysis } from '../../services/cheatftApi.js';
-import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
+import { getReliabilityLabel, normalizeReliabilityScoreValue } from '../../utils/reliability.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 const SCORE_COLORS = {
@@ -52,10 +53,34 @@ function getReliabilityTone(score) {
   };
 }
 
-function mapStanceToBadge(article, fallbackBadge) {
+function normalizeReliabilityBadge(value, fallbackBadge = '보통') {
+  const label = cleanDisplayText(value, '');
+  if (label === '높음' || label === '보통' || label === '주의') return label;
+  if (label === '낮음' || label === '반박' || label === '부정') return '주의';
+  if (label === '중도' || label === '중립') return '보통';
+  if (label === '긍정') return '높음';
+  return fallbackBadge;
+}
+
+function getArticleReliabilityBadge(article, pressValue, fallbackBadge) {
+  const scoreValue = normalizeReliabilityScoreValue(
+    article.reliabilityScore,
+    article.reliability,
+    article.trustScore,
+    article.credibilityScore,
+    article.score
+  );
+
+  if (scoreValue !== null) return getReliabilityLabel(scoreValue);
+
+  const explicitLabel = normalizeReliabilityBadge(article.reliabilityLabel || article.credibilityLabel, '');
+  if (explicitLabel) return explicitLabel;
+
+  const pressReliability = getPressReliability(pressValue);
+  if (pressReliability.reliabilityLabel) return pressReliability.reliabilityLabel;
+
   const stance = cleanDisplayText(article.stance, '');
-  if (stance) return stance;
-  return cleanDisplayText(article.reliabilityLabel || article.reliability, fallbackBadge);
+  return normalizeReliabilityBadge(stance, fallbackBadge);
 }
 
 function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
@@ -65,6 +90,7 @@ function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
   const pressLabel = getPressLabel(pressValue);
   const description = cleanDisplayText(article.summary || article.description || article.content, '');
   const date = cleanDisplayText(article.publishedAt || article.createdAt || article.date || article.pubDate, '');
+  const url = cleanDisplayText(article.url || article.link || article.originalLink || article.originallink, '');
 
   return {
     id: article.articleId ?? article.id ?? index,
@@ -75,7 +101,8 @@ function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
     title: cleanDisplayText(article.title, '제목 없음'),
     desc: description,
     date,
-    badge: mapStanceToBadge(article, fallbackBadge),
+    url,
+    badge: getArticleReliabilityBadge(article, pressValue, fallbackBadge),
   };
 }
 
@@ -244,6 +271,14 @@ export default function AlgoView({ onAuthExpired }) {
       .finally(() => setIsLoading(false));
   };
 
+  const handleQuestionKeyDown = (event) => {
+    if (event.nativeEvent?.isComposing) return;
+    if (event.key !== 'Enter' || event.shiftKey) return;
+
+    event.preventDefault();
+    suggestKeywords();
+  };
+
   const styles = {
     container: { backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', padding: '40px', display: 'flex', gap: '32px', maxWidth: '1440px', margin: '0 auto' },
     sidebar: { width: '320px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '24px' },
@@ -260,6 +295,7 @@ export default function AlgoView({ onAuthExpired }) {
     cardDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px', lineHeight: '1.5' },
     questionInput: { width: '100%', minHeight: '108px', padding: '14px 16px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', lineHeight: '1.5', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', resize: 'vertical' },
     primaryBtn: { width: '100%', padding: '12px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '12px' },
+    buttonSpinner: { width: '16px', height: '16px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.45)', borderTopColor: '#ffffff', animation: 'spin 1s linear infinite', flexShrink: 0 },
     keywordPanel: { marginTop: '12px', marginBottom: '16px' },
     keywordTitle: { fontSize: '13px', fontWeight: 'bold', color: '#3c4043', marginBottom: '10px' },
     keywordChips: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
@@ -318,7 +354,8 @@ export default function AlgoView({ onAuthExpired }) {
     listHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 8px', gap: '12px' },
     listTitle: { fontSize: '15px', fontWeight: 'bold', color: '#3c4043' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px', marginBottom: '24px' },
-    newsCard: { backgroundColor: '#ffffff', borderRadius: '8px', padding: '24px', border: '1px solid #e0e0e0', display: 'flex', gap: '16px' },
+    newsCard: { width: '100%', boxSizing: 'border-box', backgroundColor: '#ffffff', borderRadius: '8px', padding: '24px', border: '1px solid #e0e0e0', display: 'flex', gap: '16px' },
+    newsCardLink: { color: 'inherit', textDecoration: 'none', display: 'flex', minWidth: 0, width: '100%' },
     newsLogo: (bg) => ({ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, position: 'relative', overflow: 'hidden' }),
     newsLogoImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#ffffff', borderRadius: '50%' },
     newsContent: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
@@ -332,8 +369,8 @@ export default function AlgoView({ onAuthExpired }) {
         중도: { bg: '#fef7e0', text: '#b06000' },
         반박: { bg: '#fce8e6', text: '#c5221f' },
         높음: { bg: '#e6f4ea', text: '#137333' },
-        보통: { bg: '#e8f0fe', text: '#1a73e8' },
-        주의: { bg: '#fef7e0', text: '#b06000' },
+        보통: { bg: '#fef7e0', text: '#b06000' },
+        주의: { bg: '#fce8e6', text: '#c5221f' },
         낮음: { bg: '#fce8e6', text: '#c5221f' },
       };
       const color = colors[type] || colors['보통'];
@@ -385,14 +422,14 @@ export default function AlgoView({ onAuthExpired }) {
   const displayRelatedList = useMemo(() => {
     if (!hasApiAnalysis) return [];
     return Array.isArray(analysisData?.relatedArticles)
-      ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '긍정'))
+      ? analysisData.relatedArticles.map((article, index) => mapAnalysisArticle(article, index, '높음'))
       : [];
   }, [analysisData, hasApiAnalysis]);
 
   const displayCounterList = useMemo(() => {
     if (!hasApiAnalysis) return [];
     return Array.isArray(analysisData?.counterArticles)
-      ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '반박'))
+      ? analysisData.counterArticles.map((article, index) => mapAnalysisArticle(article, index, '주의'))
       : [];
   }, [analysisData, hasApiAnalysis]);
 
@@ -442,17 +479,13 @@ export default function AlgoView({ onAuthExpired }) {
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               onFocus={() => setGuideFocus('question')}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-                  suggestKeywords();
-                }
-              }}
+              onKeyDown={handleQuestionKeyDown}
               placeholder="분석하고 싶은 질문을 입력하세요."
               aria-label="분석 질문"
               disabled={isSuggesting || isLoading}
             />
             <button type="button" style={styles.primaryBtn} onClick={suggestKeywords} disabled={isSuggesting || isLoading}>
-              <Icon type="search" size={18} />
+              {isSuggesting ? <span style={styles.buttonSpinner} aria-hidden="true" /> : <Icon type="search" size={18} />}
               {isSuggesting ? '추천 중' : '키워드 추천'}
             </button>
           </div>
@@ -544,7 +577,7 @@ export default function AlgoView({ onAuthExpired }) {
         <div>
           <div className="algo-main-header" style={styles.mainHeader}>
             <div>
-              <div style={styles.mainTitle}>{displayKeyword ? `${displayKeyword} 분석 결과` : '신뢰도 분석'}</div>
+              <div style={styles.mainTitle}>{displayKeyword ? `'${displayKeyword}' 분석 결과` : '신뢰도 분석'}</div>
               <div style={styles.mainDesc}>수집한 뉴스의 출처, 관점, 요약 통계를 실제 백엔드 분석 결과 기준으로 표시합니다.</div>
               <div style={{ marginTop: '12px' }}><span style={styles.sourceNotice(sourceState)}>{sourceText}</span></div>
             </div>
@@ -622,30 +655,42 @@ export default function AlgoView({ onAuthExpired }) {
               <div style={styles.emptyState}>
                 {activeTab === 'related' ? '관련 뉴스' : '반박 기사'} 목록이 비어 있습니다.
               </div>
-            ) : activeList.map((item) => (
-              <div className="algo-news-card" key={item.id} style={styles.newsCard}>
-                <div style={{ ...styles.newsLogo(item.logo), whiteSpace: 'pre-wrap', textAlign: 'center', lineHeight: '1.2' }}>
-                  {item.logoText}
-                  {item.logoUrl && <img src={item.logoUrl} alt={`${item.logoText} 로고`} style={styles.newsLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
-                </div>
-                <div style={styles.newsContent}>
-                  <div style={styles.newsTitle}>{item.title}</div>
-                  {item.desc && <div style={styles.newsDesc}>{item.desc}</div>}
-                  <div className="algo-news-footer" style={styles.newsFooter}>
-                    <div style={styles.newsMeta}>
-                      <span>{item.press}</span>
-                      {item.date && (
-                        <>
-                          <span>|</span>
-                          <span>{item.date}</span>
-                        </>
-                      )}
+            ) : activeList.map((item) => {
+              const card = (
+                <div className="algo-news-card" style={{ ...styles.newsCard, cursor: item.url ? 'pointer' : 'default' }}>
+                  <div style={{ ...styles.newsLogo(item.logo), whiteSpace: 'pre-wrap', textAlign: 'center', lineHeight: '1.2' }}>
+                    {item.logoText}
+                    {item.logoUrl && <img src={item.logoUrl} alt={`${item.logoText} 로고`} style={styles.newsLogoImage} onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
+                  </div>
+                  <div style={styles.newsContent}>
+                    <div style={styles.newsTitle}>{item.title}</div>
+                    {item.desc && <div style={styles.newsDesc}>{item.desc}</div>}
+                    <div className="algo-news-footer" style={styles.newsFooter}>
+                      <div style={styles.newsMeta}>
+                        <span>{item.press}</span>
+                        {item.date && (
+                          <>
+                            <span>|</span>
+                            <span>{item.date}</span>
+                          </>
+                        )}
+                      </div>
+                      <div style={styles.badge(item.badge)}>{item.badge}</div>
                     </div>
-                    <div style={styles.badge(item.badge)}>{item.badge}</div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+
+              return item.url ? (
+                <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer" style={styles.newsCardLink} aria-label={`${item.title} 원문 열기`}>
+                  {card}
+                </a>
+              ) : (
+                <div key={item.id} style={styles.newsCardLink}>
+                  {card}
+                </div>
+              );
+            })}
           </div>
         </div>
 

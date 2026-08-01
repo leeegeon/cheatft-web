@@ -51,7 +51,7 @@
 - API 응답이 성공했지만 배열이 비어 있으면 해당 빈 상태를 그대로 보여주며 프론트 목업을 섞지 않는다. 검증하기 검색 결과는 API 실패 시에도 프론트 더미데이터를 섞지 않고 오류/빈 상태를 보여준다.
 - 현재 API 기본 URL: `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
-- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`, `/report`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. `/algo` 또는 `/report` API 요청이 401/403을 받으면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 보낸다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다. 2026-07-26 배포 API 확인 기준 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
+- 인증: `/login`의 `accessToken`을 `localStorage`에 저장하고 Bearer 토큰으로 첨부. 로그인 성공 시 현재 사용자 정보도 `cheat-ft-current-user`에 저장해 오른쪽 상단에 닉네임을 표시한다. 앱 진입, 보호 라우트 이동, 창 재포커스/다시 표시 시 저장 토큰이 있으면 `GET /me`로 세션을 재확인하고, 401/403이면 저장 토큰/사용자 정보를 지운 뒤 보호 화면에서는 로그인 화면으로 보낸다. `/login` 응답에 `accessToken`이 없으면 실패 처리. `/signup`은 성공 후 로그인 화면으로 이동. `/community/write`, `/algo`, `/report`는 비로그인 상태에서 `/login`으로 보내고, 로그인 성공 후 원래 경로로 복귀한다. `/algo` 또는 `/report` API 요청이 401/403을 받아도 같은 세션 정리 흐름을 사용한다. 마이페이지 화면/라우트는 2026-07-15 작업에서 제거됐다. 2026-07-26 배포 API 확인 기준 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
 - 검색 URL: `src/utils/search.js`가 `/search?q=...`를 만든다
 - 언론사 표시: `src/utils/press.js`가 백엔드 oid/name 정규화, 네이버 `office_logo` 기반 로고 URL, 미매핑 `언론사(021)` 관측 저장을 담당한다. 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 oid와 로고 URL 69개를 프론트에 반영했고, 이미지 로드에 실패하면 기존 텍스트 배지가 보인다. 관측값은 브라우저 `localStorage`의 `cheat-ft-observed-press-map`에 origin별로 저장되고, 개발자도구 Console에서 `cheatFtPressList()`로 `번호 - 언론사명` 목록을 복사할 수 있다.
 - 언론사 신뢰도: 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 모두 `src/data/pressReliability.js`의 점수/라벨/판단 이유로 연결된다. 기존 AI 별점 자료에 없던 새 12개는 `aiReferenceStars: null`로 두고 Codex 운영 기준으로 산정했다.
@@ -66,14 +66,26 @@
 ## 2026-08-02 키워드 추천/리포트 실제 API 반영
 
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 후속 프론트 조정으로 신뢰도 분석 질문창은 Enter로 키워드 추천을 실행하고, Shift+Enter는 줄바꿈으로 유지한다.
+- 키워드 추천 중에는 추천 버튼에 스피너를 표시한다.
+- 분석 완료 후 메인 제목은 `'키워드' 분석 결과` 형식으로 표시한다.
+- 신뢰도 분석 기사 배지는 API/언론사 기준 신뢰도를 우선해 `높음/보통/주의` 체계로 표시한다. 점수/라벨이 없으면 기존 stance를 `긍정 -> 높음`, `중립/중도 -> 보통`, `반박/부정 -> 주의`로 변환한다.
+- 분석 기사 항목에 `url/link/originalLink`가 있으면 기사 카드를 원문 새 탭 링크로 렌더링한다. 현재 운영 API처럼 URL이 없으면 임의 링크를 만들지 않는다.
+- 앱 진입/보호 라우트 이동/창 재포커스 시 저장된 토큰을 `GET /me`로 재확인해 오래된 로그인 상태를 정리한다.
 - 사용자가 백엔드 API 수정본을 pull한 뒤 로컬 백엔드 소스를 읽기 전용으로 확인했다.
 - 새 로컬 백엔드 기준 `POST /api/keywords`, `POST /api/analysis`, `GET /api/analysis/{id}`, `GET /api/reports`는 모두 Bearer token을 요구한다.
 - `src/services/cheatftApi.js`에 `recommendKeywords(content)`를 추가했고, `runAnalysis()` 기본 결과 조회 limit을 10으로 바꿨다.
 - `AlgoView.jsx`는 빈 질문 입력에서 시작하며, 프론트 임의 키워드 생성 대신 `POST /keywords` 응답으로 추천 키워드를 표시한다. 추천 키워드 칩을 누르면 바로 분석하고, 별도 `선택 키워드 분석` 버튼은 없다.
 - `AlgoView.jsx`는 분석 요청 중 전체 화면 로딩 팝업을 표시하고, 분석 결과 조회는 `GET /analysis/{id}?limit=10`으로 관련/반박 기사를 각각 최대 10건까지 요청한다.
+- `VerificationView.jsx`는 검색어가 있는 검증 요청 중 전체 화면 로딩 팝업을 표시한다.
 - `App.jsx`에서 `/report`를 보호 라우트로 바꿨고, 리포트 API 인증 실패도 기존 세션 정리 후 로그인 이동 흐름을 사용한다.
 - `ReportView.jsx`는 `GET /reports` 실패 시 기존 리포트 목업 fallback을 쓰지 않는다.
 - `ReportView.jsx`의 상세 보기는 리포트 id를 분석 id로 보고 `GET /analysis/{id}?limit=10`을 호출해 실제 관련/반박 기사와 인사이트를 보여준다. 기존 펼침 상세 하드코딩 기사 목록은 제거했다.
+- 후속 리포트 버튼 구현으로 `+ 새 검색 시작`은 `/algo`로 이동하고, 사이드바 전체/즐겨찾기/오늘/최근 7일/최근 30일 버튼은 각각 목록 필터 또는 `date` query를 갱신한다. 오늘/최근 7일/최근 30일 개수는 별도 `GET /reports` 조회로 미리 채운다.
+- 리포트 카드 별 버튼은 브라우저 `localStorage` 기반 즐겨찾기를 토글하고, `요약 복사`는 종합 요약 본문만 클립보드에 복사한다. 서버 즐겨찾기/다운로드 API는 아직 없다.
+- 리포트 정렬은 `최신순`, `신뢰도 높은순`, `신뢰도 낮은순`, `주제명순`을 프론트에서 처리한다. 정사각형식 보기 전환 버튼은 제거했다.
+- 리포트 상세 탭은 관련 기사/반박 기사만 두고, 오른쪽 종합 요약 패널은 항상 보여준다. 상세 기사에 날짜가 없으면 `-` 문자를 표시하지 않는다.
+- `GET /reports`의 `mainPresses`가 언론사명 문자열 배열이 아니라 숫자/집계값으로 내려오면 주요 출처명으로 표시하지 않는다.
 - 백엔드 확인 필요: `GET /analysis/{id}` 응답의 article id 매핑이 `article.id`와 `article.articleId` 사이에서 어긋날 수 있고, `GET /reports`의 `mainPresses`가 현재 언론사명 배열이 아니라 기사 수 배열처럼 만들어진다.
 - 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과. 기본 셸 `npm run build`는 기존 Node/Vite 네이티브 이슈로 `43 modules transformed` 뒤 실패했다.
 
@@ -113,7 +125,7 @@
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
 - `src/App.jsx`에서 앱 루트의 `height: 100vh`, `overflow: hidden`, `main` 내부 `overflowY: auto` 구조를 제거해 내부 이중 세로 스크롤 대신 브라우저 기본 페이지 스크롤을 사용한다.
 - `src/index.css`에 홈 외 주요 화면 반응형 클래스를 추가했다.
-  - 검증하기: 좁은 폭에서 검색 아이콘/입력/버튼 배치와 기사 메타 줄바꿈, 신빙성 게이지 표시를 보정했다.
+  - 검증하기: 좁은 폭에서 검색 아이콘/입력/버튼 배치와 기사 메타 줄바꿈, 신뢰도 게이지 표시를 보정했다.
   - 신뢰도 분석: `분석 안내` 버튼을 제거하고, 넓이가 충분하면 좌우 레이아웃과 신뢰도 요약 가로 배치를 유지한다.
   - 팩트체크 리포트: 내부 스크롤을 제거하고 통계 카드/리포트 카드 여백과 줄바꿈을 보정했다.
   - 커뮤니티: 글 작성 버튼/필터/검색창이 과하게 커지지 않게 하고, 참여 현황은 가능하면 가로로 유지한다.
@@ -137,7 +149,7 @@
 - `VerificationView.jsx`는 검증 결과 조회 시 `limit=100`을 요청하고, 수신한 `articles`를 프론트에서 정렬/필터링한 뒤 10건씩 페이지를 나눠 표시한다.
 - 출처 필터나 정렬을 바꾸면 결과 페이지는 1페이지로 돌아간다.
 - 로컬 백엔드 `checks.service.js` 확인 기준 네이버 뉴스 검색은 `sort=sim`을 사용하므로 백엔드 기본 반환 순서는 연관도순이다.
-- 배포 API article에는 현재 `relevanceScore/relevance/similarity`, `viewCount/views/readCount` 필드가 오지 않는다. 검증하기 정렬 옵션은 `연관도순`, `최신순`만 제공하고, 기본값인 `연관도순`은 백엔드 반환 순서를 유지한다.
+- 배포 API article에는 현재 `relevanceScore/relevance/similarity`, `viewCount/views/readCount` 필드가 오지 않는다. 검증하기 정렬 옵션은 `연관도순`, `최신순`, `신뢰도 높은순`, `신뢰도 낮은순`을 제공한다. 기본값인 `연관도순`은 백엔드 반환 순서를 유지하고, 신뢰도 정렬은 백엔드 점수 또는 언론사 기준 fallback 점수를 5점 만점으로 정규화한 값을 사용한다.
 - 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과.
 
 ## 2026-07-26 신뢰도 분석 입력 강조

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import HomeView from './components/views/HomeView.jsx';
 import VerificationView from './components/views/VerificationView.jsx';
@@ -10,14 +10,23 @@ import LoginView from './components/views/LoginView.jsx';
 import SignupView from './components/views/SignupView.jsx';
 import CommunityWriteView from './components/views/CommunityWriteView.jsx';
 import NotFoundView from './components/views/NotFoundView.jsx';
-import { clearAccessToken, clearCurrentUser, getAccessToken, getCurrentUser } from './services/apiClient.js';
+import { apiData, clearAccessToken, clearCurrentUser, getAccessToken, getCurrentUser, setCurrentUser as storeCurrentUser } from './services/apiClient.js';
 import { buildSearchPath, normalizeSearchQuery } from './utils/search.js';
 import cheatftLogo from './assets/cheatft-logo.png';
+
+const AUTH_RECHECK_INTERVAL_MS = 5 * 60 * 1000;
+const PROTECTED_PATHS = ['/community/write', '/algo', '/report'];
+
+function isProtectedPath(pathname) {
+  return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(getAccessToken()));
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
+  const lastAuthCheckRef = useRef(0);
 
   const handleSearch = (query) => {
     if (!normalizeSearchQuery(query)) return;
@@ -40,21 +49,22 @@ export default function App() {
     });
   };
 
-  const handleLogout = () => {
+  const clearSessionState = useCallback(() => {
     clearAccessToken();
     clearCurrentUser();
     setIsLoggedIn(false);
     setCurrentUser(null);
-    if (location.pathname === '/community/write' || location.pathname === '/algo' || location.pathname === '/report') {
+  }, []);
+
+  const handleLogout = () => {
+    clearSessionState();
+    if (isProtectedPath(location.pathname)) {
       navigate('/');
     }
   };
 
-  const handleAuthExpired = () => {
-    clearAccessToken();
-    clearCurrentUser();
-    setIsLoggedIn(false);
-    setCurrentUser(null);
+  const handleAuthExpired = useCallback(() => {
+    clearSessionState();
     navigate('/login', {
       replace: true,
       state: {
@@ -62,7 +72,74 @@ export default function App() {
         noticeMessage: '로그인이 만료되었거나 인증 정보가 올바르지 않습니다. 다시 로그인해주세요.',
       },
     });
-  };
+  }, [clearSessionState, location.pathname, location.search, navigate]);
+
+  const validateStoredSession = useCallback((force = false) => {
+    const token = getAccessToken();
+    if (!token) {
+      clearSessionState();
+      return;
+    }
+
+    const now = Date.now();
+    if (!force && now - lastAuthCheckRef.current < AUTH_RECHECK_INTERVAL_MS) return;
+    lastAuthCheckRef.current = now;
+
+    apiData('/me')
+      .then((user) => {
+        const nextUser = {
+          id: user?.id ?? user?.userId ?? null,
+          email: user?.email ?? '',
+          nickname: user?.nickname ?? '',
+          name: user?.name ?? '',
+        };
+        storeCurrentUser(nextUser);
+        setCurrentUser(nextUser);
+        setIsLoggedIn(true);
+      })
+      .catch((error) => {
+        if (error.status === 401 || error.status === 403) {
+          clearSessionState();
+          if (isProtectedPath(location.pathname)) {
+            navigate('/login', {
+              replace: true,
+              state: {
+                from: { pathname: location.pathname, search: location.search },
+                noticeMessage: '로그인이 만료되었거나 인증 정보가 올바르지 않습니다. 다시 로그인해주세요.',
+              },
+            });
+          }
+        }
+      });
+  }, [clearSessionState, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (getAccessToken()) {
+        validateStoredSession(true);
+      }
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [validateStoredSession]);
+
+  useEffect(() => {
+    const recheckSession = () => {
+      if (document.visibilityState !== 'hidden') {
+        validateStoredSession(false);
+      }
+    };
+
+    window.addEventListener('focus', recheckSession);
+    document.addEventListener('visibilitychange', recheckSession);
+
+    return () => {
+      window.removeEventListener('focus', recheckSession);
+      document.removeEventListener('visibilitychange', recheckSession);
+    };
+  }, [validateStoredSession]);
 
   const userDisplayName = currentUser?.nickname?.trim()
     || currentUser?.name?.trim()

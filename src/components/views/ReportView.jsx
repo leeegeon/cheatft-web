@@ -1,10 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAnalysisResult, getReports } from '../../services/cheatftApi.js';
 import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
+const FAVORITE_REPORTS_KEY = 'cheat-ft-favorite-report-ids';
+
+function readFavoriteReportIds() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FAVORITE_REPORTS_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    localStorage.removeItem(FAVORITE_REPORTS_KEY);
+    return [];
+  }
+}
+
+function writeFavoriteReportIds(ids) {
+  localStorage.setItem(FAVORITE_REPORTS_KEY, JSON.stringify(ids));
+}
+
 function formatDateTime(value) {
-  if (!value) return '2024.05.20 14:30';
+  if (!value) return '날짜 미상';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('ko-KR', {
@@ -16,19 +33,24 @@ function formatDateTime(value) {
   }).replace(/\. /g, '.').replace(/\.$/, '');
 }
 
+function getSortTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
 function mapApiReport(report, index) {
-  const presses = Array.isArray(report.mainPresses)
-    ? report.mainPresses.filter((press) => typeof press === 'string' && press.trim())
-    : [];
+  const rawPresses = Array.isArray(report.mainPresses) ? report.mainPresses : [];
+  const presses = rawPresses.filter((press) => typeof press === 'string' && press.trim());
 
   return {
     id: report.id ?? index + 1,
     title: cleanDisplayText(report.topic, '제목 없음'),
     date: formatDateTime(report.searchTime),
+    sortTime: getSortTime(report.searchTime),
     status: report.status || '분석 완료',
     relatedCount: report.relatedCount ?? 0,
     unrelatedCount: report.counterCount ?? 0,
-    score: report.averageReliability ?? 0,
+    score: Number(report.averageReliability ?? 0),
     sources: presses.slice(0, 3).map((press, pressIndex) => {
       recordObservedPress(press);
       const pressLabel = getPressLabel(press);
@@ -60,8 +82,9 @@ function mapReportDetailArticle(article, index, fallbackStance) {
 }
 
 export default function ReportView({ onAuthExpired }) {
+  const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
-  const [innerTab, setInnerTab] = useState('related'); // 'related' | 'unrelated' | 'summary'
+  const [innerTab, setInnerTab] = useState('related'); // 'related' | 'unrelated'
   const [reportData, setReportData] = useState(null);
   const [reportStatus, setReportStatus] = useState('loading');
   const [apiError, setApiError] = useState('');
@@ -71,6 +94,11 @@ export default function ReportView({ onAuthExpired }) {
   const [keyword, setKeyword] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [scoreFilter, setScoreFilter] = useState('');
+  const [activeMenu, setActiveMenu] = useState('all');
+  const [sortBy, setSortBy] = useState('latest');
+  const [favoriteReportIds, setFavoriteReportIds] = useState(() => readFavoriteReportIds());
+  const [actionMessage, setActionMessage] = useState('');
+  const [periodCounts, setPeriodCounts] = useState({ today: 0, sevenDays: 0, thirtyDays: 0 });
   const [page] = useState(1);
 
   useEffect(() => {
@@ -111,6 +139,34 @@ export default function ReportView({ onAuthExpired }) {
     };
   }, [dateFilter, keyword, onAuthExpired, page, scoreFilter]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    Promise.all([
+      getReports({ keyword: keyword.trim(), date: '1', score: scoreFilter, page: 1, limit: 1 }),
+      getReports({ keyword: keyword.trim(), date: '7', score: scoreFilter, page: 1, limit: 1 }),
+      getReports({ keyword: keyword.trim(), date: '30', score: scoreFilter, page: 1, limit: 1 }),
+    ])
+      .then(([todayData, sevenDaysData, thirtyDaysData]) => {
+        if (ignore) return;
+        setPeriodCounts({
+          today: todayData?.pagination?.totalItems ?? todayData?.reports?.length ?? 0,
+          sevenDays: sevenDaysData?.pagination?.totalItems ?? sevenDaysData?.reports?.length ?? 0,
+          thirtyDays: thirtyDaysData?.pagination?.totalItems ?? thirtyDaysData?.reports?.length ?? 0,
+        });
+      })
+      .catch((error) => {
+        const isAuthError = error.status === 401 || error.status === 403;
+        if (isAuthError && onAuthExpired) {
+          onAuthExpired();
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [keyword, onAuthExpired, scoreFilter]);
+
   const loadReportDetail = (reportId) => {
     if (!reportId || detailDataById[reportId] || detailStatusById[reportId] === 'loading') return;
 
@@ -148,6 +204,33 @@ export default function ReportView({ onAuthExpired }) {
     loadReportDetail(report.id);
   };
 
+  const setDateMenu = (menu, dateValue) => {
+    setActiveMenu(menu);
+    setDateFilter(dateValue);
+  };
+
+  const toggleFavorite = (reportId) => {
+    const id = String(reportId);
+    setFavoriteReportIds((previous) => {
+      const next = previous.includes(id)
+        ? previous.filter((favoriteId) => favoriteId !== id)
+        : [...previous, id];
+      writeFavoriteReportIds(next);
+      return next;
+    });
+  };
+
+  const copyReportSummary = (report, summaryText) => {
+    if (!navigator.clipboard?.writeText) {
+      setActionMessage('이 브라우저에서는 클립보드 복사를 지원하지 않습니다.');
+      return;
+    }
+
+    navigator.clipboard.writeText(summaryText)
+      .then(() => setActionMessage(`'${report.title}' 리포트 요약을 복사했습니다.`))
+      .catch(() => setActionMessage('클립보드 복사에 실패했습니다.'));
+  };
+
   const styles = {
     container: { backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', display: 'flex', borderTop: '1px solid #e8eaed' },
     
@@ -180,6 +263,7 @@ export default function ReportView({ onAuthExpired }) {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
+      alignSelf: 'flex-start',
       padding: '8px 12px',
       borderRadius: '8px',
       fontSize: '13px',
@@ -199,18 +283,16 @@ export default function ReportView({ onAuthExpired }) {
     toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px', border: '1px solid #e8eaed', borderRadius: '12px', backgroundColor: '#ffffff' },
     searchInput: { padding: '10px 16px 10px 40px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', outline: 'none', width: '300px', backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' fill=\'%2380868b\' viewBox=\'0 0 24 24\'><path d=\'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\'/></svg>")', backgroundPosition: '12px center', backgroundRepeat: 'no-repeat' },
     toolsRight: { display: 'flex', alignItems: 'center', gap: '12px' },
-    viewToggle: { display: 'flex', gap: '4px', backgroundColor: '#f1f3f4', padding: '4px', borderRadius: '8px' },
-    viewBtn: (isActive) => ({ width: '32px', height: '32px', borderRadius: '4px', border: 'none', backgroundColor: isActive ? '#ffffff' : 'transparent', color: isActive ? '#1a73e8' : '#80868b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
     
     // List Item
     listContainer: { display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '40px' },
     emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
     reportCard: (isExpanded) => ({ backgroundColor: '#ffffff', border: isExpanded ? '1px solid #1a73e8' : '1px solid #e8eaed', borderRadius: '14px', padding: '24px', transition: 'all 0.2s', boxShadow: isExpanded ? '0 8px 24px rgba(26, 115, 232, 0.1)' : '0 1px 2px rgba(60,64,67,0.04)' }),
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-    cardTitleRow: { display: 'flex', alignItems: 'center', gap: '12px' },
+    cardTitleRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', minWidth: 0 },
     cardTitle: { fontSize: '18px', fontWeight: 'bold', color: '#202124' },
-    cardMeta: { fontSize: '13px', color: '#80868b', display: 'flex', alignItems: 'center', gap: '8px' },
-    statusBadge: { padding: '4px 8px', borderRadius: '4px', backgroundColor: '#e6f4ea', color: '#137333', fontSize: '12px', fontWeight: 'bold' },
+    cardMeta: { fontSize: '13px', color: '#80868b', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', minWidth: 0 },
+    statusBadge: { display: 'inline-flex', alignItems: 'center', padding: '3px 6px', borderRadius: '4px', backgroundColor: '#e6f4ea', color: '#137333', fontSize: '11px', fontWeight: 'bold', lineHeight: 1.2, whiteSpace: 'nowrap' },
     
     cardContentRow: { display: 'flex', alignItems: 'center', gap: '24px' },
     infoBlock: { display: 'flex', alignItems: 'center', gap: '8px', borderRight: '1px solid #e0e0e0', paddingRight: '24px' },
@@ -225,6 +307,7 @@ export default function ReportView({ onAuthExpired }) {
     sourceScore: { fontSize: '13px', fontWeight: 'bold', color: '#3c4043' },
     
     detailBtn: { padding: '8px 16px', border: '1px solid #dadce0', borderRadius: '20px', backgroundColor: '#ffffff', color: '#1a73e8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' },
+    actionBtn: { border: '1px solid #dadce0', borderRadius: '999px', backgroundColor: '#ffffff', color: '#5f6368', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', padding: '7px 10px', whiteSpace: 'nowrap' },
     
     // Expanded Section
     expandedDivider: { height: '1px', backgroundColor: '#e0e0e0', margin: '24px 0', border: 'none' },
@@ -237,7 +320,7 @@ export default function ReportView({ onAuthExpired }) {
     articleListCol: { flex: 2, display: 'flex', flexDirection: 'column', gap: '12px' },
     articleListItem: { display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '14px' },
     articleListPublisher: { fontWeight: 'bold', color: '#202124', width: '60px', flexShrink: 0 },
-    articleListDate: { color: '#80868b', fontSize: '12px', width: '80px', flexShrink: 0 },
+    articleListDate: { color: '#80868b', fontSize: '12px', flexShrink: 0 },
     articleListText: { color: '#3c4043', flex: 1, lineHeight: '1.5' },
     articleListAction: { color: '#1a73e8', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', width: '70px', textAlign: 'right', flexShrink: 0 },
     
@@ -249,9 +332,25 @@ export default function ReportView({ onAuthExpired }) {
   };
 
   const hasApiReports = reportStatus === 'done';
-  const displayReports = hasApiReports
-    ? (Array.isArray(reportData?.reports) ? reportData.reports.map(mapApiReport) : [])
-    : [];
+  const reportItems = reportData?.reports;
+  const apiReports = useMemo(() => {
+    if (!hasApiReports || !Array.isArray(reportItems)) return [];
+    return reportItems.map(mapApiReport);
+  }, [hasApiReports, reportItems]);
+  const favoriteReportIdSet = useMemo(() => new Set(favoriteReportIds), [favoriteReportIds]);
+  const displayReports = useMemo(() => {
+    const filteredReports = activeMenu === 'favorites'
+      ? apiReports.filter((report) => favoriteReportIdSet.has(String(report.id)))
+      : apiReports;
+
+    return [...filteredReports].sort((a, b) => {
+      if (sortBy === 'reliabilityDesc') return b.score - a.score || b.sortTime - a.sortTime;
+      if (sortBy === 'reliabilityAsc') return a.score - b.score || b.sortTime - a.sortTime;
+      if (sortBy === 'topic') return a.title.localeCompare(b.title, 'ko-KR');
+      return b.sortTime - a.sortTime;
+    });
+  }, [activeMenu, apiReports, favoriteReportIdSet, sortBy]);
+  const favoriteCount = apiReports.filter((report) => favoriteReportIdSet.has(String(report.id))).length;
   const totalStats = hasApiReports ? {
     searchedTopics: reportData?.totalStats?.searchedTopics ?? 0,
     analyzedArticles: reportData?.totalStats?.analyzedArticles ?? 0,
@@ -276,44 +375,44 @@ export default function ReportView({ onAuthExpired }) {
           <div style={styles.sidebarSection}>
             <div style={styles.sidebarTitle}>팩트체크 리포트</div>
             <div style={styles.sidebarDesc}>이전에 검색하고 분석한 내용을 한눈에 확인할 수 있습니다.</div>
-            <button style={styles.primaryBtn}>+ 새 검색 시작</button>
+            <button type="button" style={styles.primaryBtn} onClick={() => navigate('/algo')}>+ 새 검색 시작</button>
           </div>
 
           <div style={styles.menuList}>
-            <div style={styles.menuItem(true)}>
+            <button type="button" style={{ ...styles.menuItem(activeMenu === 'all'), border: 0 }} onClick={() => setDateMenu('all', '')}>
               <span style={styles.menuIcon}>📄 전체 리포트</span>
               <span style={styles.menuBadge}>{reportData?.pagination?.totalItems ?? displayReports.length}</span>
-            </div>
-            <div style={styles.menuItem(false)}>
+            </button>
+            <button type="button" style={{ ...styles.menuItem(activeMenu === 'favorites'), border: 0 }} onClick={() => setDateMenu('favorites', '')}>
               <span style={styles.menuIcon}>⭐ 즐겨찾기</span>
-              <span style={styles.menuBadge}>3</span>
-            </div>
-            <div style={styles.menuItem(false)}>
+              <span style={styles.menuBadge}>{favoriteCount}</span>
+            </button>
+            <button type="button" style={{ ...styles.menuItem(activeMenu === 'today'), border: 0 }} onClick={() => setDateMenu('today', '1')}>
               <span style={styles.menuIcon}>🕒 오늘</span>
-              <span style={styles.menuBadge}>4</span>
-            </div>
-            <div style={styles.menuItem(false)}>
+              <span style={styles.menuBadge}>{periodCounts.today}</span>
+            </button>
+            <button type="button" style={{ ...styles.menuItem(activeMenu === '7days'), border: 0 }} onClick={() => setDateMenu('7days', '7')}>
               <span style={styles.menuIcon}>📅 최근 7일</span>
-              <span style={styles.menuBadge}>9</span>
-            </div>
-            <div style={styles.menuItem(false)}>
+              <span style={styles.menuBadge}>{periodCounts.sevenDays}</span>
+            </button>
+            <button type="button" style={{ ...styles.menuItem(activeMenu === '30days'), border: 0 }} onClick={() => setDateMenu('30days', '30')}>
               <span style={styles.menuIcon}>🗓️ 최근 30일</span>
-              <span style={styles.menuBadge}>18</span>
-            </div>
+              <span style={styles.menuBadge}>{periodCounts.thirtyDays}</span>
+            </button>
           </div>
 
           <div className="report-divider" style={styles.divider}></div>
 
           <div style={styles.sidebarSection}>
             <div style={styles.filterTitle}>리포트 필터</div>
-            <select style={styles.select} value={dateFilter} onChange={(event) => setDateFilter(event.target.value)}>
+            <select style={styles.select} value={dateFilter} onChange={(event) => { setActiveMenu('custom'); setDateFilter(event.target.value); }}>
               <option value="">날짜 선택</option>
               <option value="1">최근 1일</option>
               <option value="7">최근 7일</option>
               <option value="30">최근 30일</option>
             </select>
             <select style={styles.select} value={scoreFilter} onChange={(event) => setScoreFilter(event.target.value)}>
-              <option value="">전체 신빙성 등급</option>
+              <option value="">전체 신뢰도 등급</option>
               <option value="4">4점 이상</option>
               <option value="3">3점 이상</option>
               <option value="2">2점 이상</option>
@@ -370,16 +469,19 @@ export default function ReportView({ onAuthExpired }) {
               onChange={(event) => setKeyword(event.target.value)}
             />
             <div className="report-tools-right" style={styles.toolsRight}>
-              <select style={{...styles.select, marginBottom: 0, width: '120px'}}><option>최신순</option></select>
-              <div className="report-view-toggle" style={styles.viewToggle}>
-                <button style={styles.viewBtn(true)}><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg></button>
-                <button style={styles.viewBtn(false)}><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg></button>
-              </div>
+              <select style={{...styles.select, marginBottom: 0, width: '150px'}} value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="리포트 정렬">
+                <option value="latest">최신순</option>
+                <option value="reliabilityDesc">신뢰도 높은순</option>
+                <option value="reliabilityAsc">신뢰도 낮은순</option>
+                <option value="topic">주제명순</option>
+              </select>
             </div>
           </div>
 
-          <div style={styles.listContainer}>
-            {apiError && <div className="form-error" role="alert">{apiError}</div>}
+          {apiError && <div className="form-error" role="alert">{apiError}</div>}
+          {actionMessage && <div className="report-action-message" style={styles.sourceNotice('api')}>{actionMessage}</div>}
+
+          <div className="report-list" style={styles.listContainer}>
             {displayReports.length === 0 ? (
               <div style={styles.emptyState}>
                 백엔드에서 받은 리포트 목록이 비어 있습니다.<br/>
@@ -406,11 +508,18 @@ export default function ReportView({ onAuthExpired }) {
                 <div className="report-card" key={report.id} style={styles.reportCard(isExpanded)}>
                   <div className="report-card-header" style={styles.cardHeader}>
                     <div className="report-card-title-row" style={styles.cardTitleRow}>
-                      <span style={{color: '#fbbc04', fontSize: '20px', cursor: 'pointer'}}>★</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(report.id)}
+                        aria-label={favoriteReportIdSet.has(String(report.id)) ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                        style={{ border: 0, background: 'transparent', color: favoriteReportIdSet.has(String(report.id)) ? '#fbbc04' : '#bdc1c6', fontSize: '20px', cursor: 'pointer', padding: 0 }}
+                      >
+                        ★
+                      </button>
                       <span style={styles.cardTitle}>{report.title}</span>
                       <span style={styles.cardMeta}>검색일: {report.date} <span style={styles.statusBadge}>{report.status}</span></span>
                     </div>
-                    <div style={{color: '#80868b', cursor: 'pointer', fontSize: '20px'}}>...</div>
+                    <button type="button" style={styles.actionBtn} onClick={() => copyReportSummary(report, summaryText)}>요약 복사</button>
                   </div>
                   
                   <div className="report-card-content-row" style={styles.cardContentRow}>
@@ -424,7 +533,7 @@ export default function ReportView({ onAuthExpired }) {
                       <div style={styles.infoLabel}>반박 기사 <span style={styles.infoValue}>{report.unrelatedCount}건</span></div>
                     </div>
                     
-                    <div className="report-info-block" style={styles.infoBlock}>
+                    <div className="report-info-block" style={{ ...styles.infoBlock, borderRight: 0, paddingRight: 0 }}>
                        <svg viewBox="0 0 40 20" style={{width: '40px', height: '20px', overflow: 'visible'}}>
                          <path d="M 5 20 A 15 15 0 0 1 35 20" fill="none" stroke="#e0e0e0" strokeWidth="4" />
                          <path d="M 5 20 A 15 15 0 0 1 25 5" fill="none" stroke="#fbbc04" strokeWidth="4" />
@@ -432,12 +541,11 @@ export default function ReportView({ onAuthExpired }) {
                        <div style={styles.infoLabel}>신뢰도 평균 <span style={styles.infoValue}>{report.score} <span style={{fontSize:'12px', color:'#80868b', fontWeight:'normal'}}>/ 5</span></span></div>
                     </div>
 
-                    <div className="report-source-wrap" style={{ flex: 1, paddingLeft: '12px' }}>
-                      <div style={{fontSize: '12px', color: '#80868b', marginBottom: '8px'}}>주요 출처 신뢰도</div>
-                      <div className="report-source-group" style={styles.sourceGroup}>
-                        {report.sources.length === 0 ? (
-                          <span style={{fontSize:'12px', color:'#80868b'}}>상세 보기에서 출처를 확인하세요</span>
-                        ) : report.sources.map((src, i) => (
+                    {report.sources.length > 0 && (
+                      <div className="report-source-wrap" style={{ flex: 1, paddingLeft: '12px' }}>
+                        <div style={{fontSize: '12px', color: '#80868b', marginBottom: '8px'}}>주요 출처 신뢰도</div>
+                        <div className="report-source-group" style={styles.sourceGroup}>
+                          {report.sources.map((src, i) => (
                           <div key={i} style={styles.sourceItem}>
                             <div style={styles.sourceLogo(src.logo)}>
                               {src.name.charAt(0)}
@@ -446,10 +554,15 @@ export default function ReportView({ onAuthExpired }) {
                             <span style={{fontSize:'12px', color:'#3c4043'}}>{src.name}</span>
                             {src.score && <span style={{fontSize:'12px', fontWeight:'bold', color:'#34a853', display:'flex', alignItems:'center'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> {src.score}</span>}
                           </div>
-                        ))}
-                        {report.extraCount > 0 && <span style={{fontSize:'12px', color:'#80868b'}}>+{report.extraCount} 더보기</span>}
+                          ))}
+                          {report.extraCount > 0 && (
+                            <button type="button" style={{ ...styles.actionBtn, padding: '4px 8px' }} onClick={() => toggleReport(report)}>
+                              +{report.extraCount} 더보기
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     
                     {!isExpanded && (
                       <div className="report-card-summary" style={{ width: '250px', fontSize: '13px', color: '#5f6368', lineHeight: '1.5', paddingLeft: '24px', borderLeft: '1px solid #e0e0e0' }}>
@@ -457,7 +570,7 @@ export default function ReportView({ onAuthExpired }) {
                       </div>
                     )}
 
-                    <button style={styles.detailBtn} onClick={() => toggleReport(report)}>
+                    <button type="button" style={styles.detailBtn} onClick={() => toggleReport(report)}>
                       {isExpanded ? '접기 ^' : '상세 보기 >'}
                     </button>
                   </div>
@@ -469,9 +582,8 @@ export default function ReportView({ onAuthExpired }) {
                          ✨ 기사 요약
                       </div>
                       <div className="report-expanded-tabs" style={styles.expandedTabs}>
-                         <div style={styles.expandedTab(innerTab === 'related')} onClick={() => setInnerTab('related')}>관련 기사 요약 ({relatedArticles.length})</div>
-                         <div style={styles.expandedTab(innerTab === 'unrelated')} onClick={() => setInnerTab('unrelated')}>반박 기사 요약 ({counterArticles.length})</div>
-                         <div style={styles.expandedTab(innerTab === 'summary')} onClick={() => setInnerTab('summary')}>종합 요약</div>
+                         <button type="button" style={{ ...styles.expandedTab(innerTab === 'related'), borderTop: 0, borderLeft: 0, borderRight: 0, background: 'transparent' }} onClick={() => setInnerTab('related')}>관련 기사 요약 ({relatedArticles.length})</button>
+                         <button type="button" style={{ ...styles.expandedTab(innerTab === 'unrelated'), borderTop: 0, borderLeft: 0, borderRight: 0, background: 'transparent' }} onClick={() => setInnerTab('unrelated')}>반박 기사 요약 ({counterArticles.length})</button>
                       </div>
                       
                       <div className="report-expanded-content" style={styles.expandedContentBody}>
@@ -480,15 +592,13 @@ export default function ReportView({ onAuthExpired }) {
                              <div style={styles.emptyState}>리포트 상세를 불러오는 중입니다.</div>
                            ) : detailStatus === 'error' ? (
                              <div style={styles.emptyState}>{detailError || '리포트 상세를 불러오지 못했습니다.'}</div>
-                           ) : innerTab === 'summary' ? (
-                             <div style={styles.emptyState}>오른쪽 종합 요약을 확인하세요.</div>
                            ) : activeArticles.length === 0 ? (
                              <div style={styles.emptyState}>{innerTab === 'related' ? '관련 기사' : '반박 기사'} 목록이 비어 있습니다.</div>
                            ) : activeArticles.map((article) => (
                              <div className="report-article-list-item" key={article.id} style={styles.articleListItem}>
                                <span style={{fontSize:'16px', color:'#80868b'}}>•</span>
                                <span className="report-article-list-publisher" style={styles.articleListPublisher}>{article.press}</span>
-                               <span className="report-article-list-date" style={styles.articleListDate}>{article.date || '-'}</span>
+                               {article.date && <span className="report-article-list-date" style={styles.articleListDate}>{article.date}</span>}
                                <span style={styles.articleListText}>{article.title}</span>
                                <span className="report-article-list-action" style={styles.articleListAction}>{article.stance}</span>
                              </div>
