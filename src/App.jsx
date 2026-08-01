@@ -45,7 +45,7 @@ export default function App() {
     clearCurrentUser();
     setIsLoggedIn(false);
     setCurrentUser(null);
-    if (location.pathname === '/community/write' || location.pathname === '/algo') {
+    if (location.pathname === '/community/write' || location.pathname === '/algo' || location.pathname === '/report') {
       navigate('/');
     }
   };
@@ -156,7 +156,7 @@ export default function App() {
           <Route path="/community/write" element={requireLogin(<CommunityWriteView />)} />
           <Route path="/community/:id" element={<DetailView type="커뮤니티" />} />
           <Route path="/algo" element={requireLogin(<AlgoView onAuthExpired={handleAuthExpired} />)} />
-          <Route path="/report" element={<ReportView />} />
+          <Route path="/report" element={requireLogin(<ReportView onAuthExpired={handleAuthExpired} />)} />
           <Route path="/login" element={<LoginView onLogin={handleLogin} />} />
           <Route path="/signup" element={<SignupView />} />
           <Route path="*" element={<NotFoundView />} />

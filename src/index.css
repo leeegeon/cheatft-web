@@ -25,6 +25,12 @@ body {
   overflow-wrap: break-word;
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 #root {
   overflow-x: hidden;
 }

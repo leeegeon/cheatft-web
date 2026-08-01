@@ -63,6 +63,13 @@ export function getArticleFromUrl(url) {
   })
 }
 
+export function recommendKeywords(content) {
+  return apiData('/keywords', {
+    method: 'POST',
+    body: { content },
+  })
+}
+
 export async function runFactCheck(content, params = {}) {
   const request = await requestCheck({ content })
   return request?.checkId ? getCheckResult(request.checkId, params) : request
@@ -79,7 +86,7 @@ export function getAnalysisResult(id, params = {}) {
   return apiData(buildPath(`/analysis/${id}`, params))
 }
 
-export async function runAnalysis({ keyword, period = 1, limit = 4 }) {
+export async function runAnalysis({ keyword, period = 1, limit = 10 }) {
   const request = await requestAnalysis({ keyword, period })
   return request?.analysisId ? getAnalysisResult(request.analysisId, { limit }) : request
 }

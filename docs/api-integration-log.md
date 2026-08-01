@@ -1,9 +1,35 @@
 # API 연동 작업 로그
 
-마지막 갱신: 2026-07-31
+마지막 갱신: 2026-08-02
 대상: `cheatft_web`
 백엔드 폴더 수정 여부: 최종 상태 기준 수정하지 않음. 2026-07-16 실수로 인증 컨트롤러를 수정했으나 즉시 원상복구함.
 API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포 API보다 늦게 반영될 수 있으므로, API 연동 작업은 가능한 경우 실제 배포 API 응답과 `cheatft_api/src` 구현을 함께 확인한다.
+
+## 2026-08-02 키워드/분석/리포트 API 재연동
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 사용자가 백엔드 API 수정본을 pull한 뒤 로컬 백엔드 소스를 읽기 전용으로 확인했다.
+- 로컬 백엔드 최신 커밋 기준 변경:
+  - `POST /api/keywords`: `verifyToken` 필요, body `{ content }`, 응답 `data.keywords`.
+  - `POST /api/analysis`: `verifyToken` 필요, body `{ keyword, period }`, OpenAI 기반 분석 플랜 생성 후 DB 저장.
+  - `GET /api/analysis/{id}?limit=10`: 관련/반박 기사 배열 각각에 `limit` 적용.
+  - `GET /api/reports`: `verifyToken` 필요, 인증 사용자의 분석 기록을 `keyword/date/score/page/limit` 기준으로 반환.
+- 프론트 변경:
+  - `src/services/cheatftApi.js`: `recommendKeywords(content)` 추가, `runAnalysis()` 기본 조회 limit을 10으로 변경.
+  - `AlgoView.jsx`: 프론트 임의 키워드 생성 함수를 제거하고 `POST /keywords` 응답으로 추천 키워드 칩을 표시.
+  - `AlgoView.jsx`: 분석 요청 중 전체 화면 로딩 팝업을 표시하고 추천/분석 중복 클릭을 비활성화.
+  - `AlgoView.jsx`: 분석 결과 조회를 `GET /analysis/{id}?limit=10`으로 변경해 관련 뉴스와 반박 기사를 각각 최대 10건까지 표시.
+  - `AlgoView.jsx`: 후속 UI 정리로 초기 질문/키워드 예시값을 비우고, 별도 `선택 키워드 분석` 버튼을 제거했다. 분석 전 메인 제목도 특정 예시 키워드 결과처럼 보이지 않게 조정했다.
+  - `App.jsx`: `/report`를 보호 라우트로 전환하고 401/403 인증 실패 시 기존 `handleAuthExpired()` 흐름으로 로그인 화면 이동.
+  - `ReportView.jsx`: 리포트 목록 API 실패 시 기존 목업 fallback을 제거하고 오류/빈 상태를 표시.
+  - `ReportView.jsx`: 상세 보기를 펼칠 때 리포트 id를 분석 id로 보고 `GET /analysis/{id}?limit=10`을 호출해 실제 관련/반박 기사와 인사이트를 표시. 기존 하드코딩 기사 상세 목업은 제거.
+- 백엔드 확인 필요:
+  - `analysis.service.js`는 조회 매핑에서 `articleId: article.id`를 사용하지만 모델 쿼리는 `id as "articleId"`를 반환하므로 `articleId`가 비어 내려올 가능성이 있다.
+  - `analysis.model.js`의 `mainPresses`는 현재 언론사명 배열이 아니라 언론사별 기사 수 배열로 만들어지는 것으로 보여, 프론트는 숫자 값을 주요 출처명으로 표시하지 않는다.
+- 검증:
+  - `npm run lint` 통과.
+  - `npm test` 통과.
+  - Codex 번들 Node 기반 `vite build` 통과.
 
 ## 작업 목적
 
@@ -60,7 +86,7 @@ API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포
   - `AlgoView.jsx`: API 실패 시 기존 예시 기사 fallback을 제거하고 오류/빈 상태만 표시.
   - `AlgoView.jsx`: 실제 `stance`를 기사 배지로 표시하고, 없는 `description/date/views`는 지어내지 않음.
   - `AlgoView.jsx`: 정적 검색 시간, `더보기`, 신뢰도 분석 자세히 보기 버튼 제거.
-  - `AlgoView.jsx`: 선택된 키워드를 다시 분석하는 `선택 키워드 분석` 버튼 추가.
+  - `AlgoView.jsx`: 당시에는 선택된 키워드를 다시 분석하는 `선택 키워드 분석` 버튼을 추가했으나, 2026-08-02 후속 UI 정리에서 제거했다.
   - `AlgoView.jsx`: 신뢰도 게이지 SVG 내부 라벨/건수 텍스트를 제거하고, 점수/등급은 중앙에, 높음/보통/주의 건수는 하단 미니 카드로 분리.
   - `App.jsx`, `AlgoView.jsx`, `LoginView.jsx`: 잘못되거나 만료된 토큰으로 분석 요청이 401/403을 반환하면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 이동하며 안내 메시지를 표시.
 - 검증:

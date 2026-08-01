@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { runAnalysis } from '../../services/cheatftApi.js';
+import { recommendKeywords, runAnalysis } from '../../services/cheatftApi.js';
 import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
@@ -79,32 +79,6 @@ function mapAnalysisArticle(article, index, fallbackBadge = '보통') {
   };
 }
 
-function buildKeywordSuggestions(question) {
-  const normalizedQuestion = cleanDisplayText(question, '')
-    .replace(/[?!.,/#!$%^&*;:{}=\-_`~()[\]"'<>|]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (!normalizedQuestion) return [];
-
-  const stopWords = new Set(['그리고', '하지만', '관련', '대한', '으로', '에서', '에게', '까지', '부터', '하면', '인가', '정말', '진짜']);
-  const words = normalizedQuestion
-    .split(' ')
-    .map((word) => word.trim())
-    .filter((word) => word.length >= 2 && !stopWords.has(word));
-
-  const suggestions = [
-    normalizedQuestion,
-    words.slice(0, 3).join(' '),
-    words.slice(0, 2).join(' '),
-    words[0] ? `${words[0]} 팩트체크` : '',
-    words[1] ? `${words[1]} 신뢰도` : '',
-    words.length > 2 ? `${words[0]} ${words[words.length - 1]}` : '',
-  ];
-
-  return [...new Set(suggestions.filter(Boolean))].slice(0, 5);
-}
-
 function Icon({ type, size = 20 }) {
   const commonProps = {
     width: size,
@@ -176,23 +150,56 @@ function Icon({ type, size = 20 }) {
 
 export default function AlgoView({ onAuthExpired }) {
   const [activeTab, setActiveTab] = useState('related');
-  const [question, setQuestion] = useState('백신 부작용 사망자 급증?');
-  const [keyword, setKeyword] = useState('백신 부작용 사망자 급증');
-  const [suggestedKeywords, setSuggestedKeywords] = useState(() => buildKeywordSuggestions('백신 부작용 사망자 급증?'));
+  const [question, setQuestion] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [suggestedKeywords, setSuggestedKeywords] = useState([]);
   const [period, setPeriod] = useState(1);
   const [analysisData, setAnalysisData] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState('idle');
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [guideFocus, setGuideFocus] = useState('question');
   const [completedAt, setCompletedAt] = useState('');
 
   const suggestKeywords = () => {
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion) {
+      setApiError('키워드를 추천받을 질문을 먼저 입력해주세요.');
+      setGuideFocus('question');
+      return;
+    }
+
     setApiError('');
-    const nextSuggestions = buildKeywordSuggestions(question);
-    setSuggestedKeywords(nextSuggestions);
-    setKeyword(nextSuggestions[0] ?? '');
-    setGuideFocus(nextSuggestions.length > 0 ? 'keywords' : 'question');
+    setIsSuggesting(true);
+
+    recommendKeywords(trimmedQuestion)
+      .then((data) => {
+        const nextSuggestions = Array.isArray(data?.keywords)
+          ? data.keywords.map((item) => cleanDisplayText(item, '').trim()).filter(Boolean)
+          : [];
+
+        setSuggestedKeywords(nextSuggestions);
+        setKeyword('');
+        setGuideFocus(nextSuggestions.length > 0 ? 'keywords' : 'question');
+
+        if (nextSuggestions.length === 0) {
+          setApiError('추천된 키워드가 없습니다. 질문을 조금 더 구체적으로 입력해주세요.');
+        }
+      })
+      .catch((error) => {
+        const isAuthError = error.status === 401 || error.status === 403;
+        const message = isAuthError
+          ? '로그인이 만료되었거나 인증이 필요합니다. 다시 로그인한 뒤 추천해주세요.'
+          : error.message || '키워드를 추천받지 못했습니다.';
+        setApiError(message);
+        setSuggestedKeywords([]);
+        setGuideFocus('question');
+        if (isAuthError && onAuthExpired) {
+          onAuthExpired();
+        }
+      })
+      .finally(() => setIsSuggesting(false));
   };
 
   const analyze = (nextKeyword = keyword) => {
@@ -210,7 +217,7 @@ export default function AlgoView({ onAuthExpired }) {
     setAnalysisStatus('loading');
     setCompletedAt('');
 
-    runAnalysis({ keyword: trimmedKeyword, period, limit: 4 })
+    runAnalysis({ keyword: trimmedKeyword, period, limit: 10 })
       .then((data) => {
         setAnalysisData(data || {});
         setAnalysisStatus('done');
@@ -253,7 +260,6 @@ export default function AlgoView({ onAuthExpired }) {
     cardDesc: { fontSize: '13px', color: '#5f6368', marginBottom: '16px', lineHeight: '1.5' },
     questionInput: { width: '100%', minHeight: '108px', padding: '14px 16px', borderRadius: '8px', border: '1px solid #dadce0', fontSize: '14px', lineHeight: '1.5', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', resize: 'vertical' },
     primaryBtn: { width: '100%', padding: '12px', backgroundColor: '#0056d2', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '12px' },
-    secondaryActionBtn: { width: '100%', padding: '12px', backgroundColor: '#ffffff', color: '#0056d2', border: '1px solid #d2e3fc', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '12px' },
     keywordPanel: { marginTop: '12px', marginBottom: '16px' },
     keywordTitle: { fontSize: '13px', fontWeight: 'bold', color: '#3c4043', marginBottom: '10px' },
     keywordChips: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
@@ -358,6 +364,11 @@ export default function AlgoView({ onAuthExpired }) {
     statIcon: { width: '32px', height: '32px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', color: '#1a73e8' },
     statValue: { fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' },
     footer: { marginTop: '16px', padding: '20px 24px', backgroundColor: '#f1f3f4', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '16px', color: '#5f6368', fontSize: '13px', lineHeight: '1.5' },
+    loadingOverlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(32, 33, 36, 0.36)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '24px' },
+    loadingDialog: { width: 'min(420px, 100%)', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #d2e3fc', padding: '28px', boxShadow: '0 20px 60px rgba(32, 33, 36, 0.22)', textAlign: 'center' },
+    loadingSpinner: { width: '42px', height: '42px', borderRadius: '50%', border: '4px solid #d2e3fc', borderTopColor: '#0056d2', margin: '0 auto 18px', animation: 'spin 1s linear infinite' },
+    loadingTitle: { fontSize: '18px', fontWeight: '800', color: '#202124', marginBottom: '8px' },
+    loadingDesc: { fontSize: '14px', color: '#5f6368', lineHeight: '1.6' },
   };
 
   const hasApiAnalysis = analysisStatus === 'done';
@@ -369,7 +380,7 @@ export default function AlgoView({ onAuthExpired }) {
   const tone = getReliabilityTone(score);
   const toneKey = score >= 70 ? 'high' : score >= 45 ? 'normal' : 'low';
   const gaugeRotation = -90 + score * 1.8;
-  const displayKeyword = hasApiAnalysis ? analysisData?.keyword || keyword : keyword;
+  const displayKeyword = hasApiAnalysis ? analysisData?.keyword || keyword : '';
 
   const displayRelatedList = useMemo(() => {
     if (!hasApiAnalysis) return [];
@@ -412,6 +423,15 @@ export default function AlgoView({ onAuthExpired }) {
 
   return (
     <div className="algo-page" style={styles.container}>
+      {isLoading && (
+        <div style={styles.loadingOverlay} role="status" aria-live="polite">
+          <div style={styles.loadingDialog}>
+            <div className="loading-spinner" style={styles.loadingSpinner} aria-hidden="true" />
+            <div style={styles.loadingTitle}>기사 수집과 신뢰도 분석을 진행 중입니다</div>
+            <div style={styles.loadingDesc}>최대 10건의 관련 뉴스와 반박 기사를 분류하고 인사이트를 정리하고 있습니다. 잠시만 기다려주세요.</div>
+          </div>
+        </div>
+      )}
       <div className="algo-sidebar" style={styles.sidebar}>
         <div style={styles.card}>
           <div style={styles.focusPanel(guideFocus === 'question')}>
@@ -427,12 +447,13 @@ export default function AlgoView({ onAuthExpired }) {
                   suggestKeywords();
                 }
               }}
-              placeholder="예: 백신 부작용으로 사망자가 급증했다는 주장이 사실인가요?"
+              placeholder="분석하고 싶은 질문을 입력하세요."
               aria-label="분석 질문"
+              disabled={isSuggesting || isLoading}
             />
-            <button type="button" style={styles.primaryBtn} onClick={suggestKeywords}>
+            <button type="button" style={styles.primaryBtn} onClick={suggestKeywords} disabled={isSuggesting || isLoading}>
               <Icon type="search" size={18} />
-              키워드 추천
+              {isSuggesting ? '추천 중' : '키워드 추천'}
             </button>
           </div>
           <div style={styles.keywordPanel}>
@@ -447,21 +468,12 @@ export default function AlgoView({ onAuthExpired }) {
                     key={suggestedKeyword}
                     style={styles.keywordChip(keyword === suggestedKeyword)}
                     onClick={() => analyze(suggestedKeyword)}
-                    disabled={isLoading}
+                    disabled={isSuggesting || isLoading}
                   >
                     {suggestedKeyword}
                   </button>
                 ))}
               </div>
-              <button
-                type="button"
-                style={styles.secondaryActionBtn}
-                onClick={() => analyze(keyword)}
-                disabled={isLoading || !keyword}
-              >
-                <Icon type="play" size={17} />
-                {isLoading ? '분석 중' : '선택 키워드 분석'}
-              </button>
             </div>
           </div>
           <div style={styles.selectRow}>
@@ -532,7 +544,7 @@ export default function AlgoView({ onAuthExpired }) {
         <div>
           <div className="algo-main-header" style={styles.mainHeader}>
             <div>
-              <div style={styles.mainTitle}>{displayKeyword ? `${displayKeyword} 분석 결과` : '신뢰도 분석 결과'}</div>
+              <div style={styles.mainTitle}>{displayKeyword ? `${displayKeyword} 분석 결과` : '신뢰도 분석'}</div>
               <div style={styles.mainDesc}>수집한 뉴스의 출처, 관점, 요약 통계를 실제 백엔드 분석 결과 기준으로 표시합니다.</div>
               <div style={{ marginTop: '12px' }}><span style={styles.sourceNotice(sourceState)}>{sourceText}</span></div>
             </div>

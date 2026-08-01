@@ -11,7 +11,7 @@
 - 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체이다.
 - Codex는 `cheatft_api`를 수정하지 않는다. 백엔드는 계약 확인을 위해 읽기 전용으로만 참고하고, 로그인/회원가입 구현 요청도 프론트 범위에서만 처리한다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다.
-- `summary/reports/posts/profile`은 여전히 dummy controller 기반 응답이며, `checks/analysis/auth`는 실제 라우트/서비스/모델 흐름을 탄다.
+- 2026-08-02 로컬 백엔드 pull 기준 `auth/checks/analysis/reports`는 실제 라우트/서비스/모델 흐름을 타고, `summary/posts/profile`은 dummy controller 기반 응답이다.
 - 프론트는 주요 화면에서 실제 API를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시한다.
 - `src/services/apiClient.js`는 API base URL, JSON 요청/오류 처리, Bearer 토큰 첨부를 담당하고, `src/services/cheatftApi.js`가 명세 기반 도메인 함수를 제공한다.
 - 백엔드 명세의 실제 경로는 `/api/...` 형태이다.
@@ -28,14 +28,15 @@
 - 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개는 모두 `pressReliability.js`의 신뢰도 점수/라벨/판단 이유로 연결된다. `동행미디어 시대`는 프론트 alias를 통해 `동행미디어` 기준을 사용한다.
 - 2026-07-31 이후 뉴스 상세는 검증하기에서 전달된 기사 URL이 있으면 `POST /api/article`을 호출해 상세 본문, 기자, 입력 시간, 주제를 보강한다. 검증 결과의 `/mnews/article/` URL은 `/article/` 형식으로 정규화한다. 상세 API가 실패하면 별도 오류 노출 없이 기존 route state/sessionStorage 기사 정보를 유지한다.
 - 뉴스 상세 오른쪽 신뢰도 패널은 `낮음/보통/높음` 텍스트 축이 아니라 0~5 숫자 눈금과 현재 점수 마커로 표시한다.
-- `/algo`는 보호 라우트다. 백엔드 `analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 질문 영역 강조 → 추천 키워드 생성 후 키워드 영역 강조 → 키워드 선택 또는 선택 키워드 분석 버튼으로 API 호출이다. 실제 운영 응답의 `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`만 표시하고 실패 시 프론트 목업 fallback을 쓰지 않는다. `POST /analysis` 또는 `GET /analysis/{id}`가 401/403을 반환하면 프론트는 저장 토큰과 현재 사용자 정보를 지우고 로그인 화면으로 이동한다.
+- `/algo`는 보호 라우트다. 백엔드 `keywords/analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 빈 질문 입력 → `POST /keywords` 추천 키워드 조회 → 추천 키워드 칩 선택으로 `POST /analysis`, `GET /analysis/{id}?limit=10` 호출이다. 분석 전에는 특정 예시 키워드의 결과 제목을 표시하지 않는다. 실제 운영 응답의 `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`만 표시하고 실패 시 프론트 목업 fallback을 쓰지 않는다. `POST /keywords`, `POST /analysis`, `GET /analysis/{id}`가 401/403을 반환하면 프론트는 저장 토큰과 현재 사용자 정보를 지우고 로그인 화면으로 이동한다.
+- `/report`는 2026-08-02 프론트 기준 보호 라우트다. `GET /reports`로 인증 사용자의 분석 기록을 가져오고, 상세 펼침 시 리포트 id를 분석 id로 보고 `GET /analysis/{id}?limit=10`을 추가 호출한다. 리포트 목록/상세 API 실패 시 프론트 목업 fallback을 쓰지 않는다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
 - 2026-07-26 기준 `UserModel.findByEmail is not a function` 오류는 해결된 상태로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
 - 2026-07-26 기준 `GET /api/summary`는 `recentChecks` 3개를 반환한다.
 - 2026-07-31 전달 메모 기준 실제 `GET /api/summary`의 `recentChecks` 3개는 모두 `id: 1`로 내려올 수 있다.
 - 2026-07-26 기준 `GET /api/checks/{id}?page=1&limit=100`은 `경제` 검색어에서 `totalArticles: 12`, `articles.length: 12`, `pagination.totalPages: 1`로 관측됐다. `page=2&limit=5`도 12건 전체와 `currentPage: 1`을 반환해 서버 페이지네이션은 아직 적용되지 않은 상태로 보이며, 프론트는 최대 100건 수신 후 10건씩 클라이언트 페이지네이션한다.
-- 2026-07-26 기준 `GET /api/reports`, `GET /api/posts`는 query parameter를 받아도 같은 dummy 응답과 `currentPage: 1`을 반환한다.
-- 2026-07-26 기준 `GET /api/analysis/{id}?limit=1`과 `limit=4`는 같은 결과를 반환하고, 응답 body에 `limit` 필드는 없다.
+- 2026-08-02 로컬 백엔드 pull 기준 `GET /api/reports`는 인증이 필요하며 분석 기록 DB에서 `keyword/date/score/page/limit`을 반영해 반환한다. 운영 배포 반영 여부는 별도 확인이 필요하다.
+- 2026-08-02 로컬 백엔드 pull 기준 `GET /api/analysis/{id}?limit=10`은 관련/반박 기사 배열 각각에 `limit`을 적용한다.
 - 2026-07-26 기준 `GET /api/health`는 서버 상태 확인 라우트로 존재하지만 공통 래핑 없이 `{ message }`만 반환한다.
 - 기존 `cheatft_web/docs/backend-handoff.md`는 회의 전 제안 문서라 `/auth/login`, `/fact-checks` 같은 다른 경로가 섞여 있었다. 현재 연결 상태와 향후 협의는 아래 매핑을 기준으로 본다.
 
@@ -291,9 +292,11 @@
 | 검색/검증 요청 | `HomeView.jsx`, `VerificationView.jsx` | `POST /api/checks` | 검색어 이동 후 API 요청 |
 | 검증 결과 | `VerificationView.jsx` | `GET /api/checks/{id}` | API 응답만 표시, URL 링크 검색 제거, 프론트 더미 fallback 없음, 백엔드 `PRESS_MAPPING` 기반 출처 필터와 로컬 정렬 제공 |
 | 뉴스 상세 | `DetailView.jsx` | `POST /api/article` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 상세 API 응답을 병합. 상세 API 실패는 화면 오류로 노출하지 않음. 저장 정보 없는 직접 진입은 제한적 |
-| 신뢰도 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 추천 키워드 칩 선택 또는 선택 키워드 분석 버튼으로 API 요청, 백엔드는 Bearer token 요구 |
-| 신뢰도 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}` | 보호 라우트, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 실패 시 목업 fallback 없음 |
-| 리포트 목록 | `ReportView.jsx` | `GET /api/reports` | API 우선, `keyword/date/score/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
+| 키워드 추천 | `AlgoView.jsx` | `POST /api/keywords` | 보호 라우트, 질문 내용으로 추천 키워드 API 호출, 인증 실패 시 로그인 화면 이동 |
+| 신뢰도 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 추천 키워드 칩 선택으로 API 요청, 긴 분석 중 로딩 팝업, 백엔드는 Bearer token 요구 |
+| 신뢰도 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}?limit=10` | 보호 라우트, 관련/반박 기사 각각 최대 10건 요청, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 실패 시 목업 fallback 없음 |
+| 리포트 목록 | `ReportView.jsx` | `GET /api/reports` | 보호 라우트, API 우선, `keyword/date/score/page/limit` 전달, 실패 시 목업 없음, API 성공 후 빈 배열은 빈 상태 |
+| 리포트 상세 | `ReportView.jsx` | `GET /api/analysis/{id}?limit=10` | 펼친 리포트 id로 분석 상세를 조회해 실제 관련/반박 기사와 인사이트 표시, 실패 시 상세 목업 없음 |
 | 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
 | 커뮤니티 작성 | `CommunityWriteView.jsx` | `POST /api/posts` | 보호 라우트, 등록 버튼에서 API 요청 |
 | 커뮤니티 상세 | `DetailView.jsx` | 명세 없음 | `/community/:id` placeholder |
@@ -313,11 +316,11 @@
 | GET | `/api/me` | 인증 사용자 정보 | Bearer token 필요. 2026-07-26 배포 API 정상 조회 확인 |
 | POST | `/api/checks` | 팩트체크 요청 | `checkId` |
 | POST | `/api/article` | 네이버 뉴스 URL 상세 조회 | `title`, `content`, `press`, `reporter`, `inputTime`, `topic`, `url` |
-| POST | `/api/keywords` | 키워드 추출 | README/로컬 백엔드에는 문서화/구현 확인. 2026-07-31 운영 API에는 아직 미배포 |
+| POST | `/api/keywords` | 키워드 추출 | Bearer token 필요. 2026-08-02 로컬 백엔드 pull 기준 구현 확인 |
 | GET | `/api/checks/{id}` | 검증 결과 | `checkId`, `query`, `articles`, `pagination`; `page/limit` 미구현, pagination은 현재 `1/1/articles.length` |
 | POST | `/api/analysis` | 알고리즘 분석 요청 | `analysisId` |
-| GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`; `limit` query 미구현, 응답 `limit` 없음 |
-| GET | `/api/reports` | 리포트 목록 | `totalStats`, `reports`, `pagination`; query parameter는 현재 dummy 응답에 미반영 |
+| GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `limit`; 2026-08-02 로컬 백엔드 pull 기준 관련/반박 기사 각각에 `limit` 적용 |
+| GET | `/api/reports` | 리포트 목록 | Bearer token 필요. `totalStats`, `reports`, `pagination`; 2026-08-02 로컬 백엔드 pull 기준 분석 기록 DB와 query parameter 반영 |
 | GET | `/api/posts` | 커뮤니티 목록 | `communityStats`, `posts`, `pagination`; query parameter는 현재 dummy 응답에 미반영 |
 | POST | `/api/posts` | 게시글 작성 | `id`, `title`, `category` |
 | GET | `/api/profile` | 마이페이지 dummy dashboard | `userInfo`, `myContribution`, `personalDashboard`, `earnedBadges`, etc. |
@@ -329,8 +332,8 @@
 |---|---|---|
 | 실제 DB 흐름 | `/api/signup`, `/api/login`, `/api/me` | 배포 API에서 생성/로그인/토큰 조회 정상 확인. 중복 회원가입은 현재 `500` |
 | 실제 DB 흐름 | `/api/checks`, `/api/checks/{id}` | 요청 시 check와 article 저장, 네이버 API 실패/키 없음이면 fallback article 저장 |
-| DB-backed stub | `/api/analysis`, `/api/analysis/{id}` | 인증 필요, 고정 stats/기사/insight를 DB에 저장/조회 |
-| dummy controller | `/api/summary`, `/api/reports`, `/api/posts`, `/api/profile` | query/auth/DB 저장 거의 미처리. `GET /reports`, `GET /posts` query 미반영. `POST /api/posts`도 더미 생성 응답 |
+| 실제 DB 흐름 | `/api/keywords`, `/api/analysis`, `/api/analysis/{id}`, `/api/reports` | 인증 필요. 키워드 추천과 분석 플랜은 OpenAI API 키 필요, 분석 기사/인사이트/리포트는 DB 저장/조회 |
+| dummy controller | `/api/summary`, `/api/posts`, `/api/profile` | query/auth/DB 저장 거의 미처리. `GET /posts` query 미반영. `POST /api/posts`도 더미 생성 응답 |
 | health | `/api/health` | 공통 래핑 없이 상태 메시지 |
 
 ## 프론트에서 필요한 추가 API
@@ -381,7 +384,8 @@
    - 프론트는 목록 화면에서 `currentPage`, `totalPages`, `totalItems`를 그대로 쓸 수 있다.
    - 현재 커뮤니티는 `GET /posts`에 `category`, `keyword`, `page`, `limit`을 전달한다.
    - 현재 리포트는 `GET /reports`에 `keyword`, `date`, `score`, `page`, `limit`을 전달한다.
-   - 2026-07-26 배포 API 확인 기준 `checks`, `reports`, `posts`, `analysis`의 page/limit/filter query는 실제 분할/필터에 반영되지 않는다.
+   - 2026-08-02 로컬 백엔드 pull 기준 `reports`와 `analysis limit`은 반영된다. 운영 배포 API 반영 여부는 별도 확인이 필요하다.
+   - 2026-07-26 배포 API 확인 기준 `checks`, `posts`의 page/limit/filter query는 실제 분할/필터에 반영되지 않았다.
 
 6. 점수/라벨 체계
    - 신뢰도: 화면 게이지는 0~5 축을 사용하고, 실제 표시 점수는 5점 만점으로 정규화한다. 라벨은 `높음`, `보통`, `주의`, `확인중`을 사용한다.
@@ -401,7 +405,7 @@
 2. 완료: `src/services/cheatftApi.js`에 도메인별 API 함수 추가
 3. 완료: 홈, 검증, 알고리즘 분석, 리포트, 커뮤니티, 글 작성, 인증 1차 연결. 마이페이지 1차 연결은 과거 작업이며 현재 화면은 제거됨
 4. 완료: 조회 화면에서 API 성공 후 빈 배열을 프론트 목업으로 덮지 않도록 보강
-5. 진행: 홈/검증하기 프론트 더미 fallback 제거 완료. 다음으로 남은 화면 내부 목업 배열을 `src/mocks/` 또는 `src/data/`로 이동하거나 제거
+5. 진행: 홈/검증하기/신뢰도 분석/팩트체크 리포트 프론트 더미 fallback 제거 완료. 다음으로 남은 커뮤니티 화면 내부 목업 배열을 `src/mocks/` 또는 `src/data/`로 이동하거나 제거
 6. 다음: 기사 상세 직접 조회, 커뮤니티 상세, 댓글, 로그아웃, 토큰 갱신, 다운로드 API 명세 추가
 7. 다음: 실제 백엔드 응답이 확정되면 화면별 변환 함수와 표시 필드 정리
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getReports } from '../../services/cheatftApi.js';
+import { getAnalysisResult, getReports } from '../../services/cheatftApi.js';
 import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
@@ -17,7 +17,9 @@ function formatDateTime(value) {
 }
 
 function mapApiReport(report, index) {
-  const presses = report.mainPresses?.length ? report.mainPresses : ['-'];
+  const presses = Array.isArray(report.mainPresses)
+    ? report.mainPresses.filter((press) => typeof press === 'string' && press.trim())
+    : [];
 
   return {
     id: report.id ?? index + 1,
@@ -44,12 +46,28 @@ function mapApiReport(report, index) {
   };
 }
 
-export default function ReportView() {
-  const [expandedId, setExpandedId] = useState(4); // Default to the 4th item expanded as in the design
+function mapReportDetailArticle(article, index, fallbackStance) {
+  const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
+  recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
+
+  return {
+    id: article.articleId ?? article.id ?? index,
+    press: getPressLabel(pressValue),
+    date: cleanDisplayText(article.publishedAt || article.createdAt || article.date || article.pubDate, ''),
+    title: cleanDisplayText(article.title, '제목 없음'),
+    stance: cleanDisplayText(article.stance, fallbackStance),
+  };
+}
+
+export default function ReportView({ onAuthExpired }) {
+  const [expandedId, setExpandedId] = useState(null);
   const [innerTab, setInnerTab] = useState('related'); // 'related' | 'unrelated' | 'summary'
   const [reportData, setReportData] = useState(null);
   const [reportStatus, setReportStatus] = useState('loading');
   const [apiError, setApiError] = useState('');
+  const [detailDataById, setDetailDataById] = useState({});
+  const [detailStatusById, setDetailStatusById] = useState({});
+  const [detailErrorById, setDetailErrorById] = useState({});
   const [keyword, setKeyword] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [scoreFilter, setScoreFilter] = useState('');
@@ -69,22 +87,66 @@ export default function ReportView() {
         if (!ignore) {
           setReportData(data || {});
           setReportStatus('done');
+          setApiError('');
         }
       })
       .catch((error) => {
+        const isAuthError = error.status === 401 || error.status === 403;
         if (!ignore && error.code !== 'API_NOT_CONFIGURED') {
-          setApiError(error.message || '리포트를 불러오지 못했습니다.');
+          setApiError(isAuthError
+            ? '로그인이 만료되었거나 인증이 필요합니다. 다시 로그인해주세요.'
+            : error.message || '리포트를 불러오지 못했습니다.');
         }
         if (!ignore) {
           setReportData(null);
-          setReportStatus('fallback');
+          setReportStatus('error');
+        }
+        if (isAuthError && onAuthExpired) {
+          onAuthExpired();
         }
       });
 
     return () => {
       ignore = true;
     };
-  }, [dateFilter, keyword, page, scoreFilter]);
+  }, [dateFilter, keyword, onAuthExpired, page, scoreFilter]);
+
+  const loadReportDetail = (reportId) => {
+    if (!reportId || detailDataById[reportId] || detailStatusById[reportId] === 'loading') return;
+
+    setDetailStatusById((previous) => ({ ...previous, [reportId]: 'loading' }));
+    setDetailErrorById((previous) => ({ ...previous, [reportId]: '' }));
+
+    getAnalysisResult(reportId, { limit: 10 })
+      .then((data) => {
+        setDetailDataById((previous) => ({ ...previous, [reportId]: data || {} }));
+        setDetailStatusById((previous) => ({ ...previous, [reportId]: 'done' }));
+      })
+      .catch((error) => {
+        const isAuthError = error.status === 401 || error.status === 403;
+        setDetailErrorById((previous) => ({
+          ...previous,
+          [reportId]: isAuthError
+            ? '로그인이 만료되었거나 인증이 필요합니다. 다시 로그인해주세요.'
+            : error.message || '리포트 상세를 불러오지 못했습니다.',
+        }));
+        setDetailStatusById((previous) => ({ ...previous, [reportId]: 'error' }));
+        if (isAuthError && onAuthExpired) {
+          onAuthExpired();
+        }
+      });
+  };
+
+  const toggleReport = (report) => {
+    if (expandedId === report.id) {
+      setExpandedId(null);
+      return;
+    }
+
+    setExpandedId(report.id);
+    setInnerTab('related');
+    loadReportDetail(report.id);
+  };
 
   const styles = {
     container: { backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'sans-serif', color: '#202124', display: 'flex', borderTop: '1px solid #e8eaed' },
@@ -122,9 +184,9 @@ export default function ReportView() {
       borderRadius: '8px',
       fontSize: '13px',
       fontWeight: 'bold',
-      color: source === 'api' ? '#174ea6' : source === 'loading' ? '#80868b' : '#5f6368',
-      backgroundColor: source === 'api' ? '#e8f0fe' : '#f8f9fa',
-      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+      color: source === 'api' ? '#174ea6' : source === 'loading' ? '#80868b' : source === 'error' ? '#c5221f' : '#5f6368',
+      backgroundColor: source === 'api' ? '#e8f0fe' : source === 'error' ? '#fce8e6' : '#f8f9fa',
+      border: source === 'api' ? '1px solid #d2e3fc' : source === 'error' ? '1px solid #fad2cf' : '1px solid #e0e0e0',
       marginTop: '6px',
     }),
     
@@ -186,40 +248,25 @@ export default function ReportView() {
     globalFooter: { borderTop: '1px solid #e0e0e0', padding: '16px 40px', fontSize: '12px', color: '#80868b', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#ffffff' }
   };
 
-  const reports = [
-    { id: 1, title: '백신 부작용 사망자 급증?', date: '2024.05.20 14:30', status: '분석 완료', relatedCount: 12, unrelatedCount: 9, score: 3.1, sources: [
-      { name: 'KBS 뉴스', logo: '#1a2b49', score: '4/5' }, { name: '연합뉴스', logo: '#1a73e8', score: '4/5' }, { name: '뉴스1', logo: '#ea4335', score: null }
-    ], extraCount: 9, summaryDesc: '질병관리청은 최근 제기된 백신 접종 후 사망 급증 주장에 대해 현재까지 인과성이 확인된 사례는 없다고 밝혔습니다.' },
-    { id: 2, title: '기후변화는 인간의 영향이 아니다?', date: '2024.05.18 09:15', status: '분석 완료', relatedCount: 15, unrelatedCount: 11, score: 2.6, sources: [
-      { name: 'BBC 코리아', logo: '#202124', score: '4/5' }, { name: '사이언스타임즈', logo: '#4285f4', score: '2/5' }, { name: '자유일보', logo: '#ea4335', score: null }
-    ], extraCount: 12, summaryDesc: '다수의 과학적 연구는 최근 기후변화의 주요 원인이 인간 활동에 의한 것임을 지지하고 있습니다.' },
-    { id: 3, title: '일본 후쿠시마 오염수 방류 안전하다?', date: '2024.05.15 16:40', status: '분석 완료', relatedCount: 14, unrelatedCount: 10, score: 2.9, sources: [
-      { name: 'NHK 뉴스', logo: '#1a73e8', score: '4/5' }, { name: 'YTN', logo: '#00c4b4', score: '3/5' }, { name: '한겨레', logo: '#34a853', score: '2/5' }
-    ], extraCount: 0, summaryDesc: '국제원자력기구(IAEA)는 일본의 방류 계획이 국제 안전 기준에 부합한다고 평가했습니다.' },
-    { id: 4, title: 'AI가 일자리를 대체한다?', date: '2024.05.12 11:20', status: '분석 완료', relatedCount: 10, unrelatedCount: 8, score: 3.4, sources: [
-      { name: '매일경제', logo: '#3c4043', score: '4/5' }, { name: '한국경제', logo: '#00c4b4', score: '4/5' }, { name: '조선비즈', logo: '#ea4335', score: null }
-    ], extraCount: 7, summaryDesc: '전문가들은 AI가 일부 일자리를 대체할 수 있지만 새로운 일자리 창출도 동시에 일어날 것이라고 전망합니다.' },
-  ];
-
   const hasApiReports = reportStatus === 'done';
   const displayReports = hasApiReports
     ? (Array.isArray(reportData?.reports) ? reportData.reports.map(mapApiReport) : [])
-    : reports;
+    : [];
   const totalStats = hasApiReports ? {
     searchedTopics: reportData?.totalStats?.searchedTopics ?? 0,
     analyzedArticles: reportData?.totalStats?.analyzedArticles ?? 0,
     averageReliability: reportData?.totalStats?.averageReliability ?? 0,
   } : {
-    searchedTopics: 18,
-    analyzedArticles: 216,
-    averageReliability: 3.2,
+    searchedTopics: 0,
+    analyzedArticles: 0,
+    averageReliability: 0,
   };
-  const sourceState = reportStatus === 'loading' ? 'loading' : hasApiReports ? 'api' : 'fallback';
+  const sourceState = reportStatus === 'loading' ? 'loading' : hasApiReports ? 'api' : 'error';
   const sourceText = sourceState === 'api'
     ? '백엔드 API 응답 표시 중'
     : sourceState === 'loading'
       ? '백엔드 API 응답 대기 중'
-      : '프론트 목업 fallback 표시 중';
+      : '리포트 요청 실패';
 
   return (
     <div className="report-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -340,6 +387,20 @@ export default function ReportView() {
               </div>
             ) : displayReports.map((report) => {
               const isExpanded = expandedId === report.id;
+              const detail = detailDataById[report.id] ?? {};
+              const detailStatus = detailStatusById[report.id] ?? 'idle';
+              const detailError = detailErrorById[report.id] ?? '';
+              const relatedArticles = Array.isArray(detail.relatedArticles)
+                ? detail.relatedArticles.map((article, index) => mapReportDetailArticle(article, index, '관련'))
+                : [];
+              const counterArticles = Array.isArray(detail.counterArticles)
+                ? detail.counterArticles.map((article, index) => mapReportDetailArticle(article, index, '반박'))
+                : [];
+              const activeArticles = innerTab === 'related' ? relatedArticles : counterArticles;
+              const insights = Array.isArray(detail.insights)
+                ? detail.insights.map((insight) => cleanDisplayText(insight, '')).filter(Boolean)
+                : [];
+              const summaryText = insights.length > 0 ? insights.join('\n\n') : report.summaryDesc;
               
               return (
                 <div className="report-card" key={report.id} style={styles.reportCard(isExpanded)}>
@@ -374,7 +435,9 @@ export default function ReportView() {
                     <div className="report-source-wrap" style={{ flex: 1, paddingLeft: '12px' }}>
                       <div style={{fontSize: '12px', color: '#80868b', marginBottom: '8px'}}>주요 출처 신뢰도</div>
                       <div className="report-source-group" style={styles.sourceGroup}>
-                        {report.sources.map((src, i) => (
+                        {report.sources.length === 0 ? (
+                          <span style={{fontSize:'12px', color:'#80868b'}}>상세 보기에서 출처를 확인하세요</span>
+                        ) : report.sources.map((src, i) => (
                           <div key={i} style={styles.sourceItem}>
                             <div style={styles.sourceLogo(src.logo)}>
                               {src.name.charAt(0)}
@@ -394,7 +457,7 @@ export default function ReportView() {
                       </div>
                     )}
 
-                    <button style={styles.detailBtn} onClick={() => setExpandedId(isExpanded ? null : report.id)}>
+                    <button style={styles.detailBtn} onClick={() => toggleReport(report)}>
                       {isExpanded ? '접기 ^' : '상세 보기 >'}
                     </button>
                   </div>
@@ -406,29 +469,39 @@ export default function ReportView() {
                          ✨ 기사 요약
                       </div>
                       <div className="report-expanded-tabs" style={styles.expandedTabs}>
-                         <div style={styles.expandedTab(innerTab === 'related')} onClick={() => setInnerTab('related')}>관련 기사 요약 (10)</div>
-                         <div style={styles.expandedTab(innerTab === 'unrelated')} onClick={() => setInnerTab('unrelated')}>반박 기사 요약 (8)</div>
+                         <div style={styles.expandedTab(innerTab === 'related')} onClick={() => setInnerTab('related')}>관련 기사 요약 ({relatedArticles.length})</div>
+                         <div style={styles.expandedTab(innerTab === 'unrelated')} onClick={() => setInnerTab('unrelated')}>반박 기사 요약 ({counterArticles.length})</div>
                          <div style={styles.expandedTab(innerTab === 'summary')} onClick={() => setInnerTab('summary')}>종합 요약</div>
                       </div>
                       
                       <div className="report-expanded-content" style={styles.expandedContentBody}>
                          <div className="report-article-list-col" style={styles.articleListCol}>
-                           {['매일경제', '한국경제', '조선비즈'].map((pub, i) => (
-                             <div className="report-article-list-item" key={i} style={styles.articleListItem}>
+                           {detailStatus === 'loading' ? (
+                             <div style={styles.emptyState}>리포트 상세를 불러오는 중입니다.</div>
+                           ) : detailStatus === 'error' ? (
+                             <div style={styles.emptyState}>{detailError || '리포트 상세를 불러오지 못했습니다.'}</div>
+                           ) : innerTab === 'summary' ? (
+                             <div style={styles.emptyState}>오른쪽 종합 요약을 확인하세요.</div>
+                           ) : activeArticles.length === 0 ? (
+                             <div style={styles.emptyState}>{innerTab === 'related' ? '관련 기사' : '반박 기사'} 목록이 비어 있습니다.</div>
+                           ) : activeArticles.map((article) => (
+                             <div className="report-article-list-item" key={article.id} style={styles.articleListItem}>
                                <span style={{fontSize:'16px', color:'#80868b'}}>•</span>
-                               <span className="report-article-list-publisher" style={styles.articleListPublisher}>{pub}</span>
-                               <span className="report-article-list-date" style={styles.articleListDate}>(2024.05.12)</span>
-                               <span style={styles.articleListText}>AI 기술 발전으로 단순 반복 업무의 자동화 가속화</span>
-                               <span className="report-article-list-action" style={styles.articleListAction}>요약 보기 v</span>
+                               <span className="report-article-list-publisher" style={styles.articleListPublisher}>{article.press}</span>
+                               <span className="report-article-list-date" style={styles.articleListDate}>{article.date || '-'}</span>
+                               <span style={styles.articleListText}>{article.title}</span>
+                               <span className="report-article-list-action" style={styles.articleListAction}>{article.stance}</span>
                              </div>
                            ))}
-                           <div style={{textAlign: 'center', color: '#1a73e8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '12px'}}>더보기 v</div>
                          </div>
                          <div className="report-summary-col" style={styles.summaryCol}>
                             <div style={styles.summaryColTitle}>종합 요약</div>
-                            <div style={styles.summaryColText}>
-                              대부분의 전문가들은 AI가 일부 일자리를 대체하겠지만, 새로운 산업과 직무를 창출하여 전체적인 일자리 수는 큰 변동이 없을 것이라고 전망합니다.<br/><br/>
-                              핵심은 AI와의 협업 능력과 새로운 기술 습득이 중요하다는 의견이 지배적입니다.
+                            <div style={{ ...styles.summaryColText, whiteSpace: 'pre-line' }}>
+                              {detailStatus === 'loading'
+                                ? '상세 분석 요약을 불러오는 중입니다.'
+                                : detailStatus === 'error'
+                                  ? detailError || '상세 분석 요약을 불러오지 못했습니다.'
+                                  : summaryText}
                             </div>
                          </div>
                       </div>

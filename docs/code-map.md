@@ -1,6 +1,6 @@
 # 코드맵
 
-마지막 갱신: 2026-07-31
+마지막 갱신: 2026-08-02
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 이 문서는 새 채팅에서 전체 코드를 다시 훑지 않도록 만든 지도이다. 정확한 구현 확인이 필요할 때만 해당 파일을 직접 연다.
@@ -32,7 +32,7 @@ C:\Users\eunhy\Desktop\동아리
 
 ## cheatft_web 개요
 
-Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기/신뢰도 분석은 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 리포트/커뮤니티 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
+Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기/신뢰도 분석/팩트체크 리포트는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 커뮤니티 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
 
 기술 스택:
 
@@ -72,12 +72,12 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `eslint.config.js`: JS recommended, React Hooks, React Refresh 설정. `dist`는 ignore.
 - `index.html`: Vite HTML 진입점. 문서 제목은 `Cheat F/T`, favicon은 `public/favicon.png`를 참조한다.
 - `src/main.jsx`: `BrowserRouter`로 `App`을 감싸서 렌더링.
-- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심. 신뢰도 분석 API가 401/403 인증 실패를 받으면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 이동시키는 `handleAuthExpired()`를 `AlgoView`에 전달한다. 앱 본문은 내부 이중 세로 스크롤 없이 브라우저 기본 페이지 스크롤을 사용한다.
+- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심. 신뢰도 분석/리포트 API가 401/403 인증 실패를 받으면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 이동시키는 `handleAuthExpired()`를 `AlgoView`, `ReportView`에 전달한다. 앱 본문은 내부 이중 세로 스크롤 없이 브라우저 기본 페이지 스크롤을 사용한다.
   - `/report`, `/community`용 별도 오른쪽 상단 버튼 분기는 제거되어 다른 화면과 같은 상단바를 사용한다.
-- `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 홈 외 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
+- `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 로딩 스피너 애니메이션, 홈 외 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
-- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/article`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
+- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/article`, `/keywords`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
 - `public/favicon.png`: 브라우저 주소창/탭용 Cheat F/T 아이콘. 첨부 이미지의 흰 배경을 투명 처리한 PNG.
 - `src/data/pressReliability.js`: 언론사별 분류, 신뢰도 점수/라벨, AI 별점 참고값, 판단 이유 요약을 담은 사이트 반영 원본 데이터. 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 모두 신뢰도 기준으로 연결된다.
 - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, `pressReliability.js` 기반 화면 필터 분류/신뢰도 조회, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적. 2026-07-31 기준 백엔드 69개 oid와 프론트 oid/name 및 로고 매핑을 맞췄다.
@@ -98,8 +98,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 | `/search?q=...` | `VerificationView` | 검색어가 있으면 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
 | `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
 | `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 `POST /article`로 상세 본문/기자/입력 시간/주제를 보강. API 실패는 화면 오류로 노출하지 않음 |
-| `/algo` | `AlgoView` | 보호 라우트. 질문 입력 후 추천 키워드 칩 선택 또는 선택 키워드 분석 버튼으로 `POST /analysis` 후 `GET /analysis/{id}`, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 프론트 목업 fallback 없음 |
-| `/report` | `ReportView` | `GET /reports` 우선, `keyword/date/score/page/limit` 전달, API/목업 출처 안내, 실패 시 리포트 목록/상세 목업. 내보내기/다운로드 버튼 없음 |
+| `/algo` | `AlgoView` | 보호 라우트. 빈 질문 입력에서 시작하고 `POST /keywords`로 추천 키워드 조회, 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}?limit=10`, 긴 분석 중 로딩 팝업, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 프론트 목업 fallback 없음 |
+| `/report` | `ReportView` | 보호 라우트. `GET /reports` 우선, `keyword/date/score/page/limit` 전달, 상세 펼침 시 `GET /analysis/{id}?limit=10`, API/오류/빈 상태 표시, 실패 시 리포트 목록/상세 목업 없음 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
 | `/community/write` | `CommunityWriteView` | 보호 라우트. 글 작성 임시 저장, 등록 시 `POST /posts` |
 | `/community/:id` | `DetailView type="커뮤니티"` | 게시글 상세 placeholder |
@@ -146,8 +146,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 - `AlgoView.jsx`
   - `activeTab`으로 관련 뉴스/반박 기사 탭 전환.
-  - 질문 입력 후 프론트에서 추천 키워드 칩을 생성한다. 사용자가 키워드 칩을 선택하면 `runAnalysis()`로 `POST /analysis`와 `GET /analysis/{id}`를 호출한다.
-  - 선택된 키워드는 별도 `선택 키워드 분석` 버튼으로도 다시 분석할 수 있다.
+  - 질문 입력 후 `recommendKeywords()`로 `POST /keywords`를 호출해 추천 키워드 칩을 생성한다. 사용자가 키워드 칩을 선택하면 `runAnalysis()`로 `POST /analysis`와 `GET /analysis/{id}?limit=10`을 호출한다.
+  - 초기 질문/키워드 값은 비워두고, 분석 전 메인 제목은 특정 키워드 결과처럼 보이지 않게 표시한다.
+  - 분석 요청이 오래 걸릴 수 있어 `analysisStatus=loading` 동안 전체 화면 로딩 팝업을 표시하고 추천/분석 버튼 중복 클릭을 막는다.
   - 입력 흐름을 직관적으로 보이게 하기 위해 기본/키워드 선택 직후에는 질문 영역, 추천 키워드 생성 직후에는 키워드 영역을 테두리와 배경으로 강조한다.
   - 메인 영역은 `AI 주요 인사이트`와 `신뢰도 분석 요약`을 먼저 표시하고, 관련 뉴스/반박 기사 탭은 그 아래 서브 섹션으로 표시한다.
   - `biasAnalysis`, `relatedArticles`, `counterArticles`, `insights`, `summaryStats`, `pagination`을 실제 운영 API 응답 기준으로 표시하고 실패 시 목업을 사용하지 않는다.
@@ -162,13 +163,14 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 
 - `ReportView.jsx`
   - `expandedId`, `innerTab`으로 리포트 펼침/요약 탭 제어.
-  - `getReports()`로 `totalStats`, `reports`, `pagination`을 가져오고 실패 시 기존 목업을 사용한다.
-  - 검색어, 날짜 필터, 신뢰도 필터를 `keyword`, `date`, `score` query parameter로 전달한다. 2026-07-26 배포 API 확인 기준 실제 응답은 query와 무관한 dummy 고정값이며 `currentPage: 1`을 반환한다.
+  - `getReports()`로 `totalStats`, `reports`, `pagination`을 가져오고 실패 시 기존 목업을 사용하지 않는다.
+  - 검색어, 날짜 필터, 신뢰도 필터를 `keyword`, `date`, `score` query parameter로 전달한다. 2026-08-02 로컬 백엔드 pull 기준 인증 사용자의 분석 기록을 반환한다.
+  - 상세 보기를 펼치면 리포트 id를 분석 id로 보고 `getAnalysisResult(id, { limit: 10 })`를 호출해 실제 관련/반박 기사와 인사이트를 표시한다.
   - 상단 nav의 리포트 내보내기 버튼, `총 검색 시간` 통계 카드, 상세 요약 다운로드 버튼은 제거됐다.
   - 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 3개 카드로 표시한다.
   - 주요 출처는 `getPressLabel()`, `getPressLogoUrl()`, `recordObservedPress()`를 사용한다. API 리포트 제목/요약은 `cleanDisplayText()`로 디코딩한다.
-  - API 성공 후 `reports`가 비어 있으면 빈 리포트 상태를 표시하고, 실패 시에만 기존 리포트 목업을 사용한다.
-  - API 응답 표시 중인지, 프론트 목업 fallback인지 상단 안내로 구분한다.
+  - API 성공 후 `reports`가 비어 있으면 빈 리포트 상태를 표시하고, 실패 시 오류 상태를 표시한다.
+  - API 응답 표시 중인지, 요청 실패 상태인지 상단 안내로 구분한다.
   - 내부 `height: calc(100vh - 71px)`/`overflowY: auto` 스크롤 구조는 제거됐다. 충분한 폭에서는 좌측 사이드바와 가로 통계를 유지하고, 좁은 폭에서만 세로형으로 전환한다.
 
 - `CommunityView.jsx`
@@ -236,20 +238,20 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신빙성 확인, �
 - `src/index.js`: Express 앱, CORS/JSON middleware, `/api` 라우트 연결.
 - `src/config/db.config.js`: PostgreSQL pool 설정.
 - `src/middlewares/auth.middleware.js`: Bearer token 검증.
-- `src/routes/*.routes.js`: auth, checks, analysis, dummy 라우트.
+- `src/routes/*.routes.js`: auth, checks, analysis, reports, dummy 라우트.
 - `src/controllers/*.controller.js`: 요청/응답 래핑.
 - `src/services/checks.service.js`: Naver 검색 또는 fallback 기사 생성, `PRESS_MAPPING` 보유.
 - `src/services/analysis.service.js`: 분석 요청/조회 흐름.
-- `src/controllers/dummy.controller.js`: summary, reports, posts, profile 더미 응답.
+- `src/controllers/dummy.controller.js`: summary, posts, profile 더미 응답.
 - `src/models/*.model.js`: DB 접근 계층.
 
 현재 관측된 API 성격:
 
 - 대부분의 응답은 `{ status, message, data }` 형식이다. 단, `GET /api/health`는 공통 래핑 없이 `{ message }`만 반환한다.
-- `GET /api/summary`, `GET /api/reports`, `GET /api/posts`, `POST /api/posts`, `GET /api/profile`은 dummy controller 기반이며 query/auth/DB 저장을 거의 처리하지 않는다. 2026-07-26 배포 API 확인 기준 `reports/posts` query parameter는 실제 필터/페이지에 반영되지 않는다.
+- 2026-08-02 로컬 백엔드 pull 기준 `POST /api/keywords`, `POST /api/analysis`, `GET /api/analysis/:id`, `GET /api/reports`는 `verifyToken`이 필요하며 DB/서비스 흐름을 사용한다. `GET /api/analysis/:id`의 `limit` query는 관련/반박 기사 각각에 적용된다.
+- `GET /api/summary`, `GET /api/posts`, `POST /api/posts`, `GET /api/profile`은 dummy controller 기반이며 query/auth/DB 저장을 거의 처리하지 않는다. 2026-07-26 배포 API 확인 기준 `posts` query parameter는 실제 필터/페이지에 반영되지 않는다.
 - `POST /api/checks`는 optional auth이고, Naver API 키가 있으면 검색 결과를 저장한다. 키가 없거나 검색 결과가 없으면 빈 `articles` 또는 fallback article이 될 수 있다.
 - `GET /api/checks/:id`는 DB에 저장된 check/article을 조회한다. 현재 article 필드는 `articleId`, `press`, `title`, `description`, `date`, `url`이고 `press`는 숫자보다 언론사명 문자열로 내려온다.
-- `POST /api/analysis`, `GET /api/analysis/:id`는 `verifyToken`이 필요하지만 현재 분석값/기사/인사이트는 고정 샘플을 DB에 저장하는 stub 성격이다. `limit` query는 현재 결과 개수에 반영되지 않는다.
 - `POST /api/login`, `POST /api/signup`, `GET /api/me`는 2026-07-26 배포 API에서 정상 흐름을 확인했다. 단, 중복 회원가입은 `409`가 아니라 `500`으로 내려온다.
 - `GET /api/health`는 서버 상태 확인 라우트이다.
 
