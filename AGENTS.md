@@ -65,10 +65,10 @@
 - API 기본 URL은 `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`를 기준으로 한다.
 - 로그인 accessToken은 `localStorage`의 `cheat-ft-access-token`에 저장한다.
 - 로그인 후 현재 사용자 정보는 `localStorage`의 `cheat-ft-current-user`에 저장하고 오른쪽 상단에 닉네임을 표시한다.
-- 보호 라우트는 `/community/write`, `/algo`이다.
+- 보호 라우트는 `/community/write`, `/algo`, `/report`이다.
 - 마이페이지 화면과 `/mypage` 라우트는 제거됐다.
-- 홈/검증하기는 프론트 더미 fallback 없이 API 응답, 오류, 빈 상태를 표시한다.
-- 검증하기는 `GET /checks/{id}?page=1&limit=100`으로 받은 결과를 프론트에서 10건씩 페이지네이션한다. 현재 배포 API는 서버 `page/limit`을 실제 분할에 반영하지 않는 것으로 관측됐다.
+- 홈/신뢰도 분석(`/search`)/편향성 분석(`/algo`)/팩트체크 리포트는 프론트 더미 fallback 없이 API 응답, 오류, 빈 상태를 표시한다.
+- 신뢰도 분석은 `GET /checks/{id}?page=1&limit=100`으로 받은 결과를 프론트에서 10건씩 페이지네이션하고, 기사 상세에서 뒤로가기 시 검색어별 `sessionStorage` 캐시로 기존 결과를 복원한다. 현재 배포 API는 서버 `page/limit`을 실제 분할에 반영하지 않는 것으로 관측됐다.
 - 언론사별 분류/신뢰도 기준은 `src/data/pressReliability.js`, 사람이 검토할 이유 표는 `docs/press-reliability.md`를 우선 본다.
 - 프론트 테스트 계정은 `codex.test.20260716@example.com / Codex테스트0716 / Test!20260716#Codex`이다.
 

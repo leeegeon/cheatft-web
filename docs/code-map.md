@@ -32,7 +32,7 @@ C:\Users\eunhy\Desktop\동아리
 
 ## cheatft_web 개요
 
-Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, 신뢰도 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/검증하기/신뢰도 분석/팩트체크 리포트는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 커뮤니티 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
+Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, 편향성 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/신뢰도 분석(`/search`)/편향성 분석(`/algo`)/팩트체크 리포트는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 커뮤니티 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
 
 기술 스택:
 
@@ -72,16 +72,16 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 - `eslint.config.js`: JS recommended, React Hooks, React Refresh 설정. `dist`는 ignore.
 - `index.html`: Vite HTML 진입점. 문서 제목은 `Cheat F/T`, favicon은 `public/favicon.png`를 참조한다.
 - `src/main.jsx`: `BrowserRouter`로 `App`을 감싸서 렌더링.
-- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심. 앱 진입/보호 라우트 이동/창 재포커스 시 저장 토큰을 `GET /me`로 재확인하고, 신뢰도 분석/리포트 API가 401/403 인증 실패를 받으면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 이동시키는 `handleAuthExpired()`를 `AlgoView`, `ReportView`에 전달한다. 앱 본문은 내부 이중 세로 스크롤 없이 브라우저 기본 페이지 스크롤을 사용한다.
+- `src/App.jsx`: 전역 nav, 저장된 accessToken 기반 로그인 상태와 현재 사용자 이름 표시, 보호 라우팅, 검색 URL 이동, 기사 상세 route state/sessionStorage 전달의 중심. 앱 진입/보호 라우트 이동/창 재포커스 시 저장 토큰을 `GET /me`로 재확인하고, 편향성 분석/리포트 API가 401/403 인증 실패를 받으면 저장 토큰/사용자 정보를 지우고 로그인 화면으로 이동시키는 `handleAuthExpired()`를 `AlgoView`, `ReportView`에 전달한다. 앱 본문은 내부 이중 세로 스크롤 없이 브라우저 기본 페이지 스크롤을 사용한다.
   - `/report`, `/community`용 별도 오른쪽 상단 버튼 분기는 제거되어 다른 화면과 같은 상단바를 사용한다.
-- `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 로딩 스피너 애니메이션, 홈 외 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
+- `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 로딩 스피너 애니메이션, 홈과 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
 - `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/article`, `/keywords`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
 - `public/favicon.png`: 브라우저 주소창/탭용 Cheat F/T 아이콘. 첨부 이미지의 흰 배경을 투명 처리한 PNG.
 - `src/data/pressReliability.js`: 언론사별 분류, 신뢰도 점수/라벨, AI 별점 참고값, 판단 이유 요약을 담은 사이트 반영 원본 데이터. 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 모두 신뢰도 기준으로 연결된다.
 - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, `pressReliability.js` 기반 화면 필터 분류/신뢰도 조회, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적. 2026-07-31 기준 백엔드 69개 oid와 프론트 oid/name 및 로고 매핑을 맞췄다.
-- `src/utils/reliability.js`: 검증하기/뉴스 상세 공용 신뢰도 표시 기준. 입력 점수를 5점 만점으로 정규화하고, `높음` 3.9 이상, `보통` 3.3 이상 3.9 미만, `주의` 3.3 미만 라벨과 색상/게이지 채움 비율을 반환한다.
+- `src/utils/reliability.js`: 신뢰도 분석/뉴스 상세 공용 신뢰도 표시 기준. 입력 점수를 5점 만점으로 정규화하고, `높음` 3.9 이상, `보통` 3.3 이상 3.9 미만, `주의` 3.3 미만 라벨과 색상/게이지 채움 비율을 반환한다.
 - `src/utils/search.js`: 검색어 trim과 `/search?q=...` URL 생성.
 - `src/utils/text.js`: API 표시 문자열의 HTML entity 디코딩과 HTML 태그 제거.
 - `tests/search.test.js`: `normalizeSearchQuery`, `buildSearchPath` 단위 테스트.
@@ -95,10 +95,10 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 | 경로 | 컴포넌트 | 현재 동작 |
 |---|---|---|
 | `/` | `HomeView` | 홈, `GET /summary` 응답만 표시. 프론트 더미 fallback 없음. 최신 팩트체크는 백엔드 `recentChecks` 전체 표시 |
-| `/search?q=...` | `VerificationView` | 검색어가 있으면 검색 중 로딩 팝업을 표시하고 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
-| `/search` | `VerificationView` | `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
-| `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 `POST /article`로 상세 본문/기자/입력 시간/주제를 보강. API 실패는 화면 오류로 노출하지 않음 |
-| `/algo` | `AlgoView` | 보호 라우트. 빈 질문 입력에서 시작하고 Enter는 키워드 추천 실행, Shift+Enter는 줄바꿈, `POST /keywords`로 추천 키워드 조회, 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}?limit=10`, 긴 분석 중 로딩 팝업, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 프론트 목업 fallback 없음 |
+| `/search?q=...` | `VerificationView` | 신뢰도 분석 화면. 검색어가 있으면 검색 중 로딩 팝업을 표시하고 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. 같은 탭에서 이미 조회한 검색어는 sessionStorage 캐시를 복원해 뒤로가기 시 재검색을 피함. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
+| `/search` | `VerificationView` | 신뢰도 분석 기본 화면. `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
+| `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 URL이 지원되면 `POST /article` 상세 API 응답의 `content` 본문을 우선 표시하고 기자/입력 시간/주제를 병합하며 URL별 sessionStorage 캐시를 사용. API 실패는 화면 오류로 노출하지 않음 |
+| `/algo` | `AlgoView` | 편향성 분석 보호 라우트. 빈 질문 입력에서 시작하고 Enter는 키워드 추천 실행, Shift+Enter는 줄바꿈, `POST /keywords`로 추천 키워드 조회, 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}?limit=10`, 긴 분석 중 로딩 팝업, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 프론트 목업 fallback 없음 |
 | `/report` | `ReportView` | 보호 라우트. `GET /reports` 우선, `keyword/date/score/page/limit` 전달, 상세 펼침 시 `GET /analysis/{id}?limit=10`, 사이드바 기간/신뢰도 필터는 API query 반영, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, API/오류/빈 상태 표시, 실패 시 리포트 목록/상세 목업 없음 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
 | `/community/write` | `CommunityWriteView` | 보호 라우트. 글 작성 임시 저장, 등록 시 `POST /posts` |
@@ -119,7 +119,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 
 - `VerificationView.jsx`
   - `useSearchParams`로 `q`를 읽고, 검색어가 있으면 결과 목록을 보여준다.
-  - `runFactCheck()`로 `POST /checks`와 `GET /checks/{id}`를 순차 호출하고, 검색 요청 중에는 전체 화면 로딩 팝업을 표시한다. 현재 결과 조회에는 `page=1&limit=100`을 전달하고, 정렬값은 백엔드로 보내지 않는다.
+  - `runFactCheck()`로 `POST /checks`와 `GET /checks/{id}`를 순차 호출하고, 검색 요청 중에는 전체 화면 로딩 팝업을 표시한다. 현재 결과 조회에는 `page=1&limit=100`을 전달하고, 정렬값은 백엔드로 보내지 않는다. 성공한 검색 결과는 검색어별 sessionStorage 캐시에 저장해 상세 화면에서 뒤로가기 시 재요청 없이 복원한다.
   - 검색 결과는 수신한 `articles` 배열을 프론트에서 정렬/필터링한 뒤 10건씩 페이지를 나눠 표시한다. 2026-07-26 배포 API 확인 기준 서버 `page/limit` 분할은 아직 적용되지 않아 클라이언트 페이지네이션으로 처리한다.
   - 검색어 없이 들어오면 `getSummary()`로 최신 팩트체크 목록을 표시한다.
   - 검색 결과는 백엔드 API 결과만 표시한다. 프론트 더미데이터 fallback, 예시 검색 버튼, URL 링크 검색 탭은 제거됐다.
@@ -135,8 +135,8 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 
 - `DetailView.jsx`
   - 뉴스 상세와 커뮤니티 상세을 `type` prop으로 구분한다.
-  - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽어 제목, 언론사, 날짜, 설명, 원문 URL, 신뢰도를 먼저 표시한다.
-  - 기사 URL이 지원되는 네이버 뉴스 형식이면 `/mnews/article/`을 `/article/`로 정규화한 뒤 `POST /article`을 호출해 상세 API의 본문, 기자, 입력 시간, 주제 정보를 병합한다. 실패하면 화면 오류 없이 목록에서 받은 기사 정보를 유지한다.
+  - 뉴스 상세는 클릭한 기사 객체를 `location.state.article` 또는 `sessionStorage`에서 읽고, 지원되는 기사 URL이 있으면 전용 상세 API 응답을 우선 병합해 제목, 본문, 언론사, 기자, 입력 시간, 주제, 원문 URL, 신뢰도를 표시한다.
+  - 기사 URL이 지원되는 네이버 뉴스 형식이면 `/mnews/article/`을 `/article/`로 정규화한 뒤 `POST /article`을 호출한다. 상세 API 응답은 URL별 sessionStorage 캐시에 저장하고, 실패하면 화면 오류 없이 목록에서 받은 기사 정보를 유지한다.
   - 백엔드/목록 데이터의 신뢰도 점수를 우선 표시하고, 없으면 `src/data/pressReliability.js`의 언론사 기준 신뢰도와 판단 이유를 오른쪽 신뢰도 패널에 표시한다.
   - 오른쪽 신뢰도 패널은 `src/utils/reliability.js`의 5점 만점 공통 기준으로 0~5 숫자 눈금, 점수만큼 채워지는 막대, 현재 점수 마커를 표시한다.
   - 뉴스 상세 제목/본문은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
@@ -151,7 +151,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
   - 초기 질문/키워드 값은 비워두고, 분석 전 메인 제목은 특정 키워드 결과처럼 보이지 않게 표시한다. 분석 완료 후에는 `'키워드' 분석 결과` 형식으로 제목을 표시한다.
   - 분석 요청이 오래 걸릴 수 있어 `analysisStatus=loading` 동안 전체 화면 로딩 팝업을 표시하고 추천/분석 버튼 중복 클릭을 막는다.
   - 입력 흐름을 직관적으로 보이게 하기 위해 기본/키워드 선택 직후에는 질문 영역, 추천 키워드 생성 직후에는 키워드 영역을 테두리와 배경으로 강조한다.
-  - 메인 영역은 `AI 주요 인사이트`와 `신뢰도 분석 요약`을 먼저 표시하고, 관련 뉴스/반박 기사 탭은 그 아래 서브 섹션으로 표시한다.
+  - 메인 영역은 `AI 주요 인사이트`와 `편향성 분석 요약`을 먼저 표시하고, 관련 뉴스/반박 기사 탭은 그 아래 서브 섹션으로 표시한다.
   - `biasAnalysis`, `relatedArticles`, `counterArticles`, `insights`, `summaryStats`, `pagination`을 실제 운영 API 응답 기준으로 표시하고 실패 시 목업을 사용하지 않는다.
   - `POST /analysis` 또는 `GET /analysis/{id}`에서 401/403이 오면 `onAuthExpired()`를 호출해 저장 토큰을 비우고 로그인 화면으로 보낸다.
   - 기사 변환에서 `articleId`, `press`, `title`, `stance`를 우선 처리한다. 기사 배지는 백엔드 `stance` 값인 `긍정`, `중립`, `반박`을 그대로 표시한다. `url/link/originalLink`가 있으면 카드 클릭 시 원문을 새 탭으로 열고, 현재 운영 API처럼 URL이 없으면 지어내지 않는다.

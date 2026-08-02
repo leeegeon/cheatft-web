@@ -77,8 +77,27 @@ textarea {
   flex-direction: column;
 }
 
+.home-main-content,
+.home-bottom-grid,
+.home-section-card,
+.home-fact-check-item,
+.home-fact-copy,
+.home-promo-banner,
+.home-promo-copy,
+.home-stat-box {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-section-card,
+.home-promo-banner {
+  width: 100%;
+}
+
 .home-feature-title,
-.home-feature-desc {
+.home-feature-desc,
+.home-fact-copy,
+.home-promo-copy {
   word-break: keep-all;
   overflow-wrap: break-word;
 }
@@ -430,6 +449,23 @@ button:disabled {
     padding: 28px 20px !important;
   }
 
+  .home-bottom-grid,
+  .home-bottom-grid > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .home-section-card {
+    padding: 20px 16px !important;
+    border-radius: 12px !important;
+  }
+
+  .home-section-card > div:first-child {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+
   .hero-title-copy {
     font-size: 34px !important;
     line-height: 1.25 !important;
@@ -455,11 +491,13 @@ button:disabled {
   }
 
   .home-stat-box {
+    flex-wrap: wrap;
     gap: 6px;
     padding: 16px 12px !important;
   }
 
   .home-stat-box > div {
+    flex: 1 1 92px !important;
     min-width: 0;
   }
 
@@ -476,8 +514,33 @@ button:disabled {
     gap: 16px;
   }
 
+  .home-fact-check-item {
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 16px 0 !important;
+  }
+
+  .home-fact-image {
+    width: 56px !important;
+    height: 44px !important;
+    font-size: 22px !important;
+  }
+
+  .home-fact-copy {
+    min-width: 0;
+  }
+
+  .home-fact-check-item > div:last-child {
+    display: none;
+  }
+
+  .home-promo-banner {
+    padding: 20px 16px !important;
+  }
+
   .home-promo-copy {
     align-items: flex-start !important;
+    gap: 14px !important;
   }
 
   .home-promo-button {
@@ -1077,6 +1140,26 @@ button:disabled {
 }
 
 @media (max-width: 420px) {
+  .home-feature-card {
+    flex-direction: column !important;
+    gap: 14px;
+  }
+
+  .home-feature-icon {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .home-promo-copy {
+    flex-direction: column !important;
+  }
+
+  .home-promo-copy > div:first-child {
+    width: 48px !important;
+    height: 48px !important;
+    flex: 0 0 auto;
+  }
+
   .community-write-button,
   .community-filter-select {
     flex: 0 0 auto !important;

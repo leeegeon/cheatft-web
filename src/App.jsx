@@ -169,8 +169,8 @@ export default function App() {
 
   const navItems = [
     { path: '/', label: '홈' },
-    { path: '/search', label: '검증하기' },
-    { path: '/algo', label: '신뢰도 분석' },
+    { path: '/search', label: '신뢰도 분석' },
+    { path: '/algo', label: '편향성 분석' },
     { path: '/report', label: '팩트체크 리포트' },
     { path: '/community', label: '커뮤니티' },
   ];

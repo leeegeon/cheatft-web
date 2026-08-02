@@ -33,6 +33,32 @@ const SOURCE_FILTERS = [
 ];
 const CHECK_RESULT_FETCH_LIMIT = 100;
 const CHECK_RESULT_PAGE_SIZE = 10;
+const CHECK_RESULT_CACHE_PREFIX = 'cheat-ft-check-result-';
+
+function getCheckResultCacheKey(query) {
+  return `${CHECK_RESULT_CACHE_PREFIX}${encodeURIComponent(query)}`;
+}
+
+function getCachedCheckResult(query) {
+  if (!query) return null;
+
+  try {
+    const stored = sessionStorage.getItem(getCheckResultCacheKey(query));
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheCheckResult(query, data) {
+  if (!query || !data) return;
+
+  try {
+    sessionStorage.setItem(getCheckResultCacheKey(query), JSON.stringify(data));
+  } catch {
+    // Session cache is only an optimization for back navigation.
+  }
+}
 
 function matchesSourceFilter(item, sourceFilter) {
   if (sourceFilter === 'all') return true;
@@ -187,16 +213,17 @@ function mapRecentCheck(check, index) {
     reliabilitySortScore: scoreValue,
     scoreColor: getReliabilityColor(scoreValue),
     gaugeFillPercent: getReliabilityGaugeFillPercent(scoreValue),
-    hint: '카드를 누르면 이 주제로 상세 검증을 요청합니다.',
+    hint: '카드를 누르면 이 주제로 신뢰도 분석을 요청합니다.',
   };
 }
 
 export default function VerificationView({ onSearch, onArticleClick }) {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q')?.trim() || '';
+  const cachedCheckResult = getCachedCheckResult(query);
   const [val, setVal] = useState(query || '');
-  const [checkResult, setCheckResult] = useState(null);
-  const [apiStatus, setApiStatus] = useState(query ? 'loading' : 'idle');
+  const [checkResult, setCheckResult] = useState(cachedCheckResult);
+  const [apiStatus, setApiStatus] = useState(query ? (cachedCheckResult ? 'done' : 'loading') : 'idle');
   const [apiError, setApiError] = useState('');
   const [recentChecks, setRecentChecks] = useState([]);
   const [latestStatus, setLatestStatus] = useState(query ? 'idle' : 'loading');
@@ -230,18 +257,24 @@ export default function VerificationView({ onSearch, onArticleClick }) {
       return;
     }
 
+    const cachedResult = getCachedCheckResult(query);
+    if (cachedResult) {
+      return;
+    }
+
     let ignore = false;
 
     runFactCheck(query, { page: 1, limit: CHECK_RESULT_FETCH_LIMIT })
       .then((data) => {
         if (!ignore) {
+          cacheCheckResult(query, data);
           setCheckResult(data);
           setApiStatus('done');
         }
       })
       .catch((error) => {
         if (!ignore && error.code !== 'API_NOT_CONFIGURED') {
-          setApiError(error.message || '검증 결과를 불러오지 못했습니다.');
+          setApiError(error.message || '신뢰도 분석 결과를 불러오지 못했습니다.');
         }
         if (!ignore) {
           setApiStatus('error');
@@ -434,14 +467,14 @@ export default function VerificationView({ onSearch, onArticleClick }) {
         <div style={styles.loadingOverlay} role="status" aria-live="polite">
           <div style={styles.loadingDialog}>
             <div className="loading-spinner" style={styles.loadingSpinner} aria-hidden="true" />
-            <div style={styles.loadingTitle}>검증 결과를 불러오는 중입니다</div>
+            <div style={styles.loadingTitle}>신뢰도 분석 결과를 불러오는 중입니다</div>
             <div style={styles.loadingDesc}>백엔드 API에서 관련 기사를 수집하고 신뢰도 기준을 적용하고 있습니다. 잠시만 기다려주세요.</div>
           </div>
         </div>
       )}
       <div style={styles.leftPanel}>
         <div style={styles.searchCard}>
-          <div style={styles.titleInfo}>무엇을 검증할까요?</div>
+          <div style={styles.titleInfo}>무엇의 신뢰도를 분석할까요?</div>
           <div className="verification-search-shell" style={styles.searchShell}>
             <svg style={styles.searchIcon} width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
             <input
@@ -456,7 +489,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 }
               }}
               maxLength={5000}
-              aria-label="검증할 정보"
+              aria-label="신뢰도를 분석할 정보"
             />
             <button style={styles.searchBtn} onClick={() => onSearch(val)}>
               검색
@@ -476,14 +509,14 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 </div>
                 <div style={{ color: '#5f6368', marginTop: '8px' }}>
                   {isLoading
-                    ? '백엔드 검증 결과를 불러오는 중입니다.'
+                    ? '백엔드 신뢰도 분석 결과를 불러오는 중입니다.'
                     : apiStatus === 'error'
-                      ? '백엔드 검증 결과를 불러오지 못했습니다.'
+                      ? '백엔드 신뢰도 분석 결과를 불러오지 못했습니다.'
                       : hasApiCheckResult && apiResults.length === 0
                       ? '백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다.'
                       : hasApiCheckResult
                         ? `백엔드 API 기준 ${totalArticles}건 중 최대 ${CHECK_RESULT_FETCH_LIMIT}건을 불러와 ${CHECK_RESULT_PAGE_SIZE}건씩 표시합니다.`
-                        : '검색어를 입력하면 백엔드 검증 결과를 표시합니다.'}
+                        : '검색어를 입력하면 백엔드 신뢰도 분석 결과를 표시합니다.'}
                   {apiError && <span style={{ color: '#ea4335', marginLeft: '8px' }}>{apiError}</span>}
                 </div>
                 <div style={styles.sourceNotice(dataSource)}>{dataSourceText}</div>
@@ -520,7 +553,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
             {queryResultGroups.length === 0 || queryResultGroups.every((group) => group.items.length === 0) ? (
               <div style={styles.emptyState}>
-                {apiStatus === 'error' ? apiError || '검증 결과를 불러오지 못했습니다.' : '표시할 검색 결과가 없습니다.'}
+                {apiStatus === 'error' ? apiError || '신뢰도 분석 결과를 불러오지 못했습니다.' : '표시할 검색 결과가 없습니다.'}
               </div>
             ) : queryResultGroups.map((group) => (
               <div key={group.key}>

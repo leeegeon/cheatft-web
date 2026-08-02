@@ -20,6 +20,31 @@ function getStoredArticle(id) {
   }
 }
 
+function getArticleDetailCacheKey(url) {
+  return `cheat-ft-article-detail-${encodeURIComponent(url)}`;
+}
+
+function getCachedArticleDetail(url) {
+  if (!url) return null;
+
+  try {
+    const stored = sessionStorage.getItem(getArticleDetailCacheKey(url));
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheArticleDetail(url, article) {
+  if (!url || !article) return;
+
+  try {
+    sessionStorage.setItem(getArticleDetailCacheKey(url), JSON.stringify(article));
+  } catch {
+    // Detail cache only avoids repeated fetches while the tab is open.
+  }
+}
+
 function getSupportedArticleDetailUrl(url) {
   try {
     const parsedUrl = new URL(url);
@@ -113,14 +138,25 @@ export default function DetailView({ type }) {
   const isNews = type === '뉴스';
   const stateArticle = location.state?.article;
   const initialArticle = useMemo(() => stateArticle || getStoredArticle(id), [id, stateArticle]);
-  const [detailResult, setDetailResult] = useState({ url: '', status: 'idle', article: null, error: '' });
   const detailUrl = isNews ? getSupportedArticleDetailUrl(initialArticle?.url) : '';
+  const cachedDetailArticle = getCachedArticleDetail(detailUrl);
+  const [detailResult, setDetailResult] = useState({
+    url: detailUrl,
+    status: cachedDetailArticle ? 'done' : 'idle',
+    article: cachedDetailArticle,
+    error: '',
+  });
   const activeDetailResult = detailResult.url === detailUrl
     ? detailResult
-    : { url: detailUrl, status: detailUrl ? 'loading' : 'idle', article: null, error: '' };
+    : cachedDetailArticle
+      ? { url: detailUrl, status: 'done', article: cachedDetailArticle, error: '' }
+      : { url: detailUrl, status: detailUrl ? 'loading' : 'idle', article: null, error: '' };
   const article = activeDetailResult.article ? mergeArticleDetail(initialArticle, activeDetailResult.article) : initialArticle;
   const detailStatus = activeDetailResult.status;
   const displayArticle = getDisplayArticle(article, isNews);
+  const bodySourceLabel = isNews && activeDetailResult.article?.content
+    ? '기사 전문 · 상세 API 반환 본문'
+    : '기사 본문';
   const reliabilityPercent = displayArticle.scoreValue === null || displayArticle.scoreValue === undefined
     ? 0
     : Math.max(0, Math.min(100, (displayArticle.scoreValue / RELIABILITY_SCORE_MAX) * 100));
@@ -131,12 +167,18 @@ export default function DetailView({ type }) {
       return;
     }
 
+    const cachedDetail = getCachedArticleDetail(detailUrl);
+    if (cachedDetail) {
+      return;
+    }
+
     let ignore = false;
 
     getArticleFromUrl(detailUrl)
       .then((detailArticle) => {
         if (ignore) return;
         const mergedArticle = mergeArticleDetail(initialArticle, detailArticle);
+        cacheArticleDetail(detailUrl, detailArticle);
         sessionStorage.setItem(`cheat-ft-article-${id}`, JSON.stringify(mergedArticle));
         setDetailResult({ url: detailUrl, status: 'done', article: detailArticle, error: '' });
       })
@@ -167,11 +209,16 @@ export default function DetailView({ type }) {
           <span>|</span>
           <span>조회수 {displayArticle.views}</span>
         </div>
+        {isNews && (
+          <div style={{ fontSize: '14px', fontWeight: '800', color: '#202124', marginBottom: '12px' }}>
+            {bodySourceLabel}
+          </div>
+        )}
         <div style={{ lineHeight: '1.8', fontSize: '18px', color: '#3c4043', minHeight: '300px', whiteSpace: 'pre-wrap' }}>
           {displayArticle.body}
         </div>
         {isNews && detailStatus === 'loading' && (
-          <div style={{ marginTop: '20px', color: '#5f6368', fontSize: '14px' }}>백엔드 기사 상세 정보를 불러오는 중입니다.</div>
+          <div style={{ marginTop: '20px', color: '#5f6368', fontSize: '14px' }}>백엔드 기사 상세 API에서 본문을 불러오는 중입니다.</div>
         )}
 
         {isNews && displayArticle.url && (

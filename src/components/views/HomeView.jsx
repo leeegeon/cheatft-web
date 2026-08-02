@@ -138,7 +138,7 @@ export default function HomeView({ onSearch, onNavigate }) {
               />
               <button className="home-search-button" style={styles.searchBtn} onClick={() => onSearch(query)}>
                 <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
-                검증하기
+                신뢰도 분석
               </button>
             </div>
             <div style={styles.searchHint}>검증할 뉴스 제목이나 본문을 입력해보세요.</div>
@@ -159,9 +159,9 @@ export default function HomeView({ onSearch, onNavigate }) {
               <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
             </div>
             <div className="home-feature-copy">
-              <div className="home-feature-title" style={styles.featureTitle}>가짜뉴스 검증</div>
-              <div className="home-feature-desc" style={styles.featureDesc}>기사나 콘텐츠의 사실 여부를 다양한 출처와 근거로 검증합니다.</div>
-              <div className="home-feature-link" style={styles.featureLink} onClick={() => onNavigate('search')}>지금 검증해보기 &gt;</div>
+              <div className="home-feature-title" style={styles.featureTitle}>신뢰도 분석</div>
+              <div className="home-feature-desc" style={styles.featureDesc}>기사나 콘텐츠의 출처 신뢰도를 다양한 근거로 분석합니다.</div>
+              <div className="home-feature-link" style={styles.featureLink} onClick={() => onNavigate('search')}>신뢰도 분석하기 &gt;</div>
             </div>
           </div>
           <div className="home-feature-card" style={styles.featureCard}>
@@ -169,9 +169,9 @@ export default function HomeView({ onSearch, onNavigate }) {
               <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2 0v8.99l7.76-4.47A9.957 9.957 0 0 0 13 2zm0 10.99V22c5.07-.5 9-4.79 9-10 0-1.7-.42-3.29-1.16-4.68z"/></svg>
             </div>
             <div className="home-feature-copy">
-              <div className="home-feature-title" style={styles.featureTitle}>신뢰도 분석</div>
-              <div className="home-feature-desc" style={styles.featureDesc}>기사와 출처의 신뢰도를 분석하고 근거가 분명한 정보 소비를 돕습니다.</div>
-              <div className="home-feature-link" style={styles.featureLink} onClick={() => onNavigate('algo')}>분석해보기 &gt;</div>
+              <div className="home-feature-title" style={styles.featureTitle}>편향성 분석</div>
+              <div className="home-feature-desc" style={styles.featureDesc}>뉴스 묶음의 관점 분포와 반박 기사를 비교해 정보 편향을 살펴봅니다.</div>
+              <div className="home-feature-link" style={styles.featureLink} onClick={() => onNavigate('algo')}>편향성 분석하기 &gt;</div>
             </div>
           </div>
           <div className="home-feature-card" style={styles.featureCard}>
@@ -187,7 +187,7 @@ export default function HomeView({ onSearch, onNavigate }) {
         </div>
         <div className="home-bottom-grid" style={styles.bottomGrid}>
           <div>
-            <div style={styles.sectionCard}>
+            <div className="home-section-card" style={styles.sectionCard}>
               <div style={{...styles.sectionHeader, cursor: 'pointer'}} onClick={() => onNavigate('search')}>
                 <div style={styles.sectionTitle}>최신 팩트체크</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -213,6 +213,7 @@ export default function HomeView({ onSearch, onNavigate }) {
                 const result = normalizeResult(check.result);
                 return (
                   <div
+                    className="home-fact-check-item"
                     key={check.id ?? title}
                     style={index === 2 ? { ...styles.factCheckItem, borderBottom: 'none', cursor: 'pointer' } : { ...styles.factCheckItem, cursor: 'pointer' }}
                     onClick={() => onSearch(title)}
@@ -225,8 +226,8 @@ export default function HomeView({ onSearch, onNavigate }) {
                       }
                     }}
                   >
-                    <div style={styles.factImagePlaceholder}>📰</div>
-                    <div style={{ flex: 1 }}>
+                    <div className="home-fact-image" style={styles.factImagePlaceholder}>📰</div>
+                    <div className="home-fact-copy" style={{ flex: 1 }}>
                       <div style={styles.factBadge(result === 'TRUE')}>{result || '확인중'}</div>
                       <div style={styles.factTitle}>{title}</div>
                       <div style={styles.factMeta}>검증 결과: {result || '확인중'} &nbsp;|&nbsp; {check.timeAgo || '방금 전'}</div>
@@ -249,7 +250,7 @@ export default function HomeView({ onSearch, onNavigate }) {
             </div>
           </div>
           <div>
-            <div style={{ ...styles.sectionCard, marginBottom: '24px' }}>
+            <div className="home-section-card" style={{ ...styles.sectionCard, marginBottom: '24px' }}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionTitle}>오늘의 검증 통계 ⓘ</div>
               </div>
@@ -274,7 +275,7 @@ export default function HomeView({ onSearch, onNavigate }) {
                 </div>
               </div>
             </div>
-            <div style={styles.sectionCard}>
+            <div className="home-section-card" style={styles.sectionCard}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionTitle}>신뢰도 현황 ⓘ</div>
                 <div style={styles.sectionMore}>자세히 보기 &gt;</div>

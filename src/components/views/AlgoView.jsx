@@ -370,6 +370,12 @@ export default function AlgoView({ onAuthExpired }) {
     statLabel: { fontSize: '13px', color: '#5f6368', textAlign: 'center' },
     statIcon: { width: '32px', height: '32px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', color: '#1a73e8' },
     statValue: { fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' },
+    stanceBars: { display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' },
+    stanceBarRow: { display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr) 46px', alignItems: 'center', gap: '10px' },
+    stanceBarLabel: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#3c4043', fontWeight: '700' },
+    stanceBarTrack: { height: '10px', borderRadius: '999px', backgroundColor: '#eef1f5', overflow: 'hidden' },
+    stanceBarFill: (percent, color) => ({ width: `${percent}%`, minWidth: percent > 0 ? '4px' : 0, height: '100%', borderRadius: '999px', backgroundColor: color, transition: 'width 0.25s ease' }),
+    stanceBarPercent: { fontSize: '12px', color: '#5f6368', fontWeight: '800', textAlign: 'right' },
     footer: { marginTop: '16px', padding: '20px 24px', backgroundColor: '#f1f3f4', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '16px', color: '#5f6368', fontSize: '13px', lineHeight: '1.5' },
     loadingOverlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(32, 33, 36, 0.36)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '24px' },
     loadingDialog: { width: 'min(420px, 100%)', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #d2e3fc', padding: '28px', boxShadow: '0 20px 60px rgba(32, 33, 36, 0.22)', textAlign: 'center' },
@@ -383,6 +389,10 @@ export default function AlgoView({ onAuthExpired }) {
   const positiveCount = formatCount(bias.positiveCount);
   const neutralCount = formatCount(bias.neutralCount);
   const negativeCount = formatCount(bias.negativeCount);
+  const stanceTotal = positiveCount + neutralCount + negativeCount;
+  const positivePercent = stanceTotal > 0 ? Math.round((positiveCount / stanceTotal) * 100) : 0;
+  const neutralPercent = stanceTotal > 0 ? Math.round((neutralCount / stanceTotal) * 100) : 0;
+  const negativePercent = stanceTotal > 0 ? Math.max(0, 100 - positivePercent - neutralPercent) : 0;
   const score = clampScore(bias.biasScore);
   const tone = getReliabilityTone(score);
   const toneKey = score >= 70 ? 'high' : score >= 45 ? 'normal' : 'low';
@@ -434,7 +444,7 @@ export default function AlgoView({ onAuthExpired }) {
         <div style={styles.loadingOverlay} role="status" aria-live="polite">
           <div style={styles.loadingDialog}>
             <div className="loading-spinner" style={styles.loadingSpinner} aria-hidden="true" />
-            <div style={styles.loadingTitle}>기사 수집과 신뢰도 분석을 진행 중입니다</div>
+            <div style={styles.loadingTitle}>기사 수집과 편향성 분석을 진행 중입니다</div>
             <div style={styles.loadingDesc}>최대 10건의 관련 뉴스와 반박 기사를 분류하고 인사이트를 정리하고 있습니다. 잠시만 기다려주세요.</div>
           </div>
         </div>
@@ -492,7 +502,7 @@ export default function AlgoView({ onAuthExpired }) {
 
         <div style={styles.card}>
           <div style={styles.gaugeHeader}>
-            <div style={{ ...styles.cardTitle, margin: 0, fontSize: '16px', fontWeight: 'bold' }}>정보 신뢰도 분석 <span style={{ color: '#80868b', fontSize: '14px' }}>ⓘ</span></div>
+            <div style={{ ...styles.cardTitle, margin: 0, fontSize: '16px', fontWeight: 'bold' }}>정보 편향성 분석 <span style={{ color: '#80868b', fontSize: '14px' }}>ⓘ</span></div>
             <div style={{ fontSize: '12px', color: '#80868b' }}>{hasApiAnalysis ? `최근 ${period}개월 기준` : '분석 대기'}</div>
           </div>
 
@@ -513,7 +523,7 @@ export default function AlgoView({ onAuthExpired }) {
               <span style={styles.gaugeScore(tone.color)}>{score}</span>
               <span style={styles.gaugeScoreSub}>/ 100</span>
             </div>
-            <div style={styles.gaugeCaption}>종합 신뢰도 · {tone.label}</div>
+            <div style={styles.gaugeCaption}>종합 편향성 점수 · {tone.label}</div>
           </div>
 
           <div style={styles.statusBox(toneKey)}>
@@ -521,18 +531,37 @@ export default function AlgoView({ onAuthExpired }) {
             <div style={styles.statusDesc}>{hasApiAnalysis ? tone.desc : '키워드를 선택해 실제 백엔드 분석 결과를 불러오면 이 영역이 갱신됩니다.'}</div>
           </div>
 
+          <div style={styles.stanceBars} aria-label="긍정, 중립, 반박 비율">
+            {[
+              { label: '긍정', count: positiveCount, percent: positivePercent, color: SCORE_COLORS.high },
+              { label: '중립', count: neutralCount, percent: neutralPercent, color: SCORE_COLORS.normal },
+              { label: '반박', count: negativeCount, percent: negativePercent, color: SCORE_COLORS.low },
+            ].map((item) => (
+              <div key={item.label} style={styles.stanceBarRow}>
+                <div style={styles.stanceBarLabel}><span style={styles.metricDot(item.color)} />{item.label}</div>
+                <div style={styles.stanceBarTrack} title={`${item.label} ${item.count}건, ${item.percent}%`}>
+                  <div style={styles.stanceBarFill(item.percent, item.color)} />
+                </div>
+                <div style={styles.stanceBarPercent}>{item.percent}%</div>
+              </div>
+            ))}
+          </div>
+
           <div style={styles.metricRow}>
             <div style={styles.metricItem}>
               <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.high)} />긍정</div>
               <div style={{ ...styles.metricValue, color: SCORE_COLORS.high }}>{positiveCount}건</div>
+              <div style={{ fontSize: '12px', color: '#5f6368', marginTop: '4px', fontWeight: '700' }}>{positivePercent}%</div>
             </div>
             <div style={styles.metricItem}>
               <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.normal)} />중립</div>
               <div style={{ ...styles.metricValue, color: SCORE_COLORS.normal }}>{neutralCount}건</div>
+              <div style={{ fontSize: '12px', color: '#5f6368', marginTop: '4px', fontWeight: '700' }}>{neutralPercent}%</div>
             </div>
             <div style={styles.metricItem}>
               <div style={styles.metricLabel}><span style={styles.metricDot(SCORE_COLORS.low)} />반박</div>
               <div style={{ ...styles.metricValue, color: SCORE_COLORS.low }}>{negativeCount}건</div>
+              <div style={{ fontSize: '12px', color: '#5f6368', marginTop: '4px', fontWeight: '700' }}>{negativePercent}%</div>
             </div>
           </div>
 
@@ -547,7 +576,7 @@ export default function AlgoView({ onAuthExpired }) {
         <div>
           <div className="algo-main-header" style={styles.mainHeader}>
             <div>
-              <div style={styles.mainTitle}>{displayKeyword ? `'${displayKeyword}' 분석 결과` : '신뢰도 분석'}</div>
+              <div style={styles.mainTitle}>{displayKeyword ? `'${displayKeyword}' 분석 결과` : '편향성 분석'}</div>
               <div style={styles.mainDesc}>수집한 뉴스의 출처, 관점, 요약 통계를 실제 백엔드 분석 결과 기준으로 표시합니다.</div>
               <div style={{ marginTop: '12px' }}><span style={styles.sourceNotice(sourceState)}>{sourceText}</span></div>
             </div>
@@ -574,7 +603,7 @@ export default function AlgoView({ onAuthExpired }) {
           </div>
 
           <div className="algo-summary-box" style={styles.summaryBox}>
-            <div style={{ ...styles.insightTitle, color: '#1a73e8' }}>신뢰도 분석 요약</div>
+            <div style={{ ...styles.insightTitle, color: '#1a73e8' }}>편향성 분석 요약</div>
             <div className="algo-summary-row" style={styles.summaryRow}>
               <div style={styles.statItem}>
                 <div style={styles.statLabel}>수집 기사 수</div>

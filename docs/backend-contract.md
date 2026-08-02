@@ -1,6 +1,6 @@
 # 프론트-백엔드 계약 지도
 
-마지막 갱신: 2026-07-31
+마지막 갱신: 2026-08-02
 기준 문서: `cheatft_api/src`, `cheatft_api/README.md`, `cheatft_web/docs/backend-handoff.md`, `cheatft_web/src`
 
 이 문서는 `cheatft_web` 화면과 `cheatft_api` 구현/명세를 빠르게 맞춰보기 위한 요약이다. 실제 동작은 `cheatft_api/src`를 우선 확인하고, README는 보조 명세로 본다.
@@ -12,23 +12,24 @@
 - Codex는 `cheatft_api`를 수정하지 않는다. 백엔드는 계약 확인을 위해 읽기 전용으로만 참고하고, 로그인/회원가입 구현 요청도 프론트 범위에서만 처리한다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다.
 - 2026-08-02 로컬 백엔드 pull 기준 `auth/checks/analysis/reports`는 실제 라우트/서비스/모델 흐름을 타고, `summary/posts/profile`은 dummy controller 기반 응답이다.
-- 프론트는 주요 화면에서 실제 API를 우선 호출한다. 홈/검증하기는 프론트 더미 fallback을 제거하고 API 응답만 표시한다.
+- 프론트는 주요 화면에서 실제 API를 우선 호출한다. 홈/신뢰도 분석(`/search`)은 프론트 더미 fallback을 제거하고 API 응답만 표시한다.
 - `src/services/apiClient.js`는 API base URL, JSON 요청/오류 처리, Bearer 토큰 첨부를 담당하고, `src/services/cheatftApi.js`가 명세 기반 도메인 함수를 제공한다.
 - 백엔드 명세의 실제 경로는 `/api/...` 형태이다.
 - 공통 응답 포맷은 대부분 `{ status, message, data }`지만, `/api/health`와 라우트 미배포/404 HTML 응답처럼 예외가 있다.
 - 백엔드 폴더는 2026-07-05, 2026-07-10, 2026-07-12, 2026-07-15 프론트 연동 작업에서 수정하지 않았다.
 - 프론트는 API 성공 후 빈 배열을 받으면 프론트 목업을 섞지 않고 빈 상태를 보여주는 방향으로 보강했다.
-- 검증하기 검색 결과는 API 성공 시 백엔드 결과만 표시한다. 2026-07-15 이후 검증하기의 API 실패/미설정 프론트 더미데이터 fallback도 제거됐다.
-- 검증하기 언론사 표기는 백엔드 `src/services/checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 `src/utils/press.js`에서 정규화한다. 2026-07-31 기준 백엔드 69개 oid와 프론트 oid/name 및 로고 매핑이 일치한다.
+- 신뢰도 분석 검색 결과는 API 성공 시 백엔드 결과만 표시한다. 2026-07-15 이후 API 실패/미설정 프론트 더미데이터 fallback도 제거됐다.
+- 신뢰도 분석 언론사 표기는 백엔드 `src/services/checks.service.js`의 `PRESS_MAPPING`을 기준으로 프론트 `src/utils/press.js`에서 정규화한다. 2026-07-31 기준 백엔드 69개 oid와 프론트 oid/name 및 로고 매핑이 일치한다.
 - 2026-07-15 추가 보강으로 프론트는 알려진 oid에 네이버 `office_logo` 로고 URL을 매핑하고, `언론사(021)` 같은 미매핑 fallback 문자열은 브라우저 `localStorage`에 관측 목록으로 누적한다. 이는 백엔드에 전달할 보완 목록 수집용이며 서버 저장은 아니다.
 - 2026-07-31 추가 보강으로 새 백엔드 매핑을 반영해 `src/utils/press.js`의 oid/name 표를 69개로 확장하고, 네이버 언론사 홈에서 확인한 `office_logo` URL 69개를 추가했다. 이미지 로드 실패 시에는 텍스트 배지를 fallback으로 유지한다.
 - 2026-07-31 배포 API 30개 키워드 재검색 결과를 현재 백엔드 `PRESS_MAPPING`과 대조했을 때 아직 소스에도 없는 fallback oid는 `293: 블로터`, `586: 시사저널`이다. 최신 미매핑 CSV는 이름 확인까지 포함한 `docs/observed-unmapped-press-names.csv` 하나만 본다.
 - 2026-07-26 이후 프론트는 `src/data/pressReliability.js`의 언론사 기준표로 분류와 신뢰도 fallback을 제공한다. 백엔드 기사에 신뢰도 점수가 없으면 언론사 기준 점수를 사용한다. 판단 이유 검토용 문서는 `docs/press-reliability.md`이다.
 - 신뢰도 화면 표시는 `src/utils/reliability.js`에서 5점 만점으로 정규화한다. 10점 척도 값은 `/2`, 100점 척도 값은 `/20`으로 환산하고, 라벨 기준은 `높음` 3.9 이상, `보통` 3.3 이상 3.9 미만, `주의` 3.3 미만이다.
 - 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개는 모두 `pressReliability.js`의 신뢰도 점수/라벨/판단 이유로 연결된다. `동행미디어 시대`는 프론트 alias를 통해 `동행미디어` 기준을 사용한다.
-- 2026-07-31 이후 뉴스 상세는 검증하기에서 전달된 기사 URL이 있으면 `POST /api/article`을 호출해 상세 본문, 기자, 입력 시간, 주제를 보강한다. 검증 결과의 `/mnews/article/` URL은 `/article/` 형식으로 정규화한다. 상세 API가 실패하면 별도 오류 노출 없이 기존 route state/sessionStorage 기사 정보를 유지한다.
+- 2026-08-02 이후 뉴스 상세는 신뢰도 분석에서 전달된 기사 URL이 있으면 `POST /api/article`을 호출해 상세 API 응답의 `content` 본문, 기자, 입력 시간, 주제를 우선 표시한다. 검증 결과의 `/mnews/article/` URL은 `/article/` 형식으로 정규화한다. 상세 API가 실패하면 별도 오류 노출 없이 기존 route state/sessionStorage 기사 정보를 유지한다. 상세 API 응답은 URL별 sessionStorage 캐시에 저장한다.
+- 2026-08-02 이후 신뢰도 분석 검색 결과는 검색어별 sessionStorage 캐시에 저장해, 기사 상세에서 뒤로가기 했을 때 `POST /api/checks`와 긴 로딩 팝업을 반복하지 않고 기존 결과를 즉시 복원한다.
 - 뉴스 상세 오른쪽 신뢰도 패널은 `낮음/보통/높음` 텍스트 축이 아니라 0~5 숫자 눈금과 현재 점수 마커로 표시한다.
-- `/algo`는 보호 라우트다. 백엔드 `keywords/analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 빈 질문 입력 → Enter 또는 `키워드 추천` 버튼으로 `POST /keywords` 추천 키워드 조회 → 추천 키워드 칩 선택으로 `POST /analysis`, `GET /analysis/{id}?limit=10` 호출이다. 질문창 Shift+Enter는 줄바꿈으로 유지하고, 추천 중에는 버튼 스피너를 표시한다. 분석 전에는 특정 예시 키워드의 결과 제목을 표시하지 않고, 분석 완료 후 제목은 `'키워드' 분석 결과` 형식으로 표시한다. 실제 운영 응답의 `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`만 표시하고 실패 시 프론트 목업 fallback을 쓰지 않는다. 분석 기사 배지는 백엔드 `stance` 값인 `긍정`, `중립`, `반박`을 그대로 표시한다. 분석 기사에 `url/link/originalLink`가 있으면 원문 링크로 열고, URL이 없으면 임의 링크를 만들지 않는다. `POST /keywords`, `POST /analysis`, `GET /analysis/{id}`가 401/403을 반환하면 프론트는 저장 토큰과 현재 사용자 정보를 지우고 로그인 화면으로 이동한다.
+- `/algo`는 편향성 분석 보호 라우트다. 백엔드 `keywords/analysis` 라우트도 `verifyToken`을 요구한다. 프론트 입력 흐름은 빈 질문 입력 → Enter 또는 `키워드 추천` 버튼으로 `POST /keywords` 추천 키워드 조회 → 추천 키워드 칩 선택으로 `POST /analysis`, `GET /analysis/{id}?limit=10` 호출이다. 질문창 Shift+Enter는 줄바꿈으로 유지하고, 추천 중에는 버튼 스피너를 표시한다. 분석 전에는 특정 예시 키워드의 결과 제목을 표시하지 않고, 분석 완료 후 제목은 `'키워드' 분석 결과` 형식으로 표시한다. 실제 운영 응답의 `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `pagination`만 표시하고 실패 시 프론트 목업 fallback을 쓰지 않는다. 분석 기사 배지는 백엔드 `stance` 값인 `긍정`, `중립`, `반박`을 그대로 표시한다. 분석 기사에 `url/link/originalLink`가 있으면 원문 링크로 열고, URL이 없으면 임의 링크를 만들지 않는다. `POST /keywords`, `POST /analysis`, `GET /analysis/{id}`가 401/403을 반환하면 프론트는 저장 토큰과 현재 사용자 정보를 지우고 로그인 화면으로 이동한다.
 - `/report`는 2026-08-02 프론트 기준 보호 라우트다. `GET /reports`로 인증 사용자의 분석 기록을 가져오고, 상세 펼침 시 리포트 id를 분석 id로 보고 `GET /analysis/{id}?limit=10`을 추가 호출한다. 사이드바 기간/신뢰도 필터는 `date`, `score` query로 전달하고, 즐겨찾기/정렬/종합 요약 복사는 프론트에서 처리한다. 리포트 목록/상세 API 실패 시 프론트 목업 fallback을 쓰지 않는다.
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
 - 2026-07-26 기준 `UserModel.findByEmail is not a function` 오류는 해결된 상태로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
@@ -289,12 +290,12 @@
 | 화면/기능 | 프론트 파일 | 백엔드 명세 | 현재 프론트 상태 |
 |---|---|---|---|
 | 홈 요약 | `HomeView.jsx` | `GET /api/summary` | API 응답만 표시, 실패/빈 배열은 오류/빈 상태, 프론트 더미 fallback 없음 |
-| 검색/검증 요청 | `HomeView.jsx`, `VerificationView.jsx` | `POST /api/checks` | 검색어 이동 후 API 요청 |
-| 검증 결과 | `VerificationView.jsx` | `GET /api/checks/{id}` | 검색 중 로딩 팝업 표시, API 응답만 표시, URL 링크 검색 제거, 프론트 더미 fallback 없음, 백엔드 `PRESS_MAPPING` 기반 출처 필터와 `연관도순/최신순/신뢰도 높은순/신뢰도 낮은순` 로컬 정렬 제공 |
-| 뉴스 상세 | `DetailView.jsx` | `POST /api/article` | 클릭한 기사 객체를 route state/sessionStorage로 먼저 표시하고, 지원 URL이면 상세 API 응답을 병합. 상세 API 실패는 화면 오류로 노출하지 않음. 저장 정보 없는 직접 진입은 제한적 |
+| 신뢰도 분석 요청 | `HomeView.jsx`, `VerificationView.jsx` | `POST /api/checks` | 검색어 이동 후 API 요청 |
+| 신뢰도 분석 결과 | `VerificationView.jsx` | `GET /api/checks/{id}` | 검색 중 로딩 팝업 표시, API 응답만 표시, URL 링크 검색 제거, 프론트 더미 fallback 없음, 검색어별 sessionStorage 캐시로 뒤로가기 시 재요청 방지, 백엔드 `PRESS_MAPPING` 기반 출처 필터와 `연관도순/최신순/신뢰도 높은순/신뢰도 낮은순` 로컬 정렬 제공 |
+| 뉴스 상세 | `DetailView.jsx` | `POST /api/article` | 클릭한 기사 URL이 지원되면 상세 API 응답의 `content` 본문을 우선 병합하고 URL별 sessionStorage 캐시 사용. 상세 API 실패는 화면 오류로 노출하지 않음. 저장 정보 없는 직접 진입은 제한적 |
 | 키워드 추천 | `AlgoView.jsx` | `POST /api/keywords` | 보호 라우트, 질문 내용으로 추천 키워드 API 호출, 추천 중 버튼 스피너 표시, 인증 실패 시 로그인 화면 이동 |
-| 신뢰도 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 질문창 Enter 또는 버튼으로 키워드 추천 후 추천 키워드 칩 선택으로 API 요청, 긴 분석 중 로딩 팝업, 백엔드는 Bearer token 요구 |
-| 신뢰도 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}?limit=10` | 보호 라우트, 관련/반박 기사 각각 최대 10건 요청, 기사 배지는 백엔드 `stance` 값인 `긍정/중립/반박` 그대로 표시, 기사 URL이 있으면 원문 링크 제공, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 실패 시 목업 fallback 없음 |
+| 편향성 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 질문창 Enter 또는 버튼으로 키워드 추천 후 추천 키워드 칩 선택으로 API 요청, 긴 분석 중 로딩 팝업, 백엔드는 Bearer token 요구 |
+| 편향성 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}?limit=10` | 보호 라우트, 관련/반박 기사 각각 최대 10건 요청, 기사 배지는 백엔드 `stance` 값인 `긍정/중립/반박` 그대로 표시, 기사 URL이 있으면 원문 링크 제공, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 실패 시 목업 fallback 없음 |
 | 리포트 목록 | `ReportView.jsx` | `GET /api/reports` | 보호 라우트, API 우선, `keyword/date/score/page/limit` 전달, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, 실패 시 목업 없음, API 성공 후 빈 배열은 빈 상태 |
 | 리포트 상세 | `ReportView.jsx` | `GET /api/analysis/{id}?limit=10` | 펼친 리포트 id로 분석 상세를 조회해 실제 관련/반박 기사와 인사이트 표시, 실패 시 상세 목업 없음 |
 | 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
@@ -405,7 +406,7 @@
 2. 완료: `src/services/cheatftApi.js`에 도메인별 API 함수 추가
 3. 완료: 홈, 검증, 알고리즘 분석, 리포트, 커뮤니티, 글 작성, 인증 1차 연결. 마이페이지 1차 연결은 과거 작업이며 현재 화면은 제거됨
 4. 완료: 조회 화면에서 API 성공 후 빈 배열을 프론트 목업으로 덮지 않도록 보강
-5. 진행: 홈/검증하기/신뢰도 분석/팩트체크 리포트 프론트 더미 fallback 제거 완료. 다음으로 남은 커뮤니티 화면 내부 목업 배열을 `src/mocks/` 또는 `src/data/`로 이동하거나 제거
+5. 진행: 홈/신뢰도 분석/편향성 분석/팩트체크 리포트 프론트 더미 fallback 제거 완료. 다음으로 남은 커뮤니티 화면 내부 목업 배열을 `src/mocks/` 또는 `src/data/`로 이동하거나 제거
 6. 다음: 기사 상세 직접 조회, 커뮤니티 상세, 댓글, 로그아웃, 토큰 갱신, 다운로드 API 명세 추가
 7. 다음: 실제 백엔드 응답이 확정되면 화면별 변환 함수와 표시 필드 정리
 
