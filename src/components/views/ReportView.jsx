@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteReport, getAnalysisResult, getReports } from '../../services/cheatftApi.js';
 import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
+import { buildNewsSourceSearchUrl } from '../../utils/search.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 const FAVORITE_REPORTS_KEY = 'cheat-ft-favorite-report-ids';
@@ -71,12 +72,17 @@ function mapApiReport(report, index) {
 function mapReportDetailArticle(article, index, fallbackStance) {
   const pressValue = article.press ?? article.pressName ?? article.publisher ?? article.mediaName;
   recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
+  const pressLabel = getPressLabel(pressValue);
+  const title = cleanDisplayText(article.title, '제목 없음');
+  const exactUrl = cleanDisplayText(article.url || article.link || article.originalLink || article.originallink, '');
+  const fallbackUrl = buildNewsSourceSearchUrl({ title, press: pressLabel });
 
   return {
     id: article.articleId ?? article.id ?? index,
-    press: getPressLabel(pressValue),
+    press: pressLabel,
     date: cleanDisplayText(article.publishedAt || article.createdAt || article.date || article.pubDate, ''),
-    title: cleanDisplayText(article.title, '제목 없음'),
+    title,
+    url: exactUrl || fallbackUrl,
     stance: cleanDisplayText(article.stance, fallbackStance),
   };
 }
@@ -353,6 +359,7 @@ export default function ReportView({ onAuthExpired }) {
     articleListPublisher: { fontWeight: 'bold', color: '#202124', width: '60px', flexShrink: 0 },
     articleListDate: { color: '#80868b', fontSize: '12px', flexShrink: 0 },
     articleListText: { color: '#3c4043', flex: 1, lineHeight: '1.5' },
+    articleListLink: { color: '#3c4043', flex: 1, lineHeight: '1.5', textDecoration: 'none' },
     articleListAction: { color: '#1a73e8', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', width: '70px', textAlign: 'right', flexShrink: 0 },
     
     summaryCol: { flex: 1, backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e0e0e0', padding: '20px', display: 'flex', flexDirection: 'column' },
@@ -633,7 +640,13 @@ export default function ReportView({ onAuthExpired }) {
                                <span style={{fontSize:'16px', color:'#80868b'}}>•</span>
                                <span className="report-article-list-publisher" style={styles.articleListPublisher}>{article.press}</span>
                                {article.date && <span className="report-article-list-date" style={styles.articleListDate}>{article.date}</span>}
-                               <span style={styles.articleListText}>{article.title}</span>
+                               {article.url ? (
+                                 <a href={article.url} target="_blank" rel="noopener noreferrer" style={styles.articleListLink}>
+                                   {article.title}
+                                 </a>
+                               ) : (
+                                 <span style={styles.articleListText}>{article.title}</span>
+                               )}
                                <span className="report-article-list-action" style={styles.articleListAction}>{article.stance}</span>
                              </div>
                            ))}

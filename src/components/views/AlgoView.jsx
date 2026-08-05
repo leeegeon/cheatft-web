@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { recommendKeywords, runAnalysis } from '../../services/cheatftApi.js';
 import { getPressLabel, getPressLogoUrl, recordObservedPress } from '../../utils/press.js';
+import { buildNewsSourceSearchUrl } from '../../utils/search.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 const SCORE_COLORS = {
@@ -57,9 +58,11 @@ function mapAnalysisArticle(article, index, fallbackStance = '중립') {
   recordObservedPress(pressValue, article.pressName ?? article.publisher ?? article.mediaName);
 
   const pressLabel = getPressLabel(pressValue);
+  const title = cleanDisplayText(article.title, '제목 없음');
   const description = cleanDisplayText(article.summary || article.description || article.content, '');
   const date = cleanDisplayText(article.publishedAt || article.createdAt || article.date || article.pubDate, '');
-  const url = cleanDisplayText(article.url || article.link || article.originalLink || article.originallink, '');
+  const exactUrl = cleanDisplayText(article.url || article.link || article.originalLink || article.originallink, '');
+  const fallbackUrl = buildNewsSourceSearchUrl({ title, press: pressLabel });
 
   return {
     id: article.articleId ?? article.id ?? index,
@@ -67,10 +70,10 @@ function mapAnalysisArticle(article, index, fallbackStance = '중립') {
     logoText: String(pressLabel || '출처').slice(0, 4),
     logoUrl: getPressLogoUrl(pressValue),
     press: pressLabel,
-    title: cleanDisplayText(article.title, '제목 없음'),
+    title,
     desc: description,
     date,
-    url,
+    url: exactUrl || fallbackUrl,
     badge: cleanDisplayText(article.stance, fallbackStance),
   };
 }
