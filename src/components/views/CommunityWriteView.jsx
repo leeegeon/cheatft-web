@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { createPost } from '../../services/cheatftApi.js'
 
 const DRAFT_KEY = 'cheat-ft-community-draft'
-const EMPTY_DRAFT = { category: '정보 공유', title: '', content: '' }
+const EMPTY_DRAFT = { category: '정보 공유 커뮤니티', title: '', content: '' }
 
 function readDraft() {
   try {
@@ -81,10 +81,9 @@ export default function CommunityWriteView() {
 
         <label htmlFor="post-category">카테고리</label>
         <select id="post-category" name="category" value={draft.category} onChange={updateField}>
-          <option>정보 공유</option>
+          <option>정보 공유 커뮤니티</option>
           <option>정정 요청</option>
-          <option>토론</option>
-          <option>질문</option>
+          <option>토론 게시판</option>
         </select>
 
         <label htmlFor="post-title">제목</label>

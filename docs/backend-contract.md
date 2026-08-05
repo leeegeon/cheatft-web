@@ -1,6 +1,6 @@
 # 프론트-백엔드 계약 지도
 
-마지막 갱신: 2026-08-02
+마지막 갱신: 2026-08-05
 기준 문서: `cheatft_api/src`, `cheatft_api/README.md`, `cheatft_web/docs/backend-handoff.md`, `cheatft_web/src`
 
 이 문서는 `cheatft_web` 화면과 `cheatft_api` 구현/명세를 빠르게 맞춰보기 위한 요약이다. 실제 동작은 `cheatft_api/src`를 우선 확인하고, README는 보조 명세로 본다.
@@ -11,11 +11,14 @@
 - 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 백엔드 구현체이다.
 - Codex는 `cheatft_api`를 수정하지 않는다. 백엔드는 계약 확인을 위해 읽기 전용으로만 참고하고, 로그인/회원가입 구현 요청도 프론트 범위에서만 처리한다.
 - 배포 API는 `https://cheatft.leegeon.com/api`에서 응답한다.
-- 2026-08-02 로컬 백엔드 pull 기준 `auth/checks/analysis/reports`는 실제 라우트/서비스/모델 흐름을 타고, `summary/posts/profile`은 dummy controller 기반 응답이다.
-- 프론트는 주요 화면에서 실제 API를 우선 호출한다. 홈/신뢰도 분석(`/search`)은 프론트 더미 fallback을 제거하고 API 응답만 표시한다.
+- 2026-08-02 로컬 백엔드 pull 기준 `auth/checks/analysis/reports`는 실제 라우트/서비스/모델 흐름을 타고, `summary/posts/profile`은 dummy controller 기반 응답이었다. 2026-08-05 추가 확인 기준 배포 API의 커뮤니티 목록/상세/작성/수정/삭제/댓글 라우트는 실제 동작한다.
+- 프론트는 주요 화면에서 실제 API를 우선 호출한다. 홈/신뢰도 분석(`/search`)/편향성 분석(`/algo`)/팩트체크 리포트/커뮤니티는 프론트 더미 fallback을 제거하고 API 응답/오류/빈 상태만 표시한다.
 - `src/services/apiClient.js`는 API base URL, JSON 요청/오류 처리, Bearer 토큰 첨부를 담당하고, `src/services/cheatftApi.js`가 명세 기반 도메인 함수를 제공한다.
 - 백엔드 명세의 실제 경로는 `/api/...` 형태이다.
 - 공통 응답 포맷은 대부분 `{ status, message, data }`지만, `/api/health`와 라우트 미배포/404 HTML 응답처럼 예외가 있다.
+- 2026-08-05 배포 API 확인 기준 `POST /api/checks`는 `type` 없이 `content`만 받아 `202`와 `checkId`를 반환한다. 프론트 `src/services/cheatftApi.js`도 더 이상 `type`을 보내지 않는다.
+- 2026-08-05 배포 API 확인 기준 비밀번호 찾기 라우트(`/api/password/code`, `/api/password/verify`, `/api/password/reset`), 커뮤니티 상세/수정/삭제/댓글 라우트, `DELETE /api/reports/{id}`가 배포되어 있다. 프론트는 `/password-reset`, `/community`, `/community/:id`, `/report` 화면에 해당 API를 연결했다.
+- 2026-08-05 배포 API 확인 기준 `POST /api/article`은 네이버 뉴스 URL과 `m.entertain.naver.com` 네이버 연예 URL에서 전문 본문을 반환한다. 비지원 URL은 `400`과 `네이버 뉴스 및 네이버 연예 링크만 지원합니다.` 메시지를 반환한다.
 - 백엔드 폴더는 2026-07-05, 2026-07-10, 2026-07-12, 2026-07-15 프론트 연동 작업에서 수정하지 않았다.
 - 프론트는 API 성공 후 빈 배열을 받으면 프론트 목업을 섞지 않고 빈 상태를 보여주는 방향으로 보강했다.
 - 신뢰도 분석 검색 결과는 API 성공 시 백엔드 결과만 표시한다. 2026-07-15 이후 API 실패/미설정 프론트 더미데이터 fallback도 제거됐다.
@@ -292,17 +295,18 @@
 | 홈 요약 | `HomeView.jsx` | `GET /api/summary` | API 응답만 표시, 실패/빈 배열은 오류/빈 상태, 프론트 더미 fallback 없음 |
 | 신뢰도 분석 요청 | `HomeView.jsx`, `VerificationView.jsx` | `POST /api/checks` | 검색어 이동 후 API 요청 |
 | 신뢰도 분석 결과 | `VerificationView.jsx` | `GET /api/checks/{id}` | 검색 중 로딩 팝업 표시, API 응답만 표시, URL 링크 검색 제거, 프론트 더미 fallback 없음, 검색어별 sessionStorage 캐시로 뒤로가기 시 재요청 방지, 백엔드 `PRESS_MAPPING` 기반 출처 필터와 `연관도순/최신순/신뢰도 높은순/신뢰도 낮은순` 로컬 정렬 제공 |
-| 뉴스 상세 | `DetailView.jsx` | `POST /api/article` | 클릭한 기사 URL이 지원되면 상세 API 응답의 `content` 본문을 우선 병합하고 URL별 sessionStorage 캐시 사용. 상세 API 실패는 화면 오류로 노출하지 않음. 저장 정보 없는 직접 진입은 제한적 |
+| 뉴스 상세 | `DetailView.jsx` | `POST /api/article` | 클릭한 기사 URL이 지원되면 상세 API 응답의 `content` 본문을 우선 병합하고 URL별 sessionStorage 캐시 사용. 상세 API 실패는 화면 오류로 노출하지 않음. 2026-08-05 배포 API는 네이버 뉴스와 네이버 연예 URL을 지원하며, 비지원 URL은 원문 확인 안내를 표시. 저장 정보 없는 직접 진입은 제한적 |
 | 키워드 추천 | `AlgoView.jsx` | `POST /api/keywords` | 보호 라우트, 질문 내용으로 추천 키워드 API 호출, 추천 중 버튼 스피너 표시, 인증 실패 시 로그인 화면 이동 |
 | 편향성 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 질문창 Enter 또는 버튼으로 키워드 추천 후 추천 키워드 칩 선택으로 API 요청, 긴 분석 중 로딩 팝업, 백엔드는 Bearer token 요구 |
 | 편향성 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}?limit=10` | 보호 라우트, 관련/반박 기사 각각 최대 10건 요청, 기사 배지는 백엔드 `stance` 값인 `긍정/중립/반박` 그대로 표시, 기사 URL이 있으면 원문 링크 제공, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 실패 시 목업 fallback 없음 |
-| 리포트 목록 | `ReportView.jsx` | `GET /api/reports` | 보호 라우트, API 우선, `keyword/date/score/page/limit` 전달, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, 실패 시 목업 없음, API 성공 후 빈 배열은 빈 상태 |
+| 리포트 목록 | `ReportView.jsx` | `GET /api/reports`, `DELETE /api/reports/{id}` | 보호 라우트, API 우선, `keyword/date/score/page/limit` 전달, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, 실패 시 목업 없음, API 성공 후 빈 배열은 빈 상태. 삭제 버튼 연결 |
 | 리포트 상세 | `ReportView.jsx` | `GET /api/analysis/{id}?limit=10` | 펼친 리포트 id로 분석 상세를 조회해 실제 관련/반박 기사와 인사이트 표시, 실패 시 상세 목업 없음 |
-| 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업, API 성공 후 빈 배열은 빈 상태 |
-| 커뮤니티 작성 | `CommunityWriteView.jsx` | `POST /api/posts` | 보호 라우트, 등록 버튼에서 API 요청 |
-| 커뮤니티 상세 | `DetailView.jsx` | 명세 없음 | `/community/:id` placeholder |
+| 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업 fallback 없음, API 성공 후 빈 배열은 빈 상태 |
+| 커뮤니티 작성 | `CommunityWriteView.jsx` | `POST /api/posts` | 보호 라우트, 등록 버튼에서 API 요청. 2026-08-05 배포 API 허용 카테고리는 `정보 공유 커뮤니티`, `정정 요청`, `토론 게시판` |
+| 커뮤니티 상세/수정/삭제/댓글 | `CommunityDetailView.jsx` | `GET /api/posts/{id}`, `PUT /api/posts/{id}`, `DELETE /api/posts/{id}`, `POST /api/posts/{id}/comments`, `DELETE /api/posts/{id}/comments/{commentId}` | `/community/:id` 화면에 API 연결. 작성자 판별 필드가 없어 권한 실패는 403 응답으로 안내 |
 | 로그인 | `LoginView.jsx`, `App.jsx` | `POST /api/login` | accessToken과 현재 사용자 정보 저장 후 로그인 상태 반영, 상단 닉네임 표시, 보호 라우트에서 온 경우 원래 경로 복귀 |
 | 회원가입 | `SignupView.jsx` | `POST /api/signup` | 입력 검증 후 성공 시 로그인 화면으로 이동 |
+| 비밀번호 찾기 | `PasswordResetView.jsx` | `POST /api/password/code`, `POST /api/password/verify`, `POST /api/password/reset` | `/password-reset` 3단계 화면 연결 |
 | 마이페이지 | 제거됨 | `GET /api/profile` | 프론트 화면/라우트 제거. 백엔드 endpoint 자체는 공개 dummy dashboard 응답으로 남아 있음 |
 | 내 정보 | 미사용 | `GET /api/me` | 프론트 미연결. 백엔드는 Bearer token 필요 |
 | 헬스체크 | 미사용 | `GET /api/health` | 프론트 미연결. 서버 상태 확인 |
@@ -315,15 +319,24 @@
 | POST | `/api/signup` | 회원가입 | 성공 시 `id`, `email`, `nickname`, `level`, `user_title`, `created_at`; 중복 이메일은 현재 `500` |
 | POST | `/api/login` | 로그인 | `accessToken`, `userId` |
 | GET | `/api/me` | 인증 사용자 정보 | Bearer token 필요. 2026-07-26 배포 API 정상 조회 확인 |
-| POST | `/api/checks` | 팩트체크 요청 | `checkId` |
+| POST | `/api/checks` | 팩트체크 요청 | `checkId`; 2026-08-05 배포 API 기준 body는 `{ content }` |
 | POST | `/api/article` | 네이버 뉴스 URL 상세 조회 | `title`, `content`, `press`, `reporter`, `inputTime`, `topic`, `url` |
 | POST | `/api/keywords` | 키워드 추출 | Bearer token 필요. 2026-08-02 로컬 백엔드 pull 기준 구현 확인 |
 | GET | `/api/checks/{id}` | 검증 결과 | `checkId`, `query`, `articles`, `pagination`; `page/limit` 미구현, pagination은 현재 `1/1/articles.length` |
 | POST | `/api/analysis` | 알고리즘 분석 요청 | `analysisId` |
 | GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `limit`; 2026-08-02 로컬 백엔드 pull 기준 관련/반박 기사 각각에 `limit` 적용 |
 | GET | `/api/reports` | 리포트 목록 | Bearer token 필요. `totalStats`, `reports`, `pagination`; 2026-08-02 로컬 백엔드 pull 기준 분석 기록 DB와 query parameter 반영 |
+| DELETE | `/api/reports/{id}` | 리포트 삭제 | Bearer token 필요. 존재하지 않는 id는 `404`, 토큰 없으면 `401` |
 | GET | `/api/posts` | 커뮤니티 목록 | `communityStats`, `posts`, `pagination`; query parameter는 현재 dummy 응답에 미반영 |
 | POST | `/api/posts` | 게시글 작성 | `id`, `title`, `category` |
+| GET | `/api/posts/{id}` | 커뮤니티 상세 | 게시글 본문, 태그, 조회수, 댓글 목록 |
+| PUT | `/api/posts/{id}` | 게시글 수정 | Bearer token 필요. 작성자 본인만 가능 |
+| DELETE | `/api/posts/{id}` | 게시글 삭제 | Bearer token 필요. 작성자 본인만 가능 |
+| POST | `/api/posts/{id}/comments` | 댓글 작성 | Bearer token 필요. `content` 전송 |
+| DELETE | `/api/posts/{id}/comments/{commentId}` | 댓글 삭제 | Bearer token 필요. 작성자 본인만 가능 |
+| POST | `/api/password/code` | 비밀번호 재설정 코드 발송 | `email`; 60초 이내 재요청은 `429`, 미가입 이메일은 `404` |
+| POST | `/api/password/verify` | 비밀번호 재설정 코드 검증 | `email`, `code`; 성공 시 `resetToken` |
+| POST | `/api/password/reset` | 비밀번호 변경 | `resetToken`, `newPassword` |
 | GET | `/api/profile` | 마이페이지 dummy dashboard | `userInfo`, `myContribution`, `personalDashboard`, `earnedBadges`, etc. |
 | GET | `/api/health` | 서버 상태 확인 | 공통 래핑 없이 `{ message }` |
 
@@ -406,9 +419,10 @@
 2. 완료: `src/services/cheatftApi.js`에 도메인별 API 함수 추가
 3. 완료: 홈, 검증, 알고리즘 분석, 리포트, 커뮤니티, 글 작성, 인증 1차 연결. 마이페이지 1차 연결은 과거 작업이며 현재 화면은 제거됨
 4. 완료: 조회 화면에서 API 성공 후 빈 배열을 프론트 목업으로 덮지 않도록 보강
-5. 진행: 홈/신뢰도 분석/편향성 분석/팩트체크 리포트 프론트 더미 fallback 제거 완료. 다음으로 남은 커뮤니티 화면 내부 목업 배열을 `src/mocks/` 또는 `src/data/`로 이동하거나 제거
-6. 다음: 기사 상세 직접 조회, 커뮤니티 상세, 댓글, 로그아웃, 토큰 갱신, 다운로드 API 명세 추가
-7. 다음: 실제 백엔드 응답이 확정되면 화면별 변환 함수와 표시 필드 정리
+5. 완료: 홈/신뢰도 분석/편향성 분석/팩트체크 리포트/커뮤니티 프론트 더미 fallback 제거
+6. 완료: 기사 상세 직접 조회, 커뮤니티 상세/수정/삭제/댓글, 비밀번호 재설정, 리포트 삭제 화면 연결
+7. 다음: `POST /api/analysis` 500, 커뮤니티 작성자 식별자/소유자 필드, 체크 결과 서버 페이지네이션, 다운로드/토큰 갱신 API 명세 확정
+8. 다음: 실제 백엔드 응답이 더 풍부해지면 화면별 변환 함수와 표시 필드 정리
 
 ## 기존 문서와의 차이
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAnalysisResult, getReports } from '../../services/cheatftApi.js';
+import { deleteReport, getAnalysisResult, getReports } from '../../services/cheatftApi.js';
 import { getPressLabel, getPressLogoUrl, getPressReliability, recordObservedPress } from '../../utils/press.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
@@ -100,6 +100,7 @@ export default function ReportView({ onAuthExpired }) {
   const [actionMessage, setActionMessage] = useState('');
   const [periodCounts, setPeriodCounts] = useState({ today: 0, sevenDays: 0, thirtyDays: 0 });
   const [page] = useState(1);
+  const [reportsRefreshKey, setReportsRefreshKey] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -137,7 +138,7 @@ export default function ReportView({ onAuthExpired }) {
     return () => {
       ignore = true;
     };
-  }, [dateFilter, keyword, onAuthExpired, page, scoreFilter]);
+  }, [dateFilter, keyword, onAuthExpired, page, reportsRefreshKey, scoreFilter]);
 
   useEffect(() => {
     let ignore = false;
@@ -165,7 +166,7 @@ export default function ReportView({ onAuthExpired }) {
     return () => {
       ignore = true;
     };
-  }, [keyword, onAuthExpired, scoreFilter]);
+  }, [keyword, onAuthExpired, reportsRefreshKey, scoreFilter]);
 
   const loadReportDetail = (reportId) => {
     if (!reportId || detailDataById[reportId] || detailStatusById[reportId] === 'loading') return;
@@ -229,6 +230,36 @@ export default function ReportView({ onAuthExpired }) {
     navigator.clipboard.writeText(summaryText)
       .then(() => setActionMessage(`'${report.title}' 리포트 요약을 복사했습니다.`))
       .catch(() => setActionMessage('클립보드 복사에 실패했습니다.'));
+  };
+
+  const removeReport = (report) => {
+    if (!window.confirm(`'${report.title}' 리포트를 삭제할까요?`)) return;
+
+    deleteReport(report.id)
+      .then(() => {
+        setActionMessage(`'${report.title}' 리포트를 삭제했습니다.`);
+        setExpandedId(null);
+        setDetailDataById((previous) => {
+          const next = { ...previous };
+          delete next[report.id];
+          return next;
+        });
+        setFavoriteReportIds((previous) => {
+          const next = previous.filter((id) => id !== String(report.id));
+          writeFavoriteReportIds(next);
+          return next;
+        });
+        setReportsRefreshKey((value) => value + 1);
+      })
+      .catch((error) => {
+        const isAuthError = error.status === 401 || error.status === 403;
+        setActionMessage(isAuthError
+          ? '로그인이 만료되었거나 인증이 필요합니다. 다시 로그인해주세요.'
+          : error.message || '리포트 삭제에 실패했습니다.');
+        if (isAuthError && onAuthExpired) {
+          onAuthExpired();
+        }
+      });
   };
 
   const styles = {
@@ -519,7 +550,10 @@ export default function ReportView({ onAuthExpired }) {
                       <span style={styles.cardTitle}>{report.title}</span>
                       <span style={styles.cardMeta}>검색일: {report.date} <span style={styles.statusBadge}>{report.status}</span></span>
                     </div>
-                    <button type="button" style={styles.actionBtn} onClick={() => copyReportSummary(report, summaryText)}>요약 복사</button>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <button type="button" style={styles.actionBtn} onClick={() => copyReportSummary(report, summaryText)}>요약 복사</button>
+                      <button type="button" style={{ ...styles.actionBtn, color: '#ea4335', borderColor: '#ea4335' }} onClick={() => removeReport(report)}>삭제</button>
+                    </div>
                   </div>
                   
                   <div className="report-card-content-row" style={styles.cardContentRow}>

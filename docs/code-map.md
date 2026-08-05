@@ -1,6 +1,6 @@
 # 코드맵
 
-마지막 갱신: 2026-08-02
+마지막 갱신: 2026-08-05
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 이 문서는 새 채팅에서 전체 코드를 다시 훑지 않도록 만든 지도이다. 정확한 구현 확인이 필요할 때만 해당 파일을 직접 연다.
@@ -32,7 +32,7 @@ C:\Users\eunhy\Desktop\동아리
 
 ## cheatft_web 개요
 
-Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, 편향성 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/신뢰도 분석(`/search`)/편향성 분석(`/algo`)/팩트체크 리포트는 프론트 더미 fallback을 제거하고 API 응답만 표시하며, 커뮤니티 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
+Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, 편향성 분석, 커뮤니티 화면을 제공한다. 현재는 백엔드 API(`https://cheatft.leegeon.com/api`)를 우선 호출한다. 홈/신뢰도 분석(`/search`)/편향성 분석(`/algo`)/팩트체크 리포트/커뮤니티는 프론트 더미 fallback을 제거하고 API 응답만 표시한다. API 요청이 성공했지만 응답 배열이 비어 있으면 프론트 목업을 섞지 않고 빈 상태를 보여준다. 로컬 `cheatft_api`는 Express/PostgreSQL/JWT 기반 구현체이며, Codex는 수정하지 않고 읽기 전용으로만 확인한다.
 
 기술 스택:
 
@@ -77,7 +77,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 - `src/index.css`: 전역 리셋, navbar 반응형, form/status 공용 스타일, 로딩 스피너 애니메이션, 홈과 주요 화면의 노트북 절반 폭/모바일 폭 반응형 보정.
 - `src/App.css`: 현재 비어 있음.
 - `src/services/apiClient.js`: `VITE_API_BASE_URL` 기반 `apiRequest`, `apiData`, `ApiError`, 토큰 저장/삭제/첨부, 현재 사용자 정보 저장/삭제 처리.
-- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/checks`, `/article`, `/keywords`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
+- `src/services/cheatftApi.js`: `/summary`, `/login`, `/signup`, `/password/*`, `/checks`, `/article`, `/keywords`, `/analysis`, `/reports`, `/posts`, `/profile` 도메인 API 함수. 로그인 성공 시 accessToken과 현재 사용자 정보를 저장한다. `/profile` 함수는 남아 있지만 마이페이지 화면은 제거됨.
 - `public/favicon.png`: 브라우저 주소창/탭용 Cheat F/T 아이콘. 첨부 이미지의 흰 배경을 투명 처리한 PNG.
 - `src/data/pressReliability.js`: 언론사별 분류, 신뢰도 점수/라벨, AI 별점 참고값, 판단 이유 요약을 담은 사이트 반영 원본 데이터. 2026-07-31 기준 백엔드 `PRESS_MAPPING` 69개 모두 신뢰도 기준으로 연결된다.
 - `src/utils/press.js`: 백엔드 `checks.service.js`의 `PRESS_MAPPING` 기반 언론사 oid/name 정규화, `pressReliability.js` 기반 화면 필터 분류/신뢰도 조회, 네이버 `office_logo` 로고 URL 매핑, 미매핑 `언론사(021)` 관측값 `localStorage` 누적. 2026-07-31 기준 백엔드 69개 oid와 프론트 oid/name 및 로고 매핑을 맞췄다.
@@ -100,11 +100,12 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 | `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 URL이 지원되면 `POST /article` 상세 API 응답의 `content` 본문을 우선 표시하고 기자/입력 시간/주제를 병합하며 URL별 sessionStorage 캐시를 사용. API 실패는 화면 오류로 노출하지 않음 |
 | `/algo` | `AlgoView` | 편향성 분석 보호 라우트. 빈 질문 입력에서 시작하고 Enter는 키워드 추천 실행, Shift+Enter는 줄바꿈, `POST /keywords`로 추천 키워드 조회, 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}?limit=10`, 긴 분석 중 로딩 팝업, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 프론트 목업 fallback 없음 |
 | `/report` | `ReportView` | 보호 라우트. `GET /reports` 우선, `keyword/date/score/page/limit` 전달, 상세 펼침 시 `GET /analysis/{id}?limit=10`, 사이드바 기간/신뢰도 필터는 API query 반영, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, API/오류/빈 상태 표시, 실패 시 리포트 목록/상세 목업 없음 |
-| `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, API/목업 출처 안내, 실패 시 커뮤니티 목록 목업 |
+| `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, 실패 시 목업 fallback 없이 오류/빈 상태 표시 |
 | `/community/write` | `CommunityWriteView` | 보호 라우트. 글 작성 임시 저장, 등록 시 `POST /posts` |
-| `/community/:id` | `DetailView type="커뮤니티"` | 게시글 상세 placeholder |
+| `/community/:id` | `CommunityDetailView` | 게시글 상세, 수정, 삭제, 댓글 작성/삭제 API 연결 |
 | `/login` | `LoginView` | `/login` 호출, accessToken 저장, accessToken 없는 응답은 실패 처리, 보호 라우트에서 온 경우 로그인 후 원래 경로 복귀 |
 | `/signup` | `SignupView` | `/signup` 호출, 입력 검증 후 성공 시 로그인 화면 이동 |
+| `/password-reset` | `PasswordResetView` | 비밀번호 재설정 코드 발송, 인증번호 검증, 새 비밀번호 설정 |
 | `*` | `NotFoundView` | 404 |
 
 ## 화면별 메모
@@ -142,7 +143,19 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
   - 뉴스 상세 제목/본문은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - 뉴스 상세의 관련 키워드/관련 뉴스/관련 댓글/AI 분석 코멘트 영역은 제거됐다.
   - 직접 id 조회 API는 아직 없다. 저장된 기사 정보나 URL이 없으면 선택한 뉴스 정보를 찾을 수 없다는 상태를 보여준다.
-  - 커뮤니티 상세은 아직 placeholder 성격이 남아 있다. 커뮤니티 상세/댓글 API도 없음.
+  - 커뮤니티 상세는 `CommunityDetailView.jsx`가 담당한다.
+
+- `CommunityDetailView.jsx`
+  - `/community/:id`에서 `GET /posts/{id}`로 게시글 상세와 댓글 목록을 표시한다.
+  - 수정 모드에서 `PUT /posts/{id}`로 제목/본문/카테고리/태그를 저장한다.
+  - 삭제 버튼은 `DELETE /posts/{id}`를 호출하고 성공 시 `/community`로 이동한다.
+  - 댓글 작성은 `POST /posts/{id}/comments`, 댓글 삭제는 `DELETE /posts/{id}/comments/{commentId}`를 호출한다.
+  - 백엔드가 작성자 id를 내려주지 않으므로 수정/삭제 권한 실패는 403 응답 메시지로 안내한다.
+
+- `PasswordResetView.jsx`
+  - `/password-reset` 비밀번호 찾기 화면이다.
+  - `POST /password/code`로 인증번호를 발송하고, `POST /password/verify`로 `resetToken`을 받은 뒤, `POST /password/reset`으로 새 비밀번호를 설정한다.
+  - 로그인 전 흐름이라 API 함수들은 `auth: false`로 호출한다.
 
 - `AlgoView.jsx`
   - `activeTab`으로 관련 뉴스/반박 기사 탭 전환.
@@ -178,19 +191,20 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 
 - `CommunityView.jsx`
   - `tab` query param으로 상단/사이드 탭 상태를 공유한다.
-  - `getPosts()`로 게시글과 `communityStats`를 가져오고 실패 시 기존 목업을 사용한다.
-  - 탭/카테고리/검색어/페이지를 `category`, `keyword`, `page`, `limit` query parameter로 전달한다. 2026-07-26 배포 API 확인 기준 실제 응답은 query와 무관한 dummy 고정값이며 `currentPage: 1`을 반환한다.
+  - `getPosts()`로 게시글과 `communityStats`를 가져오고 실패 시 기존 목업을 사용하지 않는다.
+  - 탭/카테고리/검색어/페이지를 `category`, `keyword`, `page`, `limit` query parameter로 전달한다. 2026-08-05 배포 API 확인 기준 커뮤니티 목록/상세/작성/수정/삭제/댓글 API가 동작한다.
   - `글 작성하기` 버튼은 전역 상단바가 아니라 커뮤니티 목록 상단의 검색/필터 영역에 표시한다.
   - 오른쪽 정정 요청 배너의 `정정 요청하기` 버튼은 `/community/write`로 이동한다.
   - API 게시글 제목/본문/작성자/카테고리는 `cleanDisplayText()`로 HTML entity를 디코딩한다.
-  - API 성공 후 `posts`가 비어 있으면 빈 게시글 상태를 표시하고, 실패 시에만 기존 커뮤니티 목업을 사용한다.
-  - API 응답 표시 중인지, 프론트 목업 fallback인지 목록 상단 안내로 구분한다.
-  - 정보 공유 탭 외에는 준비중 placeholder.
+  - API 성공 후 `posts`가 비어 있으면 빈 게시글 상태를 표시하고, 실패 시에도 프론트 목업을 섞지 않는다.
+  - API 응답 표시 중인지, 요청 실패인지 목록 상단 안내로 구분한다.
+  - 정보 공유/정정 요청/토론 게시판 탭 모두 실제 API 카테고리 query로 조회한다.
   - 좁은 폭에서도 글 작성 버튼/필터가 과하게 커지지 않도록 하고, 참여 현황은 가능한 폭에서 가로 배치를 유지한다.
 
 - `CommunityWriteView.jsx`
   - `cheat-ft-community-draft` 키로 `sessionStorage` 임시 저장.
   - 등록 버튼은 `createPost()`로 `POST /posts`를 호출한다.
+  - 카테고리는 API 허용값인 `정보 공유 커뮤니티`, `정정 요청`, `토론 게시판`만 보낸다.
   - API 기본 URL이 없거나 요청 실패 시 오류 메시지를 보여준다.
 
 - `LoginView.jsx`

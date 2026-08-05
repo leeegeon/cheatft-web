@@ -44,10 +44,10 @@ export function signup(account) {
   })
 }
 
-export function requestCheck({ type = 'text', content }) {
+export function requestCheck({ content }) {
   return apiData('/checks', {
     method: 'POST',
-    body: { type, content },
+    body: { content },
   })
 }
 
@@ -95,14 +95,74 @@ export function getReports(params = {}) {
   return apiData(buildPath('/reports', params))
 }
 
+export function deleteReport(id) {
+  return apiData(`/reports/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export function getPosts(params = {}) {
   return apiData(buildPath('/posts', params))
+}
+
+export function getPost(id) {
+  return apiData(`/posts/${id}`)
 }
 
 export function createPost(post) {
   return apiData('/posts', {
     method: 'POST',
     body: post,
+  })
+}
+
+export function updatePost(id, post) {
+  return apiData(`/posts/${id}`, {
+    method: 'PUT',
+    body: post,
+  })
+}
+
+export function deletePost(id) {
+  return apiData(`/posts/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export function createComment(postId, comment) {
+  return apiData(`/posts/${postId}/comments`, {
+    method: 'POST',
+    body: comment,
+  })
+}
+
+export function deleteComment(postId, commentId) {
+  return apiData(`/posts/${postId}/comments/${commentId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function requestPasswordCode(email) {
+  return apiData('/password/code', {
+    method: 'POST',
+    body: { email },
+    auth: false,
+  })
+}
+
+export function verifyPasswordCode({ email, code }) {
+  return apiData('/password/verify', {
+    method: 'POST',
+    body: { email, code },
+    auth: false,
+  })
+}
+
+export function resetPassword({ resetToken, newPassword }) {
+  return apiData('/password/reset', {
+    method: 'POST',
+    body: { resetToken, newPassword },
+    auth: false,
   })
 }
 

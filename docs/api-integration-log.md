@@ -1,9 +1,42 @@
 # API 연동 작업 로그
 
-마지막 갱신: 2026-08-02
+마지막 갱신: 2026-08-05
 대상: `cheatft_web`
 백엔드 폴더 수정 여부: 최종 상태 기준 수정하지 않음. 2026-07-16 실수로 인증 컨트롤러를 수정했으나 즉시 원상복구함.
 API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포 API보다 늦게 반영될 수 있으므로, API 연동 작업은 가능한 경우 실제 배포 API 응답과 `cheatft_api/src` 구현을 함께 확인한다.
+
+## 2026-08-05 API 서비스 함수 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 로컬 백엔드 최신 커밋 `8af5eca feat: add support for Naver Entertain articles in getArticleFromUrl` 기준 README와 라우트/컨트롤러/서비스를 읽기 전용으로 확인했다.
+- 배포 API 직접 확인 결과:
+  - `POST /api/checks`는 `type` 없이 `{ content }`만으로 `202`와 `checkId`를 반환한다.
+  - `GET /api/checks/{id}?page=1&limit=5`는 여전히 `limit`을 실제 분할에 반영하지 않고 전체 기사 배열을 반환한다.
+  - `POST /api/article`은 네이버 뉴스와 `m.entertain.naver.com` 네이버 연예 URL에서 기사 전문을 반환한다. 비지원 URL은 `400`을 반환한다.
+  - 커뮤니티 목록/상세/작성/수정/삭제/댓글 작성/댓글 삭제 API가 동작한다.
+  - `DELETE /api/reports/{id}`는 배포되어 있으며, 존재하지 않는 id는 `404`, 토큰 없음은 `401`을 반환한다.
+  - `POST /api/keywords`는 정상 응답하지만, `POST /api/analysis`는 확인 시점에 `500`을 반환했다.
+  - 비밀번호 코드 발송 API는 라우트가 있으나 테스트 계정 도메인으로는 메일 provider가 `500`을 반환했다.
+- 프론트 변경:
+  - `src/services/cheatftApi.js`: `requestCheck()` 요청 body에서 `type` 제거.
+  - `src/services/cheatftApi.js`: `deleteReport(id)` 추가.
+  - `src/services/cheatftApi.js`: `getPost(id)`, `updatePost(id, post)`, `deletePost(id)`, `createComment(postId, comment)`, `deleteComment(postId, commentId)` 추가.
+  - `src/services/cheatftApi.js`: `requestPasswordCode(email)`, `verifyPasswordCode({ email, code })`, `resetPassword({ resetToken, newPassword })` 추가.
+- 후속 화면 연결:
+  - `PasswordResetView.jsx`를 추가하고 `/password-reset` 라우트를 연결했다. 로그인 화면의 `비밀번호 찾기` 버튼에서 진입한다.
+  - `DetailView.jsx`는 `m.entertain.naver.com` 네이버 연예 URL도 상세 API로 조회하고, 비지원 언론사 URL에는 원문 확인 안내를 표시한다.
+  - `CommunityView.jsx`는 정보 공유/정정 요청/토론 게시판 탭 모두 실제 API 카테고리 query로 조회하며, 실패 시 프론트 목업 fallback을 쓰지 않는다.
+  - `CommunityWriteView.jsx`의 카테고리를 API 허용값인 `정보 공유 커뮤니티`, `정정 요청`, `토론 게시판`으로 맞췄다.
+  - `CommunityDetailView.jsx`를 추가해 게시글 상세/수정/삭제/댓글 작성/댓글 삭제를 API에 연결했다.
+  - `ReportView.jsx`에 리포트 삭제 버튼을 추가하고 삭제 성공 시 목록/기간 카운트를 다시 조회한다.
+- 남은 제약:
+  - 백엔드가 게시글/댓글 작성자 id를 내려주지 않아 프론트에서 소유자 여부를 선판단하지 않는다. 권한 없는 수정/삭제는 서버 403 응답으로 안내한다.
+  - 확인 시점에 `POST /api/analysis`는 `500`을 반환하므로 신규 분석 생성은 백엔드 확인이 필요하다. 기존 분석 조회는 정상이다.
+- 검증:
+  - `npm run lint` 통과.
+  - `npm test` 통과.
+  - 기본 셸 `npm run build`는 transform 중 오류 메시지 없이 exit 1.
+  - Codex 번들 Node로 `vite build` 통과.
 
 ## 2026-08-02 키워드/분석/리포트 API 재연동
 
@@ -513,7 +546,7 @@ npm run dev
 - `login`
 - `signup`
 
-홈/검증하기/신뢰도 분석은 API 실패 시 프론트 더미 결과를 섞지 않는다. 리포트/커뮤니티 등 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류 메시지를 보여준다.
+홈/검증하기/신뢰도 분석/리포트/커뮤니티는 API 실패 시 프론트 더미 결과를 섞지 않는다. 실제 연동 성공 여부는 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 비밀번호 찾기, 게시글 등록/수정/삭제, 댓글 작성/삭제는 API 실패 시 오류 메시지를 보여준다.
 
 ## 검증 결과
 

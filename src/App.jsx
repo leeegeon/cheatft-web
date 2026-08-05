@@ -4,11 +4,13 @@ import HomeView from './components/views/HomeView.jsx';
 import VerificationView from './components/views/VerificationView.jsx';
 import CommunityView from './components/views/CommunityView.jsx';
 import DetailView from './components/views/DetailView.jsx';
+import CommunityDetailView from './components/views/CommunityDetailView.jsx';
 import AlgoView from './components/views/AlgoView.jsx';
 import ReportView from './components/views/ReportView.jsx';
 import LoginView from './components/views/LoginView.jsx';
 import SignupView from './components/views/SignupView.jsx';
 import CommunityWriteView from './components/views/CommunityWriteView.jsx';
+import PasswordResetView from './components/views/PasswordResetView.jsx';
 import NotFoundView from './components/views/NotFoundView.jsx';
 import { apiData, clearAccessToken, clearCurrentUser, getAccessToken, getCurrentUser, setCurrentUser as storeCurrentUser } from './services/apiClient.js';
 import { buildSearchPath, normalizeSearchQuery } from './utils/search.js';
@@ -231,11 +233,12 @@ export default function App() {
           <Route path="/article/:id" element={<DetailView type="뉴스" />} />
           <Route path="/community" element={<CommunityView onPostClick={(id = 1) => navigate(`/community/${id}`)} />} />
           <Route path="/community/write" element={requireLogin(<CommunityWriteView />)} />
-          <Route path="/community/:id" element={<DetailView type="커뮤니티" />} />
+          <Route path="/community/:id" element={<CommunityDetailView />} />
           <Route path="/algo" element={requireLogin(<AlgoView onAuthExpired={handleAuthExpired} />)} />
           <Route path="/report" element={requireLogin(<ReportView onAuthExpired={handleAuthExpired} />)} />
           <Route path="/login" element={<LoginView onLogin={handleLogin} />} />
           <Route path="/signup" element={<SignupView />} />
+          <Route path="/password-reset" element={<PasswordResetView />} />
           <Route path="*" element={<NotFoundView />} />
         </Routes>
       </main>

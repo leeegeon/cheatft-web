@@ -17,24 +17,26 @@ function formatDateTime(value) {
 }
 
 function mapApiPost(post) {
+  const category = cleanDisplayText(post.category, '정보 공유 커뮤니티');
+
   return {
     id: post.id,
-    type: cleanDisplayText(post.category, '정보 공유'),
+    type: category,
     title: cleanDisplayText(post.title, '제목 없음'),
-    desc: cleanDisplayText(post.content, '백엔드에서 반환한 커뮤니티 게시글입니다. 상세 본문 API가 확정되면 본문 요약을 표시합니다.'),
+    desc: cleanDisplayText(post.preview || post.content, '게시글 미리보기가 없습니다.'),
     author: cleanDisplayText(post.author, '작성자 미상'),
     date: formatDateTime(post.createdAt),
     views: Number(post.views ?? 0).toLocaleString(),
     comments: Number(post.commentCount ?? 0).toLocaleString(),
-    bg: '#4285f4',
-    icon: '📰',
+    bg: category === '정정 요청' ? '#ea4335' : category === '토론 게시판' ? '#9334e6' : '#4285f4',
+    icon: category === '정정 요청' ? '✏️' : category === '토론 게시판' ? '토론' : '정보',
   };
 }
 
 const CATEGORY_PARAM_BY_TAB = {
-  '정보 공유 커뮤니티': '정보 공유',
+  '정보 공유 커뮤니티': '정보 공유 커뮤니티',
   '정정 요청': '정정 요청',
-  '토론 게시판': '토론',
+  '토론 게시판': '토론 게시판',
 };
 
 const COMMUNITY_TABS = ['정보 공유 커뮤니티', '정정 요청', '토론 게시판'];
@@ -79,7 +81,7 @@ export default function CommunityView({ onPostClick }) {
         }
         if (!ignore) {
           setCommunityData(null);
-          setCommunityStatus('fallback');
+          setCommunityStatus('error');
         }
       });
 
@@ -136,7 +138,7 @@ export default function CommunityView({ onPostClick }) {
     postCard: { backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e0e0e0', padding: '24px', marginBottom: '16px', display: 'flex', gap: '24px', cursor: 'pointer', transition: 'box-shadow 0.2s', ':hover': {boxShadow: '0 2px 8px rgba(0,0,0,0.05)'} },
     postContent: { flex: 1 },
     badge: (type) => {
-      const colors = { '공지': '#1a73e8', '정보 공유': '#00c4b4', '정정 요청': '#ea4335', '토론': '#9334e6', '질문': '#fbbc04' };
+      const colors = { '공지': '#1a73e8', '정보 공유 커뮤니티': '#00c4b4', '정보 공유': '#00c4b4', '정정 요청': '#ea4335', '토론 게시판': '#9334e6', '토론': '#9334e6' };
       const bg = colors[type] || '#80868b';
       return { padding: '4px 8px', borderRadius: '4px', backgroundColor: bg, color: '#fff', fontSize: '12px', fontWeight: 'bold', display: 'inline-block', marginBottom: '12px' };
     },
@@ -165,33 +167,29 @@ export default function CommunityView({ onPostClick }) {
     reportBtn: { width: '100%', padding: '12px', backgroundColor: '#1a73e8', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginTop: '16px', cursor: 'pointer' }
   };
 
-  const posts = [
-    { type: '정보 공유', title: '백신 부작용 사망자 급증? 관련 추가 자료 공유합니다.', desc: '최근 백신 부작용과 관련된 통계 자료와 해외 사례들을 정리해 보았습니다.', author: 'user_123', date: '2024.05.20 14:30', views: '1,245', comments: '23', bg: '#4285f4', icon: '💉' },
-    { type: '정정 요청', title: '"일본 후쿠시마 오염수 방류 안전하다" 기사 내용 정정 요청합니다.', desc: '해당 기사에서 인용한 수치에 오류가 있는 것 같습니다. 확인 부탁드립니다.', author: 'green_leaf', date: '2024.05.20 11:15', views: '892', comments: '18', bg: '#34a853', icon: '🏭' },
-    { type: '토론', title: 'AI가 일자리를 대체하는 것은 피할 수 없는 미래일까?', desc: 'AI 기술 발전에 따른 일자리 변화에 대해 다양한 관점에서 이야기 나눠요.', author: 'think_together', date: '2024.05.19 20:45', views: '642', comments: '37', bg: '#1a2b49', icon: 'AI' },
-    { type: '질문', title: '팩트체크 등급 신뢰도는 어떻게 계산되나요?', desc: '신빙성 등급(5단계)은 어떤 기준과 알고리즘으로 산정되는지 궁금합니다.', author: 'curious_cat', date: '2024.05.19 16:20', views: '411', comments: '12', bg: '', icon: '' },
-    { type: '정보 공유', title: '기후변화에 대한 과학적 근거 정리 (최신 연구 업데이트)', desc: 'IPCC 최신 보고서를 기반으로 핵심 내용을 요약했습니다.', author: 'earth_love', date: '2024.05.19 10:05', views: '1,102', comments: '25', bg: '#8ab4f8', icon: '🧊' }
-  ];
-
   const hasApiPosts = communityStatus === 'done';
   const displayPosts = hasApiPosts
     ? (Array.isArray(communityData?.posts) ? communityData.posts.map(mapApiPost) : [])
-    : posts;
+    : [];
   const communityStats = hasApiPosts ? {
     todayPosts: communityData?.communityStats?.todayPosts ?? 0,
     todayComments: communityData?.communityStats?.todayComments ?? 0,
     totalMembers: communityData?.communityStats?.totalMembers ?? 0,
   } : {
-    todayPosts: 128,
-    todayComments: 342,
-    totalMembers: 2845,
+    todayPosts: 0,
+    todayComments: 0,
+    totalMembers: 0,
   };
-  const sourceState = communityStatus === 'loading' ? 'loading' : hasApiPosts ? 'api' : 'fallback';
+  const sourceState = communityStatus === 'loading' ? 'loading' : hasApiPosts ? 'api' : 'error';
   const sourceText = sourceState === 'api'
     ? '백엔드 API 응답 표시 중'
     : sourceState === 'loading'
       ? '백엔드 API 응답 대기 중'
-      : '프론트 목업 fallback 표시 중';
+      : '게시글 요청 실패';
+  const popularPosts = [...displayPosts]
+    .sort((a, b) => Number(String(b.views).replace(/,/g, '')) - Number(String(a.views).replace(/,/g, '')))
+    .slice(0, 5);
+  const correctionPosts = displayPosts.filter((post) => post.type === '정정 요청').slice(0, 3);
 
   return (
     <div className="community-page" style={styles.container}>
@@ -290,10 +288,9 @@ export default function CommunityView({ onPostClick }) {
                 }}
               >
                 <option value="">탭 카테고리</option>
-                <option value="정보 공유">정보 공유</option>
+                <option value="정보 공유 커뮤니티">정보 공유 커뮤니티</option>
                 <option value="정정 요청">정정 요청</option>
-                <option value="토론">토론</option>
-                <option value="질문">질문</option>
+                <option value="토론 게시판">토론 게시판</option>
               </select>
               <div className="community-input-wrapper" style={styles.inputWrapper}>
                 <svg width="18" height="18" fill="#5f6368" viewBox="0 0 24 24" style={{position:'absolute', left:'12px'}}><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
@@ -311,14 +308,13 @@ export default function CommunityView({ onPostClick }) {
             </div>
           </div>
 
-          {activeTab === '정보 공유 커뮤니티' ? (
           <>
           <div style={styles.sourceNotice(sourceState)}>{sourceText}</div>
           <div>
             {apiError && <div className="form-error" role="alert">{apiError}</div>}
             {displayPosts.length === 0 ? (
               <div style={styles.emptyState}>
-                백엔드에서 받은 게시글 목록이 비어 있습니다.<br/>
+                {sourceState === 'error' ? '게시글을 불러오지 못했습니다.' : '백엔드에서 받은 게시글 목록이 비어 있습니다.'}<br/>
                 프론트 예시 데이터는 섞지 않았습니다.
               </div>
             ) : displayPosts.map((post, i) => (
@@ -366,13 +362,6 @@ export default function CommunityView({ onPostClick }) {
             </div>
           </div>
           </>
-          ) : (
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e0e0e0', padding: '60px', textAlign: 'center', color: '#5f6368', fontSize: '16px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>💬</div>
-              <div style={{ fontWeight: 'bold', fontSize: '20px', color: '#202124', marginBottom: '8px' }}>{activeTab} 화면 준비중입니다.</div>
-              <div>해당 기능은 현재 개발 진행 중이며, 곧 만나보실 수 있습니다.</div>
-            </div>
-          )}
         </div>
 
         <div className="community-right-sidebar" style={styles.rightSidebar}>
@@ -397,14 +386,10 @@ export default function CommunityView({ onPostClick }) {
           <div style={styles.rightCard}>
             <div style={styles.rightCardTitle}>인기 게시글</div>
             <div>
-              {[
-                { title: '백신 부작용 사망자 급증? 관련 추가 자료...', views: '2,345', comments: '56' },
-                { title: '일본 후쿠시마 오염수 방류 안전하다? 팩트체...', views: '1,987', comments: '43' },
-                { title: '기후변화는 인간의 영향이 아니다? 반박 자료', views: '1,765', comments: '38' },
-                { title: 'AI가 일자리를 대체하는 것은 피할 수 없는...', views: '1,432', comments: '29' },
-                { title: '팩트체크 등급은 얼마나 신뢰할 수 있나요?', views: '1,210', comments: '24' }
-              ].map((item, i) => (
-                <div key={i} style={styles.popularItem}>
+              {popularPosts.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#5f6368', lineHeight: '1.6' }}>표시할 API 게시글이 없습니다.</div>
+              ) : popularPosts.map((item, i) => (
+                <div key={item.id ?? item.title} style={styles.popularItem}>
                   <div style={styles.rankBadge(i+1)}>{i+1}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '14px', color: '#202124', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '180px' }}>{item.title}</div>
@@ -419,20 +404,16 @@ export default function CommunityView({ onPostClick }) {
           </div>
 
           <div style={styles.rightCard}>
-            <div style={styles.rightCardTitle}>최근 정정 완료 사례 <span style={{ fontSize: '13px', color: '#0056d2', fontWeight: 'normal', cursor: 'pointer' }}>더보기 &gt;</span></div>
+            <div style={styles.rightCardTitle}>최근 정정 요청</div>
             <div>
-              <div style={styles.correctionItem}>
-                <span style={{color:'#34a853', fontWeight:'bold'}}>✓</span>
-                <div>"OOO 화이자 백신은 DNA를 변형시킨다" &rarr; <span style={{color:'#34a853', fontWeight:'bold'}}>정정 완료</span></div>
-              </div>
-              <div style={styles.correctionItem}>
-                <span style={{color:'#34a853', fontWeight:'bold'}}>✓</span>
-                <div>"기후변화는 자연적 순환일 뿐이다" &rarr; <span style={{color:'#34a853', fontWeight:'bold'}}>정정 완료</span></div>
-              </div>
-              <div style={styles.correctionItem}>
-                <span style={{color:'#34a853', fontWeight:'bold'}}>✓</span>
-                <div>"OOO 제품이 암을 100% 치료한다" &rarr; <span style={{color:'#34a853', fontWeight:'bold'}}>정정 완료</span></div>
-              </div>
+              {correctionPosts.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#5f6368', lineHeight: '1.6' }}>표시할 정정 요청 게시글이 없습니다.</div>
+              ) : correctionPosts.map((post) => (
+                <div key={post.id ?? post.title} style={styles.correctionItem}>
+                  <span style={{color:'#ea4335', fontWeight:'bold'}}>!</span>
+                  <button type="button" onClick={() => onPostClick(post.id)} style={{ border: 0, background: 'transparent', padding: 0, color: '#3c4043', textAlign: 'left', cursor: 'pointer', lineHeight: '1.5' }}>{post.title}</button>
+                </div>
+              ))}
             </div>
           </div>
 

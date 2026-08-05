@@ -97,7 +97,13 @@ export default function LoginView({ onLogin }) {
           <div style={styles.formGroup}>
             <label htmlFor="login-password" style={{...styles.label, display: 'flex', justifyContent: 'space-between'}}>
               비밀번호
-              <span style={{color: '#0056d2', cursor: 'pointer', fontWeight: 'normal'}}>비밀번호 찾기</span>
+              <button
+                type="button"
+                onClick={() => navigate('/password-reset')}
+                style={{ color: '#0056d2', cursor: 'pointer', fontWeight: 'normal', border: 0, background: 'transparent', padding: 0 }}
+              >
+                비밀번호 찾기
+              </button>
             </label>
             <input 
               id="login-password"

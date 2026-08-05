@@ -48,6 +48,10 @@ function cacheArticleDetail(url, article) {
 function getSupportedArticleDetailUrl(url) {
   try {
     const parsedUrl = new URL(url);
+    if (parsedUrl.hostname === 'm.entertain.naver.com' || parsedUrl.hostname === 'www.entertain.naver.com') {
+      return parsedUrl.toString();
+    }
+
     if (parsedUrl.hostname !== 'n.news.naver.com') return '';
 
     const articleMatch = parsedUrl.pathname.match(/^\/(?:mnews\/)?article\/(\d+)\/(\d+)$/);
@@ -58,6 +62,11 @@ function getSupportedArticleDetailUrl(url) {
   } catch {
     return '';
   }
+}
+
+function getUnsupportedArticleDetailMessage(url) {
+  if (!url || getSupportedArticleDetailUrl(url)) return '';
+  return '전문 표시가 지원되지 않는 언론사입니다. 직접 원문 기사를 확인하세요.';
 }
 
 function getArticlePressValue(article) {
@@ -139,6 +148,7 @@ export default function DetailView({ type }) {
   const stateArticle = location.state?.article;
   const initialArticle = useMemo(() => stateArticle || getStoredArticle(id), [id, stateArticle]);
   const detailUrl = isNews ? getSupportedArticleDetailUrl(initialArticle?.url) : '';
+  const unsupportedDetailMessage = isNews ? getUnsupportedArticleDetailMessage(initialArticle?.url) : '';
   const cachedDetailArticle = getCachedArticleDetail(detailUrl);
   const [detailResult, setDetailResult] = useState({
     url: detailUrl,
@@ -219,6 +229,9 @@ export default function DetailView({ type }) {
         </div>
         {isNews && detailStatus === 'loading' && (
           <div style={{ marginTop: '20px', color: '#5f6368', fontSize: '14px' }}>백엔드 기사 상세 API에서 본문을 불러오는 중입니다.</div>
+        )}
+        {isNews && unsupportedDetailMessage && (
+          <div className="integration-notice" role="note" style={{ marginTop: '20px' }}>{unsupportedDetailMessage}</div>
         )}
 
         {isNews && displayArticle.url && (

@@ -1,6 +1,6 @@
 # Handoff
 
-마지막 갱신: 2026-08-02
+마지막 갱신: 2026-08-05
 마지막 전체 프로젝트 스캔: 2026-07-15
 
 새 채팅에서 이어받을 때는 루트 `AGENTS.md` → `cheatft_web/AGENTS.md` → 이 파일 순서로 본다. 필요한 경우 `cheatft_web/docs/code-map.md`, `cheatft_web/docs/backend-contract.md`, `cheatft_web/docs/api-integration-log.md`만 추가로 확인한다. 기존 루트 `docs/` 문서들은 2026-07-15에 `cheatft_web/docs/`로 이동했다.
@@ -47,7 +47,7 @@
 - 실행 위치: `C:\Users\eunhy\Desktop\동아리\cheatft_web`
 - 권장 Node: `.nvmrc` 기준 Node 22
 - 프레임워크: React 19, React Router 7, Vite 8
-- 화면 데이터: 홈/신뢰도 분석(`/search`)/편향성 분석(`/algo`)/팩트체크 리포트는 프론트 더미 fallback을 제거하고 백엔드 API 응답/오류/빈 상태만 표시한다. 커뮤니티 등 일부 화면에는 아직 실패 시 기존 목업 fallback이 남아 있다.
+- 화면 데이터: 홈/신뢰도 분석(`/search`)/편향성 분석(`/algo`)/팩트체크 리포트/커뮤니티는 프론트 더미 fallback을 제거하고 백엔드 API 응답/오류/빈 상태만 표시한다.
 - API 응답이 성공했지만 배열이 비어 있으면 해당 빈 상태를 그대로 보여주며 프론트 목업을 섞지 않는다. 신뢰도 분석 검색 결과는 API 실패 시에도 프론트 더미데이터를 섞지 않고 오류/빈 상태를 보여준다.
 - 현재 API 기본 URL: `VITE_API_BASE_URL=https://cheatft.leegeon.com/api`
 - API 준비: `src/services/apiClient.js`에 공통 요청/토큰 처리, `src/services/cheatftApi.js`에 명세 기반 도메인 호출 함수가 있음
@@ -59,9 +59,24 @@
 - 2026-07-31 배포 API 30개 키워드 재검색 후 현재 백엔드 소스에도 없는 미매핑 oid는 `293: 블로터`, `586: 시사저널`만 남겼다. 최신 목록은 이름 확인까지 포함한 `docs/observed-unmapped-press-names.csv` 하나만 본다.
 - API 표시 텍스트: `src/utils/text.js`의 `cleanDisplayText()`가 `&quot;`, `&amp;`, `&#39;` 같은 HTML entity를 디코딩하고 남은 HTML 태그를 제거한다.
 - 뉴스 상세: 신뢰도 분석 카드 클릭으로 전달된 기사 객체를 route state/sessionStorage에서 먼저 표시하고, 지원되는 네이버 기사 URL이 있으면 `/mnews/article/`을 `/article/`로 정규화한 뒤 `POST /article` 상세 API 응답의 `content`를 기사 전문 영역에 우선 표시한다. 상세 API가 실패하면 오류 문구 없이 목록 기사 정보를 유지한다. 현재 배포 API가 `content`를 축약 문자열로 내려주면 화면에도 축약 본문까지만 표시된다. 신뢰도 점수는 백엔드/목록 값을 우선 사용하고 없으면 `src/data/pressReliability.js`의 언론사 기준표를 사용하며, 오른쪽 패널은 0~5 눈금과 현재 점수 마커로 표시한다.
-- 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
+- 글 작성: `CommunityWriteView.jsx`가 `sessionStorage`에 임시 저장하고, 등록 시 `POST /posts`를 호출한다. 카테고리는 백엔드 실제 값인 `정보 공유 커뮤니티`, `정정 요청`, `토론 게시판`만 사용한다. API 기본 URL이 없거나 요청이 실패하면 오류를 보여주고 임시 저장은 유지된다.
 - 반응형: `App.jsx`는 내부 `main` 세로 스크롤을 제거하고 브라우저 기본 페이지 스크롤을 사용한다. `src/index.css`는 홈, 신뢰도 분석, 편향성 분석, 리포트, 커뮤니티, 상세, 로그인/회원가입의 노트북 절반 폭/모바일 폭 보정을 담당한다. 홈 최신 팩트체크/프로모션/통계 카드는 320px 폭에서도 내부 요소가 가로로 밀리지 않게 줄바꿈과 폭 제한을 둔다. 편향성 분석과 리포트는 충분한 폭에서는 좌우형과 가로 통계를 유지하고 좁은 폭에서만 세로형으로 전환한다.
 - 로컬 `cheatft_api`는 실제 서버 코드가 있으나 DB 환경변수, `pg` 의존성 설치, JWT secret, 네이버 API 키 등이 필요하다. 프론트는 현재 배포 API 주소를 사용한다.
+
+## 2026-08-05 API 서비스 함수 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- 로컬 백엔드 최신 커밋은 `8af5eca feat: add support for Naver Entertain articles in getArticleFromUrl`이다.
+- 배포 API 직접 확인 기준 `POST /api/checks`는 `type` 없이 `{ content }`만 받으며, 프론트 `requestCheck()`도 더 이상 `type`을 보내지 않는다.
+- `src/services/cheatftApi.js`에 비밀번호 찾기 3종(`requestPasswordCode`, `verifyPasswordCode`, `resetPassword`), 커뮤니티 상세/수정/삭제/댓글 함수(`getPost`, `updatePost`, `deletePost`, `createComment`, `deleteComment`), 리포트 삭제 함수(`deleteReport`)를 추가했다.
+- 배포 API에서 커뮤니티 목록/상세/작성/수정/삭제/댓글 작성/댓글 삭제와 리포트 삭제 라우트가 동작하는 것을 확인했다.
+- 배포 API에서 `POST /api/article`은 일반 네이버 뉴스와 `m.entertain.naver.com` 네이버 연예 URL 본문 반환이 동작한다.
+- 후속 화면 연결로 `/password-reset` 비밀번호 찾기, 커뮤니티 목록/작성/상세/수정/삭제/댓글 UI, 리포트 삭제 버튼, 네이버 연예 URL 기사 전문 지원을 반영했다.
+- 커뮤니티 목록은 실패 시 목업 fallback을 쓰지 않고, 전체/정보 공유 커뮤니티/정정 요청/토론 게시판 탭 모두 실제 `GET /posts` 응답만 표시한다.
+- 커뮤니티 상세는 `CommunityDetailView.jsx`에서 `GET /posts/:id`, `PUT /posts/:id`, `DELETE /posts/:id`, `POST /posts/:id/comments`, `DELETE /posts/:id/comments/:commentId`를 호출한다.
+- 백엔드 상세 응답에 작성자 식별자나 `isOwner`가 없어 수정/삭제/댓글 삭제 권한 여부는 프론트에서 사전 판단하지 않고, 서버가 반환하는 401/403/404 메시지를 화면에 표시한다.
+- 주의: 확인 시점에 `POST /api/analysis`는 `500`을 반환했고, 비밀번호 코드 발송은 테스트 계정 도메인 때문에 메일 provider가 `500`을 반환했다.
+- 검증: `npm run lint`, `npm test`, Codex 번들 Node 기반 `vite build` 통과. 기본 셸 `npm run build`는 transform 중 오류 메시지 없이 exit 1을 반환했다.
 
 ## 2026-08-02 키워드 추천/리포트 실제 API 반영
 
@@ -481,7 +496,7 @@ npm run check
 
 `README.md`와 기존 메모에 따르면 Node 24 계열에서는 Vite 프로덕션 빌드가 네이티브 예외로 종료된 이력이 있다. Node 22 LTS에서 검증하는 것을 우선한다.
 
-연동 확인은 브라우저 개발자도구 Network 탭에서 `summary`, `checks`, `keywords`, `analysis`, `reports`, `posts`, `login`, `signup` 요청이 나가는지 확인한다. 홈/검증하기/신뢰도 분석/팩트체크 리포트는 API 실패 시 더미 결과를 섞지 않으므로 오류/빈 상태를 확인한다. 커뮤니티처럼 fallback이 남아 있는 화면은 실제 연동 성공 여부를 Network 탭의 status code와 response body로 확인한다. 로그인, 회원가입, 게시글 등록은 API 실패 시 오류가 보인다.
+연동 확인은 브라우저 개발자도구 Network 탭에서 `summary`, `checks`, `keywords`, `analysis`, `reports`, `posts`, `password`, `login`, `signup` 요청이 나가는지 확인한다. 홈/검증하기/신뢰도 분석/팩트체크 리포트/커뮤니티는 API 실패 시 더미 결과를 섞지 않으므로 오류/빈 상태를 확인한다. 로그인, 회원가입, 비밀번호 찾기, 게시글 등록/수정/삭제, 댓글 작성/삭제는 API 실패 시 오류가 보인다.
 
 ## 백엔드/API 요약
 
@@ -508,12 +523,11 @@ npm run check
 
 ## 다음 작업 후보
 
-- `cheatft_web`의 남은 커뮤니티 목업 배열을 `src/mocks/` 또는 `src/data/`로 분리
-- 기사 상세 직접 조회, 커뮤니티 상세, 댓글처럼 현재 API 명세에 없는 화면 계약 추가
-- 백엔드 담당자와 인증 방식, 오류 응답, 토큰 만료/갱신, 페이지네이션, 비동기 분석 상태 조회 방식 확정
-- 검증하기의 조회수/연관도/언론사 필드명을 백엔드 실제 응답과 최종 확정
-- 실제 백엔드 응답 필드가 더 풍부해지면 화면별 변환 로직 정리
-- 남은 프론트 목업 배열은 커뮤니티 등 필요한 화면별로 분리하거나 제거
+- `POST /api/analysis`가 확인 시점에 `500`을 반환한 원인을 백엔드 담당자와 확인
+- 비밀번호 코드 발송은 실제 수신 가능한 메일 계정으로 재검증
+- 커뮤니티 상세 응답에 작성자 식별자 또는 `isOwner` 필드가 추가되면 수정/삭제/댓글 삭제 버튼 노출 조건 정리
+- `GET /checks/{id}?page=1&limit=5`가 확인 시점에 `limit`을 적용하지 않고 전체 기사를 반환한 점 백엔드와 확인
+- 검증하기/커뮤니티의 조회수, 태그, 인기글, 페이지네이션 필드를 실제 백엔드 응답 기준으로 더 풍부하게 연결
 
 ## 자료 폴더 주의
 
