@@ -145,7 +145,6 @@ function mapApiArticle(article, index) {
 
   return {
     articleId: article.articleId,
-    sourceLabel: '백엔드 API',
     sourceCategory: getPressCategory(pressValue),
     sortIndex: index,
     viewCount: getNumericValue(article.viewCount, article.views, article.readCount),
@@ -164,7 +163,7 @@ function mapApiArticle(article, index) {
     gaugeFillPercent: getReliabilityGaugeFillPercent(scoreValue),
     hint: usesPressReliability
       ? `${pressLabel}의 언론사 기준 신뢰도입니다.`
-      : article.url ? '기사 원문 URL이 연결된 백엔드 결과입니다.' : '백엔드 기사 결과입니다.',
+      : article.url ? '기사 원문을 함께 확인할 수 있습니다.' : '관련 기사입니다.',
     reliabilityReason: pressReliability.rationaleSummary,
     reliabilityCategory: pressReliability.category,
     url: article.url,
@@ -196,7 +195,6 @@ function mapRecentCheck(check, index) {
   return {
     articleId: check.id,
     checkQuery: title,
-    sourceLabel: '백엔드 API',
     sourceCategory: '기타 출처',
     sortIndex: index,
     viewCount: getNumericValue(check.viewCount, check.views, check.readCount),
@@ -372,39 +370,15 @@ export default function VerificationView({ onSearch, onArticleClick }) {
     gaugeSub: { fontSize: '12px', color: '#80868b', marginTop: '4px' },
     gaugeHint: { fontSize: '12px', color: '#80868b', textAlign: 'center', marginTop: '12px', lineHeight: '1.4' },
     bottomDisclaimer: { marginTop: '32px', padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '20px' },
-    sourceBadge: (source) => ({
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '4px 8px',
-      borderRadius: '999px',
-      fontSize: '12px',
-      fontWeight: 'bold',
-      color: source === '백엔드 API' ? '#174ea6' : '#5f6368',
-      backgroundColor: source === '백엔드 API' ? '#e8f0fe' : '#f1f3f4',
-      border: source === '백엔드 API' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
-    }),
-    sourceNotice: (source) => ({
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '8px 12px',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: 'bold',
-      color: source === 'api' || source === 'mixed' ? '#174ea6' : source === 'error' ? '#ea4335' : '#80868b',
-      backgroundColor: source === 'api' || source === 'mixed' ? '#e8f0fe' : source === 'error' ? '#fce8e6' : '#ffffff',
-      border: source === 'api' || source === 'mixed' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
-      marginTop: '12px',
-    }),
-    resultGroupLabel: (source) => ({
+    resultGroupLabel: () => ({
       margin: '24px 0 12px',
       padding: '10px 14px',
       borderRadius: '8px',
       fontSize: '14px',
       fontWeight: 'bold',
-      color: source === 'api' ? '#174ea6' : '#5f6368',
-      backgroundColor: source === 'api' ? '#e8f0fe' : '#f8f9fa',
-      border: source === 'api' ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
+      color: '#174ea6',
+      backgroundColor: '#e8f0fe',
+      border: '1px solid #d2e3fc',
     }),
     emptyState: { padding: '48px 24px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
     loadingOverlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(32, 33, 36, 0.36)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '24px' },
@@ -438,23 +412,13 @@ export default function VerificationView({ onSearch, onArticleClick }) {
   const currentPageStartIndex = (currentResultPage - 1) * CHECK_RESULT_PAGE_SIZE;
   const pagedApiResults = filteredApiResults.slice(currentPageStartIndex, currentPageStartIndex + CHECK_RESULT_PAGE_SIZE);
   const hasApiCheckResult = query && apiStatus === 'done';
-  const hasApiLatestResult = !query && latestStatus === 'done';
   const isLoading = query && apiStatus === 'loading';
   const isLatestLoading = !query && latestStatus === 'loading';
-  const hasError = query ? apiStatus === 'error' : latestStatus === 'error';
   const displayResults = query ? filteredApiResults : filteredLatestResults;
-  const dataSource = query
-    ? (isLoading ? 'loading' : hasApiCheckResult ? 'api' : hasError ? 'error' : 'idle')
-    : (isLatestLoading ? 'loading' : hasApiLatestResult ? 'api' : hasError ? 'error' : 'idle');
-  const dataSourceText = dataSource === 'api'
-    ? '백엔드 API 응답 표시 중'
-    : dataSource === 'error'
-      ? '백엔드 API 응답 실패'
-      : '백엔드 API 응답 대기 중';
   const totalArticles = hasApiCheckResult ? (checkResult?.totalArticles ?? apiResults.length) : apiResults.length;
   const queryResultGroups = hasApiCheckResult
     ? [
-        { key: 'api', label: `백엔드 API 결과 ${filteredApiResults.length}건`, source: 'api', items: pagedApiResults },
+        { key: 'results', label: `검색 결과 ${filteredApiResults.length}건`, source: 'results', items: pagedApiResults },
       ]
     : [];
   const searchTime = formatDateTime(checkResult?.searchTime);
@@ -468,7 +432,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
           <div style={styles.loadingDialog}>
             <div className="loading-spinner" style={styles.loadingSpinner} aria-hidden="true" />
             <div style={styles.loadingTitle}>신뢰도 분석 결과를 불러오는 중입니다</div>
-            <div style={styles.loadingDesc}>백엔드 API에서 관련 기사를 수집하고 신뢰도 기준을 적용하고 있습니다. 잠시만 기다려주세요.</div>
+            <div style={styles.loadingDesc}>관련 기사를 수집하고 신뢰도 기준을 적용하고 있습니다. 잠시만 기다려주세요.</div>
           </div>
         </div>
       )}
@@ -509,17 +473,16 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 </div>
                 <div style={{ color: '#5f6368', marginTop: '8px' }}>
                   {isLoading
-                    ? '백엔드 신뢰도 분석 결과를 불러오는 중입니다.'
+                    ? '신뢰도 분석 결과를 불러오는 중입니다.'
                     : apiStatus === 'error'
-                      ? '백엔드 신뢰도 분석 결과를 불러오지 못했습니다.'
+                      ? '신뢰도 분석 결과를 불러오지 못했습니다.'
                       : hasApiCheckResult && apiResults.length === 0
-                      ? '백엔드 API 응답은 성공했지만 관련 기사 목록이 비어 있습니다.'
+                      ? '관련 기사 목록이 비어 있습니다.'
                       : hasApiCheckResult
-                        ? `백엔드 API 기준 ${totalArticles}건 중 최대 ${CHECK_RESULT_FETCH_LIMIT}건을 불러와 ${CHECK_RESULT_PAGE_SIZE}건씩 표시합니다.`
-                        : '검색어를 입력하면 백엔드 신뢰도 분석 결과를 표시합니다.'}
+                        ? `${totalArticles}건 중 최대 ${CHECK_RESULT_FETCH_LIMIT}건을 불러와 ${CHECK_RESULT_PAGE_SIZE}건씩 표시합니다.`
+                        : '검색어를 입력하면 신뢰도 분석 결과를 표시합니다.'}
                   {apiError && <span style={{ color: '#ea4335', marginLeft: '8px' }}>{apiError}</span>}
                 </div>
-                <div style={styles.sourceNotice(dataSource)}>{dataSourceText}</div>
               </div>
               <div style={styles.resultMeta}>검색 시간: {searchTime}</div>
             </div>
@@ -570,7 +533,6 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                         </div>
                         <span style={styles.publisher}>{res.pub}</span>
                         <span style={styles.date}>{res.date}</span>
-                        <span style={styles.sourceBadge(res.sourceLabel)}>{res.sourceLabel}</span>
                         {res.sourceCategory && <span style={styles.date}>{res.sourceCategory}</span>}
                         {res.viewCount > 0 && <span style={styles.date}>조회 {res.viewCount.toLocaleString('ko-KR')}</span>}
                         {res.relevanceScore > 0 && <span style={styles.date}>연관도 {res.relevanceScore}</span>}
@@ -671,14 +633,13 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                 <div style={styles.resultQuery}>최신 팩트체크</div>
                 <div style={{ color: '#5f6368', marginTop: '8px' }}>
                   {isLatestLoading
-                    ? '홈 요약 API에서 최신 팩트체크를 불러오는 중입니다.'
+                    ? '최신 팩트체크를 불러오는 중입니다.'
                     : latestResults.length
-                      ? '홈 요약 API에서 불러온 최신 팩트체크입니다.'
+                      ? '최신 팩트체크입니다.'
                       : latestStatus === 'error'
                         ? '최신 팩트체크를 불러오지 못했습니다.'
-                        : '백엔드에서 받은 최신 팩트체크 목록이 비어 있습니다.'}
+                        : '최신 팩트체크 목록이 비어 있습니다.'}
                 </div>
-                <div style={styles.sourceNotice(dataSource)}>{dataSourceText}</div>
               </div>
             </div>
             <div className="verification-filters" style={styles.filters}>
@@ -710,7 +671,7 @@ export default function VerificationView({ onSearch, onArticleClick }) {
 
             {displayResults.length === 0 ? (
               <div style={styles.emptyState}>
-                백엔드에서 받은 최신 팩트체크 목록이 비어 있습니다.<br/>
+                최신 팩트체크 목록이 비어 있습니다.<br/>
                 표시할 항목이 없습니다.
               </div>
             ) : displayResults.map((res, i) => (
@@ -728,7 +689,6 @@ export default function VerificationView({ onSearch, onArticleClick }) {
                     </div>
                     <span style={styles.publisher}>{res.pub}</span>
                     <span style={styles.date}>{res.date}</span>
-                    <span style={styles.sourceBadge(res.sourceLabel)}>{res.sourceLabel}</span>
                     {res.sourceCategory && <span style={styles.date}>{res.sourceCategory}</span>}
                     {res.viewCount > 0 && <span style={styles.date}>조회 {res.viewCount.toLocaleString('ko-KR')}</span>}
                     {res.relevanceScore > 0 && <span style={styles.date}>연관도 {res.relevanceScore}</span>}

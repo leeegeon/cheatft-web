@@ -11,7 +11,7 @@ function getLoginValidationError({ email, password }) {
 }
 
 function getReadableAuthError(error) {
-  if (error.code === 'API_NOT_CONFIGURED') return 'API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.';
+  if (error.code === 'API_NOT_CONFIGURED') return '서비스 연결 설정을 확인해주세요.';
   if (error.status === 401) return '이메일 또는 비밀번호가 올바르지 않습니다.';
   if (error.status === 403) return '로그인 권한이 없습니다. 계정 상태를 확인해주세요.';
   return error.message || '로그인에 실패했습니다.';
@@ -53,7 +53,7 @@ export default function LoginView({ onLogin }) {
     try {
       const session = await login({ email: email.trim(), password: password.trim() });
       if (!session?.accessToken) {
-        setErrorMessage('로그인 응답에 accessToken이 없습니다. 백엔드 응답 형식을 확인해주세요.');
+        setErrorMessage('로그인 정보를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
         return;
       }
 

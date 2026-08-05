@@ -45,12 +45,9 @@ export default function HomeView({ onSearch, onNavigate }) {
     };
   }, []);
 
-  const isApiSummary = summaryStatus === 'done';
   const isSummaryLoading = summaryStatus === 'loading';
   const recentChecks = Array.isArray(summary?.recentChecks) ? summary.recentChecks : [];
   const todayStats = summary?.todayStats || {};
-  const reliabilityStatus = summary?.reliabilityStatus || summary?.biasStatus || {};
-  const reliabilityCategories = Array.isArray(reliabilityStatus.categories) ? reliabilityStatus.categories : [];
 
   const styles = {
     container: { padding: '0', backgroundColor: '#f8f9fa', minHeight: '100%', fontFamily: 'sans-serif', color: '#202124' },
@@ -74,7 +71,8 @@ export default function HomeView({ onSearch, onNavigate }) {
     featureTitle: { fontSize: '19px', fontWeight: 'bold', marginBottom: '10px', color: '#202124' },
     featureDesc: { fontSize: '14px', color: '#5f6368', lineHeight: '1.45', marginBottom: '14px', flex: 1 },
     featureLink: { fontSize: '15px', fontWeight: 'bold', color: '#0056d2', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' },
-    bottomGrid: { display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' },
+    bottomGrid: { display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'stretch' },
+    sideColumn: { display: 'flex', flexDirection: 'column', height: '100%' },
     sectionCard: { backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e0e0e0', padding: '28px', display: 'flex', flexDirection: 'column' },
     sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
     sectionTitle: { fontSize: '20px', fontWeight: 'bold', color: '#202124' },
@@ -84,34 +82,15 @@ export default function HomeView({ onSearch, onNavigate }) {
     factBadge: (isTrue) => ({ padding: '4px 10px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold', color: '#ffffff', backgroundColor: isTrue ? '#34a853' : '#ea4335', marginBottom: '8px', display: 'inline-block' }),
     factTitle: { fontSize: '17px', fontWeight: 'bold', color: '#202124', marginBottom: '6px' },
     factMeta: { fontSize: '14px', color: '#80868b' },
-    sourceBadge: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '4px 8px',
-      borderRadius: '999px',
-      fontSize: '12px',
-      fontWeight: 'bold',
-      color: isApiSummary ? '#174ea6' : '#80868b',
-      backgroundColor: isApiSummary ? '#e8f0fe' : '#ffffff',
-      border: isApiSummary ? '1px solid #d2e3fc' : '1px solid #e0e0e0',
-    },
     emptyState: { padding: '32px 20px', borderRadius: '12px', border: '1px dashed #dadce0', backgroundColor: '#fafbfc', color: '#5f6368', textAlign: 'center', lineHeight: '1.6' },
-    promoBanner: { marginTop: '24px', backgroundColor: '#3b5bdb', borderRadius: '16px', padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', color: '#ffffff' },
+    responsibilityCard: { flex: 1, minHeight: '132px', justifyContent: 'center' },
+    responsibilityIcon: { width: '44px', height: '44px', borderRadius: '8px', backgroundColor: '#e8f0fe', color: '#0056d2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' },
+    responsibilityTitle: { fontSize: '18px', fontWeight: '800', color: '#202124', lineHeight: '1.45' },
+    responsibilityDesc: { marginTop: '8px', fontSize: '14px', color: '#5f6368', lineHeight: '1.5' },
     statBox: { backgroundColor: '#f8f9fa', borderRadius: '12px', padding: '20px 22px', display: 'flex', justifyContent: 'space-between', marginBottom: '16px' },
     statItem: { display: 'flex', flex: 1, alignItems: 'center', flexDirection: 'column', gap: '8px', textAlign: 'center' },
     statLabel: { fontSize: '14px', color: '#5f6368', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    statValue: { fontSize: '28px', fontWeight: 'bold', color: '#202124' },
-    algoGaugeContainer: { display: 'flex', gap: '32px', alignItems: 'center', marginBottom: '24px' },
-    algoGauge: { width: '120px', height: '120px', borderRadius: '50%', border: '16px solid #e8f0fe', borderLeftColor: '#00c4b4', borderBottomColor: '#00c4b4', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', transform: 'rotate(-45deg)' },
-    algoGaugeInner: { transform: 'rotate(45deg)', textAlign: 'center' },
-    algoGaugeScore: { fontSize: '32px', fontWeight: 'bold', color: '#202124', lineHeight: '1' },
-    algoGaugeLabel: { fontSize: '14px', color: '#5f6368', marginTop: '4px' },
-    algoBarRow: { display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' },
-    algoBarLabel: { width: '40px', fontSize: '14px', color: '#5f6368' },
-    algoBarTrack: { flex: 1, height: '8px', backgroundColor: '#f1f3f4', borderRadius: '4px', overflow: 'hidden' },
-    algoBarFill: (width, color) => ({ height: '100%', width, backgroundColor: color, borderRadius: '4px' }),
-    algoBarValue: { width: '40px', fontSize: '14px', color: '#202124', textAlign: 'right' },
-    algoBarStatus: { width: '60px', fontSize: '13px', color: '#80868b', textAlign: 'right' }
+    statValue: { fontSize: '28px', fontWeight: 'bold', color: '#202124' }
   };
 
   return (
@@ -191,7 +170,6 @@ export default function HomeView({ onSearch, onNavigate }) {
               <div style={{...styles.sectionHeader, cursor: 'pointer'}} onClick={() => onNavigate('search')}>
                 <div style={styles.sectionTitle}>최신 팩트체크</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={styles.sourceBadge}>{isSummaryLoading ? '불러오는 중' : isApiSummary ? '백엔드 API' : '연결 오류'}</span>
                   <div style={styles.sectionMore}>더보기 &gt;</div>
                 </div>
               </div>
@@ -205,7 +183,7 @@ export default function HomeView({ onSearch, onNavigate }) {
                 </div>
               ) : recentChecks.length === 0 ? (
                 <div style={styles.emptyState}>
-                  백엔드에서 받은 최신 팩트체크 목록이 비어 있습니다.<br/>
+                  최신 팩트체크 목록이 비어 있습니다.<br/>
                   표시할 항목이 없습니다.
                 </div>
               ) : recentChecks.map((check, index) => {
@@ -237,19 +215,8 @@ export default function HomeView({ onSearch, onNavigate }) {
                 );
               })}
             </div>
-            <div className="home-promo-banner" style={styles.promoBanner}>
-              <div className="home-promo-copy" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div style={{ width: '60px', height: '60px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="32" height="32" fill="#ffffff" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '6px' }}>신뢰할 수 있는 정보, 모두의 책임입니다.</div>
-                  <div style={{ fontSize: '15px', opacity: '0.9' }}>Cheat F/T와 함께 더 나은 디지털 세상을 만들어가요.</div>
-                </div>
-              </div>
-            </div>
           </div>
-          <div>
+          <div className="home-side-column" style={styles.sideColumn}>
             <div className="home-section-card" style={{ ...styles.sectionCard, marginBottom: '24px' }}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionTitle}>오늘의 검증 통계 ⓘ</div>
@@ -275,35 +242,12 @@ export default function HomeView({ onSearch, onNavigate }) {
                 </div>
               </div>
             </div>
-            <div className="home-section-card" style={styles.sectionCard}>
-              <div style={styles.sectionHeader}>
-                <div style={styles.sectionTitle}>신뢰도 현황 ⓘ</div>
+            <div className="home-section-card home-responsibility-card" style={{ ...styles.sectionCard, ...styles.responsibilityCard }}>
+              <div style={styles.responsibilityIcon} aria-hidden="true">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 15.59-3.59-3.58L8.83 11.6 11 13.76l4.59-4.59L17 10.59l-6 6z"/></svg>
               </div>
-              <div style={styles.algoGaugeContainer}>
-                <div style={styles.algoGauge}>
-                  <div style={styles.algoGaugeInner}>
-                    <div style={{ fontSize: '12px', color: '#5f6368', marginBottom: '2px' }}>신뢰도</div>
-                    <div style={styles.algoGaugeScore}>{reliabilityStatus.overallScore ?? '-'}</div>
-                    <div style={styles.algoGaugeLabel}>{reliabilityStatus.level || '확인중'}</div>
-                  </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  {reliabilityCategories.length === 0 ? (
-                    <div style={styles.emptyState}>
-                      백엔드에서 받은 신뢰도 현황이 비어 있습니다.
-                    </div>
-                  ) : reliabilityCategories.slice(0, 5).map(item => (
-                    <div key={item.name} style={styles.algoBarRow}>
-                      <div style={styles.algoBarLabel}>{item.name}</div>
-                      <div style={styles.algoBarTrack}>
-                        <div style={styles.algoBarFill(`${item.score}%`, item.score > 40 ? '#1a73e8' : item.score > 25 ? '#00c4b4' : '#34a853')}></div>
-                      </div>
-                      <div style={styles.algoBarValue}>{item.score}</div>
-                      <div style={styles.algoBarStatus}>{item.level}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div style={styles.responsibilityTitle}>신뢰할 수 있는 정보, 모두의 책임입니다.</div>
+              <div style={styles.responsibilityDesc}>확인하고 비교하는 작은 습관이 더 건강한 정보 환경을 만듭니다.</div>
             </div>
           </div>
         </div>

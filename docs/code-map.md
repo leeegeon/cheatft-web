@@ -113,8 +113,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 - `HomeView.jsx`
   - 검색 입력을 `onSearch`로 전달한다.
   - `getSummary()`로 홈 요약을 가져오고 API 응답만 표시한다. 실패 시 프론트 더미 fallback을 사용하지 않는다.
-  - API 성공 시 `recentChecks` 또는 `biasStatus/reliabilityStatus.categories`가 빈 배열이어도 기본 목업으로 덮지 않고 빈 상태를 유지한다.
+  - API 성공 시 `recentChecks`가 빈 배열이어도 기본 목업으로 덮지 않고 빈 상태를 유지한다.
   - 최신 팩트체크는 `slice(0, 3)` 제한 없이 백엔드가 주는 `recentChecks` 전체를 표시한다. 2026-07-26 배포 API 확인 기준 `recentChecks`는 3개다.
+  - 홈 오른쪽 하단은 신뢰도 현황 API 블록이 아니라 `신뢰할 수 있는 정보, 모두의 책임입니다.` 책임 메시지 카드로 표시한다. 넓은 폭에서는 오른쪽 열 높이에 맞추고, 좁은 폭에서는 자연 높이 카드로 표시한다.
   - 최신 팩트체크 항목을 누르면 해당 제목으로 검색/검증 화면으로 이동한다.
   - 백엔드 명세: `GET /api/summary`.
 
@@ -172,7 +173,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
   - 언론사는 `src/utils/press.js`의 `getPressLabel()`로 백엔드 oid/name 표에 맞춰 정규화하고, `getPressLogoUrl()` 로고 이미지와 `recordObservedPress()` 미매핑 oid 관측 저장을 사용한다.
   - API 기사 제목/설명은 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 관련/반박 기사 또는 인사이트 배열이 비어 있으면 목업을 섞지 않고 빈 상태/빈 안내를 표시한다.
-  - API 응답 표시, 로딩, 오류, 분석 전 상태를 상단 안내로 구분한다.
+  - 개발자용 응답/출처 배지는 표시하지 않고, 로딩/오류/빈 상태만 사용자용 문구로 안내한다.
   - `분석 안내` 버튼은 제거됐다. 넓이가 충분하면 좌우형 레이아웃과 신뢰도 요약 가로 배치를 유지하고, 좁은 폭에서만 세로형으로 전환한다.
 
 - `ReportView.jsx`
@@ -187,7 +188,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
   - 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 3개 카드로 표시한다.
   - 주요 출처는 `getPressLabel()`, `getPressLogoUrl()`, `recordObservedPress()`를 사용한다. `mainPresses`가 언론사명 문자열이 아닌 숫자/집계값이면 주요 출처명으로 표시하지 않는다. API 리포트 제목/요약은 `cleanDisplayText()`로 디코딩한다.
   - API 성공 후 `reports`가 비어 있으면 빈 리포트 상태를 표시하고, 실패 시 오류 상태를 표시한다.
-  - API 응답 표시 중인지, 요청 실패 상태인지 상단 안내로 구분한다.
+  - 개발자용 응답/출처 안내는 표시하지 않고, 요청 실패와 빈 상태만 사용자용 문구로 안내한다.
   - 내부 `height: calc(100vh - 71px)`/`overflowY: auto` 스크롤 구조는 제거됐다. 충분한 폭에서는 좌측 사이드바와 가로 통계를 유지하고, 좁은 폭에서만 세로형으로 전환한다.
 
 - `CommunityView.jsx`
@@ -198,9 +199,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
   - 목록 API 응답에 인기 태그 목록이 없어 하드코딩 인기 태그 영역은 제거됐다.
   - `최신순`, `인기순`, `댓글 많은 순` 버튼은 API에서 받은 현재 게시글 배열을 작성일, 조회수, 댓글 수 기준으로 프론트 정렬한다.
   - 오른쪽 정정 요청 배너의 `정정 요청하기` 버튼은 `/community/write`로 이동한다.
-  - API 게시글 제목/본문/작성자/카테고리는 `cleanDisplayText()`로 HTML entity를 디코딩한다.
+  - 게시글 제목/본문/작성자/카테고리는 `cleanDisplayText()`로 HTML entity를 디코딩한다.
   - API 성공 후 `posts`가 비어 있으면 빈 게시글 상태를 표시하고, 실패 시에도 프론트 목업을 섞지 않는다.
-  - API 응답 표시 중인지, 요청 실패인지 목록 상단 안내로 구분한다.
+  - 개발자용 응답/출처 안내는 표시하지 않고, 요청 실패와 빈 상태만 사용자용 문구로 안내한다.
   - 정보 공유/정정 요청/토론 게시판 탭 모두 실제 API 카테고리 query로 조회한다.
   - `커뮤니티 참여 현황`은 왼쪽 카테고리 메뉴 아래에 3칸 가로형으로 표시한다.
   - 게시글 카드 오른쪽의 큰 분류 아이콘 박스와 오른쪽 위 북마크 장식은 제거했다.
@@ -306,7 +307,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 ## 2026-07-10 추가 변경/확인
 
 - `.env.local`과 `.env.example`의 API 주소를 `https://cheatft.leegeon.com/api`로 맞췄다.
-- `VerificationView.jsx`는 API 응답 결과와 프론트 fallback 결과를 구분하는 상단 안내와 카드 배지를 표시한다.
+- `VerificationView.jsx`는 서비스 결과만 표시하며, 개발자용 출처 배지와 프론트 fallback 배지를 표시하지 않는다.
 - API 성공 시 `articles`가 비어 있으면 프론트 KBS/뉴스1 예시를 섞지 않고 빈 결과 상태를 표시한다.
 - 2026-07-10 당시 확인 기준 `GET /summary`의 `recentChecks`는 1개였다. 2026-07-26 배포 API 재확인 기준은 3개다.
 - 2026-07-10 당시 `GET /checks/452`의 `articles` 배열은 1개였지만, 응답의 `totalArticles`와 pagination 총합은 12로 표시됐다. 2026-07-26 기준 기존 더미 id `452`는 새 DB 기반 라우트에서 404로 관측됐다.
@@ -317,7 +318,7 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
 - `src/services/apiClient.js`: body의 `status >= 400`을 `ApiError`로 처리하도록 보강.
 - `src/components/views/HomeView.jsx`: API 성공 후 빈 `recentChecks`/`biasStatus.categories`를 목업으로 덮지 않음.
-- `src/components/views/AlgoView.jsx`: API 성공/로딩/fallback 상태와 출처 안내를 분리하고, 빈 `relatedArticles`/`counterArticles`/`insights`를 목업으로 덮지 않음.
+- `src/components/views/AlgoView.jsx`: API 성공/로딩/fallback 상태를 정리하고, 빈 `relatedArticles`/`counterArticles`/`insights`를 목업으로 덮지 않음.
 - `src/components/views/ReportView.jsx`: API 성공 후 빈 `reports`를 목업으로 덮지 않고 빈 상태 표시.
 - `src/components/views/CommunityView.jsx`: API 성공 후 빈 `posts`를 목업으로 덮지 않고 빈 상태 표시.
 - `src/components/views/MyPageView.jsx`: 당시 `profile` 하위 중첩 객체를 기본값과 안전하게 병합했으나, 2026-07-15 이후 파일과 라우트가 제거됨.

@@ -6,7 +6,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 8;
 
 function getReadablePasswordError(error) {
-  if (error.code === 'API_NOT_CONFIGURED') return 'API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.';
+  if (error.code === 'API_NOT_CONFIGURED') return '서비스 연결 설정을 확인해주세요.';
   if (error.status === 404) return '가입되지 않은 이메일 주소입니다.';
   if (error.status === 429) return '인증번호를 이미 발송했습니다. 잠시 후 다시 시도해주세요.';
   if (error.status === 400) return error.message || '입력값을 다시 확인해주세요.';

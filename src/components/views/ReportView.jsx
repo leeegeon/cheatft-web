@@ -66,7 +66,7 @@ function mapApiReport(report, index) {
       };
     }),
     extraCount: Math.max(0, presses.length - 3),
-    summaryDesc: cleanDisplayText(report.summary, '백엔드 리포트 요약이 여기에 표시됩니다.'),
+    summaryDesc: cleanDisplayText(report.summary, '리포트 요약이 여기에 표시됩니다.'),
   };
 }
 
@@ -434,12 +434,6 @@ export default function ReportView({ onAuthExpired }) {
     analyzedArticles: 0,
     averageReliability: 0,
   };
-  const sourceState = reportStatus === 'loading' ? 'loading' : hasApiReports ? 'api' : 'error';
-  const sourceText = sourceState === 'api'
-    ? '백엔드 API 응답 표시 중'
-    : sourceState === 'loading'
-      ? '백엔드 API 응답 대기 중'
-      : '리포트 요청 실패';
   const reportsPagination = reportData?.pagination ?? {};
   const currentReportPage = Number(reportsPagination.currentPage ?? page) || page;
   const totalReportPages = Math.max(1, Number(reportsPagination.totalPages ?? 1) || 1);
@@ -516,7 +510,6 @@ export default function ReportView({ onAuthExpired }) {
           <div className="report-main-header" style={styles.mainHeader}>
             <div style={styles.mainTitle}>전체 리포트</div>
             <div style={styles.mainDesc}>지금까지 검색하고 분석한 모든 주제와 기사들을 확인하세요.</div>
-            <div style={styles.sourceNotice(sourceState)}>{sourceText}</div>
           </div>
 
           <div className="report-stats-grid" style={styles.statsGrid}>
@@ -567,8 +560,8 @@ export default function ReportView({ onAuthExpired }) {
           <div className="report-list" style={styles.listContainer}>
             {displayReports.length === 0 ? (
               <div style={styles.emptyState}>
-                백엔드에서 받은 리포트 목록이 비어 있습니다.<br/>
-                프론트 예시 데이터는 섞지 않았습니다.
+                리포트 목록이 비어 있습니다.<br/>
+                표시할 리포트가 없습니다.
               </div>
             ) : displayReports.map((report) => {
               const isExpanded = expandedId === report.id;

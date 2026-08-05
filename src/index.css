@@ -79,25 +79,22 @@ textarea {
 
 .home-main-content,
 .home-bottom-grid,
+.home-side-column,
 .home-section-card,
 .home-fact-check-item,
 .home-fact-copy,
-.home-promo-banner,
-.home-promo-copy,
 .home-stat-box {
   min-width: 0;
   max-width: 100%;
 }
 
-.home-section-card,
-.home-promo-banner {
+.home-section-card {
   width: 100%;
 }
 
 .home-feature-title,
 .home-feature-desc,
-.home-fact-copy,
-.home-promo-copy {
+.home-fact-copy {
   word-break: keep-all;
   overflow-wrap: break-word;
 }
@@ -323,7 +320,8 @@ button:disabled {
 
   .home-hero-left {
     flex: 0 0 auto !important;
-    max-width: 560px !important;
+    max-width: none !important;
+    width: 100% !important;
   }
 
   .home-hero-visual {
@@ -357,6 +355,15 @@ button:disabled {
     grid-template-columns: 1fr !important;
   }
 
+  .home-side-column {
+    height: auto !important;
+  }
+
+  .home-responsibility-card {
+    flex: 0 1 auto !important;
+    min-height: 132px !important;
+  }
+
   .home-stat-box {
     gap: 12px;
   }
@@ -378,18 +385,6 @@ button:disabled {
   .home-feature-card {
     min-height: auto;
     padding: 24px !important;
-  }
-
-  .home-promo-banner {
-    align-items: stretch !important;
-    flex-direction: column !important;
-    padding: 22px 24px !important;
-  }
-
-  .home-promo-button {
-    width: 100%;
-    min-width: max-content;
-    white-space: nowrap;
   }
 
   .home-stat-box {
@@ -460,10 +455,19 @@ button:disabled {
     border-radius: 12px !important;
   }
 
+  .home-responsibility-card {
+    min-height: auto !important;
+  }
+
   .home-section-card > div:first-child {
     align-items: flex-start !important;
     flex-wrap: wrap;
     gap: 10px 12px;
+  }
+
+  .home-responsibility-card > div:first-child {
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .hero-title-copy {
@@ -478,6 +482,7 @@ button:disabled {
 
   .home-search-box {
     flex-direction: column !important;
+    max-width: none !important;
     width: 100% !important;
   }
 
@@ -539,20 +544,6 @@ button:disabled {
 
   .home-fact-check-item > div:last-child {
     display: none;
-  }
-
-  .home-promo-banner {
-    padding: 20px 16px !important;
-  }
-
-  .home-promo-copy {
-    align-items: flex-start !important;
-    gap: 14px !important;
-  }
-
-  .home-promo-button {
-    min-width: 0;
-    font-size: 14px !important;
   }
 
   .nav-right button:not(:first-child) {
@@ -1129,16 +1120,6 @@ button:disabled {
   .home-feature-icon {
     width: 44px !important;
     height: 44px !important;
-  }
-
-  .home-promo-copy {
-    flex-direction: column !important;
-  }
-
-  .home-promo-copy > div:first-child {
-    width: 48px !important;
-    height: 48px !important;
-    flex: 0 0 auto;
   }
 
   .community-write-button {

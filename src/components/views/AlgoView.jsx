@@ -432,14 +432,6 @@ export default function AlgoView({ onAuthExpired }) {
 
   const pagination = analysisData?.pagination;
   const activeList = activeTab === 'related' ? displayRelatedList : displayCounterList;
-  const sourceState = analysisStatus === 'loading' ? 'loading' : hasApiAnalysis ? 'api' : analysisStatus === 'error' ? 'error' : 'idle';
-  const sourceText = sourceState === 'api'
-    ? '실제 분석 결과 표시 중'
-    : sourceState === 'loading'
-      ? '분석 결과 대기 중'
-      : sourceState === 'error'
-        ? '분석 요청 실패'
-        : '분석 전';
 
   return (
     <div className="algo-page" style={styles.container}>
@@ -531,7 +523,7 @@ export default function AlgoView({ onAuthExpired }) {
 
           <div style={styles.statusBox(toneKey)}>
             <div style={styles.statusTitle(tone.color)}>{tone.title}</div>
-            <div style={styles.statusDesc}>{hasApiAnalysis ? tone.desc : '키워드를 선택해 실제 백엔드 분석 결과를 불러오면 이 영역이 갱신됩니다.'}</div>
+            <div style={styles.statusDesc}>{hasApiAnalysis ? tone.desc : '키워드를 선택하면 이 영역이 분석 결과로 갱신됩니다.'}</div>
           </div>
 
           <div style={styles.stanceBars} aria-label="긍정, 중립, 반박 비율">
@@ -570,7 +562,7 @@ export default function AlgoView({ onAuthExpired }) {
 
           <div style={styles.legendBox}>
             <strong style={{ display: 'block', marginBottom: '8px', color: '#3c4043' }}>분석 기준</strong>
-            <div>서버가 반환한 분석 점수, 인사이트, 관련/반박 기사, 요약 통계를 그대로 반영합니다.</div>
+            <div>분석 점수, 인사이트, 관련/반박 기사, 요약 통계를 종합해 보여줍니다.</div>
           </div>
         </div>
       </div>
@@ -580,11 +572,9 @@ export default function AlgoView({ onAuthExpired }) {
           <div className="algo-main-header" style={styles.mainHeader}>
             <div>
               <div style={styles.mainTitle}>{displayKeyword ? `'${displayKeyword}' 분석 결과` : '편향성 분석'}</div>
-              <div style={styles.mainDesc}>수집한 뉴스의 출처, 관점, 요약 통계를 실제 백엔드 분석 결과 기준으로 표시합니다.</div>
-              <div style={{ marginTop: '12px' }}><span style={styles.sourceNotice(sourceState)}>{sourceText}</span></div>
+              <div style={styles.mainDesc}>수집한 뉴스의 출처, 관점, 요약 통계를 한눈에 확인하세요.</div>
             </div>
             <div className="algo-meta-info" style={styles.metaInfo}>
-              {hasApiAnalysis && <span style={styles.metaText}>분석 ID: {analysisData?.analysisId}</span>}
               {completedAt && <span style={styles.metaText}>분석 완료: {completedAt}</span>}
               {pagination && <span style={styles.metaText}>총 {pagination.totalItems ?? 0}건</span>}
             </div>
@@ -596,9 +586,9 @@ export default function AlgoView({ onAuthExpired }) {
             <div style={styles.insightTitle}>AI 주요 인사이트</div>
             <ul style={styles.insightList}>
               {analysisStatus === 'idle' ? (
-                <li style={styles.insightItem}><span style={{ color: '#80868b', fontSize: '16px' }}>•</span> 키워드를 선택하면 실제 분석 인사이트가 표시됩니다.</li>
+                <li style={styles.insightItem}><span style={{ color: '#80868b', fontSize: '16px' }}>•</span> 키워드를 선택하면 분석 인사이트가 표시됩니다.</li>
               ) : displayInsights.length === 0 ? (
-                <li style={styles.insightItem}><span style={{ color: '#80868b', fontSize: '16px' }}>•</span> 백엔드에서 받은 인사이트가 없습니다.</li>
+                <li style={styles.insightItem}><span style={{ color: '#80868b', fontSize: '16px' }}>•</span> 표시할 인사이트가 없습니다.</li>
               ) : displayInsights.map((insight, index) => (
                 <li key={`${insight}-${index}`} style={styles.insightItem}><span style={{ color: '#34a853', fontSize: '16px' }}>✓</span> {insight}</li>
               ))}

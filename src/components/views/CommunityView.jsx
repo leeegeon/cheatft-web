@@ -240,11 +240,6 @@ export default function CommunityView({ onPostClick }) {
     totalMembers: 0,
   };
   const sourceState = communityStatus === 'loading' ? 'loading' : hasApiPosts ? 'api' : 'error';
-  const sourceText = sourceState === 'api'
-    ? '백엔드 API 응답 표시 중'
-    : sourceState === 'loading'
-      ? '백엔드 API 응답 대기 중'
-      : '게시글 요청 실패';
   const popularPosts = [...displayPosts]
     .sort((a, b) => b.viewsCount - a.viewsCount || b.commentsCount - a.commentsCount || b.sortTime - a.sortTime)
     .slice(0, 5);
@@ -360,13 +355,12 @@ export default function CommunityView({ onPostClick }) {
           </div>
 
           <>
-          <div style={styles.sourceNotice(sourceState)}>{sourceText}</div>
           <div>
             {apiError && <div className="form-error" role="alert">{apiError}</div>}
             {sortedDisplayPosts.length === 0 ? (
               <div style={styles.emptyState}>
-                {sourceState === 'error' ? '게시글을 불러오지 못했습니다.' : '백엔드에서 받은 게시글 목록이 비어 있습니다.'}<br/>
-                프론트 예시 데이터는 섞지 않았습니다.
+                {sourceState === 'error' ? '게시글을 불러오지 못했습니다.' : '게시글 목록이 비어 있습니다.'}<br/>
+                표시할 게시글이 없습니다.
               </div>
             ) : sortedDisplayPosts.map((post, i) => (
               <div className="community-post-card" key={post.id ?? post.title ?? i} style={{ ...styles.postCard, padding: post.type==='공지' ? '16px 24px' : '24px' }} onClick={() => onPostClick(post.id ?? i + 1)}>
@@ -417,7 +411,7 @@ export default function CommunityView({ onPostClick }) {
               <div style={styles.rightCardTitle}>인기 게시글</div>
               <div>
                 {popularPosts.length === 0 ? (
-                  <div style={{ fontSize: '13px', color: '#5f6368', lineHeight: '1.6' }}>표시할 API 게시글이 없습니다.</div>
+                  <div style={{ fontSize: '13px', color: '#5f6368', lineHeight: '1.6' }}>표시할 게시글이 없습니다.</div>
                 ) : popularPosts.map((item, i) => (
                   <div key={item.id ?? item.title} style={styles.popularItem}>
                     <div style={styles.rankBadge(i+1)}>{i+1}</div>

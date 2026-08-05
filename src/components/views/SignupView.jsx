@@ -22,7 +22,7 @@ function getSignupValidationError({ email, nickname, password, passwordConfirm }
 }
 
 function getReadableSignupError(error) {
-  if (error.code === 'API_NOT_CONFIGURED') return 'API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.';
+  if (error.code === 'API_NOT_CONFIGURED') return '서비스 연결 설정을 확인해주세요.';
   if (error.status === 409) return '이미 사용 중인 이메일 또는 닉네임입니다.';
   if (error.status === 400) return error.message || '입력값을 다시 확인해주세요.';
   return error.message || '회원가입에 실패했습니다.';

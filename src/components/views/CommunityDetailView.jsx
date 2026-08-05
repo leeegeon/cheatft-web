@@ -39,7 +39,7 @@ function mapPostDetail(post) {
 }
 
 function getReadableCommunityError(error, fallback) {
-  if (error.code === 'API_NOT_CONFIGURED') return 'API 기본 URL이 설정되지 않았습니다. VITE_API_BASE_URL을 확인해주세요.';
+  if (error.code === 'API_NOT_CONFIGURED') return '서비스 연결 설정을 확인해주세요.';
   if (error.status === 401) return '로그인이 필요한 작업입니다.';
   if (error.status === 403) return '작성자 본인만 처리할 수 있습니다.';
   if (error.status === 404) return '게시글을 찾을 수 없습니다.';

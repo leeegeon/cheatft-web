@@ -55,7 +55,7 @@ export function clearCurrentUser() {
 
 export async function apiRequest(path, options = {}) {
   if (!isApiConfigured()) {
-    throw new ApiError('VITE_API_BASE_URL이 설정되지 않았습니다.', { code: 'API_NOT_CONFIGURED' })
+    throw new ApiError('서비스 연결 설정을 확인해주세요.', { code: 'API_NOT_CONFIGURED' })
   }
 
   const { body, headers, auth = true, ...requestOptions } = options

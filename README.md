@@ -1,6 +1,6 @@
 # Cheat F/T frontend
 
-가짜뉴스 검증, 출처 신뢰도 확인, 정보 편향성 분석을 위한 React 프런트엔드입니다. 현재 배포 API를 우선 호출합니다. 홈/신뢰도 분석/편향성 분석/팩트체크 리포트/커뮤니티는 프론트 더미 fallback을 제거하고 백엔드 API 응답, 오류, 빈 상태를 그대로 보여줍니다.
+가짜뉴스 검증, 출처 신뢰도 확인, 정보 편향성 분석을 위한 React 프런트엔드입니다. 현재 배포 API를 우선 호출합니다. 홈/신뢰도 분석/편향성 분석/팩트체크 리포트/커뮤니티는 프론트 더미 fallback을 제거하고 서비스 응답 기반 데이터, 오류, 빈 상태를 보여줍니다.
 
 ## 문서 갱신 원칙
 
@@ -96,7 +96,7 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 
 | 화면 | 호출 API | fallback |
 |---|---|---|
-| 홈 | `GET /summary` | 프론트 더미 fallback 없음. 현재 배포 API는 `todayStats`, `recentChecks`만 반환하고 신뢰도 현황용 `reliabilityStatus/biasStatus.categories`는 반환하지 않음 |
+| 홈 | `GET /summary` | 프론트 더미 fallback 없음. 현재 홈은 `todayStats`, `recentChecks`만 표시하고 신뢰도 현황 블록 대신 책임 메시지 카드를 표시함 |
 | 신뢰도 분석 | `POST /checks`, `GET /checks/{id}?page=1&limit=100`, 기본 화면 `GET /summary` | 프론트 더미 fallback 없음, 검색 중 로딩 팝업 표시, 검색 결과는 10건씩 화면 페이지네이션 |
 | 뉴스 상세 | `POST /article` | 신뢰도 분석에서 전달된 네이버 기사 URL이 있으면 상세 API의 `content` 본문을 우선 표시하고, 실패 시 별도 오류 노출 없이 목록에서 받은 기사 정보 표시. 상세 응답은 URL별 세션 캐시 사용. 네이버 뉴스와 네이버 연예 URL을 지원하고, 비지원 언론사 URL은 원문 확인 안내 표시 |
 | 편향성 분석 | `POST /keywords`, `POST /analysis`, `GET /analysis/{id}?limit=10` | 보호 라우트, 키워드 추천/분석 모두 API 호출, 질문창 Enter는 키워드 추천 실행, Shift+Enter는 줄바꿈, 추천 중 버튼 스피너와 긴 분석 중 로딩 팝업 표시, 인증 실패 시 로그인 화면으로 이동, 프론트 목업 fallback 없음 |
@@ -136,6 +136,7 @@ VITE_API_BASE_URL=https://cheatft.leegeon.com/api
 ## 현재 제약
 
 - 홈/신뢰도 분석/편향성 분석/팩트체크 리포트/커뮤니티는 API 응답을 우선 사용하고 실패 시 목업으로 fallback하지 않습니다.
+- 화면에는 `백엔드 API`, `API 응답 표시 중`, `분석 전` 같은 개발자용 출처/상태 문구를 표시하지 않고, 로딩/오류/빈 상태를 사용자용 문구로 안내합니다.
 - 홈 최신 팩트체크와 신뢰도 분석 기본 화면의 최신 팩트체크는 `GET /summary`의 `recentChecks`를 사용합니다. 2026-07-26 배포 API 재확인 기준 `recentChecks`는 3개입니다.
 - 2026-07-31 전달 메모 기준 `GET /summary`의 `recentChecks` 3개는 모두 `id: 1`로 내려올 수 있어, 카드 이동 시 프론트에서 기사 객체를 route state와 `sessionStorage`로 함께 전달합니다.
 - 신뢰도 분석 API 요청 중에는 로딩 팝업을 표시하고, 성공하면 API의 `articles` 배열만 사용합니다. `articles`가 비어 있으면 프론트 예시를 섞지 않고 빈 상태를 표시합니다. 다른 조회 화면도 API 성공 후 빈 배열을 목업으로 덮지 않습니다.

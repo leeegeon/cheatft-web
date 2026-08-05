@@ -165,7 +165,7 @@ export default function DetailView({ type }) {
   const detailStatus = activeDetailResult.status;
   const displayArticle = getDisplayArticle(article, isNews);
   const bodySourceLabel = isNews && activeDetailResult.article?.content
-    ? '기사 전문 · 상세 API 반환 본문'
+    ? '기사 전문'
     : '기사 본문';
   const reliabilityPercent = displayArticle.scoreValue === null || displayArticle.scoreValue === undefined
     ? 0
@@ -232,7 +232,7 @@ export default function DetailView({ type }) {
           {displayArticle.body}
         </div>
         {isNews && detailStatus === 'loading' && (
-          <div style={{ marginTop: '20px', color: '#5f6368', fontSize: '14px' }}>백엔드 기사 상세 API에서 본문을 불러오는 중입니다.</div>
+          <div style={{ marginTop: '20px', color: '#5f6368', fontSize: '14px' }}>기사 본문을 불러오는 중입니다.</div>
         )}
         {isNews && unsupportedDetailMessage && (
           <div className="integration-notice" role="note" style={{ marginTop: '20px' }}>{unsupportedDetailMessage}</div>

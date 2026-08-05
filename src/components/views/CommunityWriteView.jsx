@@ -59,7 +59,7 @@ export default function CommunityWriteView() {
       navigate('/community')
     } catch (error) {
       if (error.code === 'API_NOT_CONFIGURED') {
-        setErrorMessage('백엔드 URL이 설정되지 않아 임시 저장만 가능합니다.')
+        setErrorMessage('서비스 연결이 준비되지 않아 임시 저장만 가능합니다.')
       } else {
         setErrorMessage(error.message || '게시글 등록에 실패했습니다.')
       }
@@ -93,9 +93,6 @@ export default function CommunityWriteView() {
         <textarea id="post-content" name="content" value={draft.content} onChange={updateField} maxLength={5000} placeholder="근거와 출처를 함께 작성해주세요." />
         <div className="form-counter">{draft.content.length} / 5,000</div>
 
-        <div className="integration-notice" role="note">
-          등록 시 백엔드 `POST /api/posts` 명세에 맞춰 제목, 내용, 카테고리를 전송합니다.
-        </div>
         <div className="form-actions">
           <span className="save-message" aria-live="polite">{saveMessage}</span>
           {errorMessage && <span className="form-error" role="alert">{errorMessage}</span>}
