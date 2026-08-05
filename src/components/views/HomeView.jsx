@@ -61,9 +61,9 @@ export default function HomeView({ onSearch, onNavigate }) {
     heroTitle: { fontSize: '42px', fontWeight: '900', lineHeight: '1.28', color: '#1a2b49', marginBottom: '20px', letterSpacing: '-0.5px' },
     heroTitleHighlight: { color: '#0056d2' },
     heroDesc: { fontSize: '16px', color: '#5f6368', lineHeight: '1.58', marginBottom: '32px' },
-    searchBox: { display: 'flex', gap: '10px', maxWidth: '470px', marginBottom: '10px' },
-    searchInput: { flex: 1, padding: '15px 20px', fontSize: '15px', border: '1px solid #dadce0', borderRadius: '8px', outline: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' },
-    searchBtn: { padding: '0 26px', backgroundColor: '#0056d2', color: '#ffffff', fontSize: '15px', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+    searchBox: { display: 'flex', gap: '10px', width: '100%', maxWidth: '470px', marginBottom: '10px' },
+    searchInput: { flex: 1, minWidth: 0, padding: '15px 20px', fontSize: '15px', border: '1px solid #dadce0', borderRadius: '8px', outline: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' },
+    searchBtn: { padding: '0 26px', backgroundColor: '#0056d2', color: '#ffffff', fontSize: '15px', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
     searchHint: { fontSize: '13px', color: '#80868b', marginBottom: '14px' },
     heroRight: { flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' },
     heroImage: { width: 'min(100%, 640px)', height: 'auto', display: 'block' },
@@ -278,7 +278,6 @@ export default function HomeView({ onSearch, onNavigate }) {
             <div className="home-section-card" style={styles.sectionCard}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionTitle}>신뢰도 현황 ⓘ</div>
-                <div style={styles.sectionMore}>자세히 보기 &gt;</div>
               </div>
               <div style={styles.algoGaugeContainer}>
                 <div style={styles.algoGauge}>

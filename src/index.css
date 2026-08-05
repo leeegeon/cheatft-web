@@ -478,6 +478,7 @@ button:disabled {
 
   .home-search-box {
     flex-direction: column !important;
+    width: 100% !important;
   }
 
   .home-hero-visual {
@@ -488,6 +489,12 @@ button:disabled {
     min-height: 52px;
     justify-content: center !important;
     padding: 0 24px !important;
+    width: 100% !important;
+  }
+
+  .home-search-box input {
+    width: 100% !important;
+    box-sizing: border-box;
   }
 
   .home-stat-box {

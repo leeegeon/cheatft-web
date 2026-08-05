@@ -5,6 +5,21 @@
 백엔드 폴더 수정 여부: 최종 상태 기준 수정하지 않음. 2026-07-16 실수로 인증 컨트롤러를 수정했으나 즉시 원상복구함.
 API 계약 확인 원칙: `cheatft_api/README.md`는 실제 구현 또는 배포 API보다 늦게 반영될 수 있으므로, API 연동 작업은 가능한 경우 실제 배포 API 응답과 `cheatft_api/src` 구현을 함께 확인한다.
 
+## 2026-08-05 홈/리포트/커뮤니티 UI 후속 정리
+
+- 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.
+- `GET /api/summary` 배포 응답을 확인한 결과 `todayStats`, `recentChecks`만 내려오고 홈 신뢰도 현황용 `reliabilityStatus` 또는 `biasStatus.categories`는 내려오지 않았다.
+- `GET /api/posts?page=1&limit=3` 배포 응답을 확인한 결과 게시글별 `commentCount`는 반영되지만 `communityStats.todayComments`는 0으로 내려왔다. 로컬 백엔드 소스도 `todayComments: 0`으로 고정되어 있다.
+- `HomeView.jsx`는 모바일에서 검색창과 `신뢰도 분석` 버튼이 가로폭을 꽉 쓰도록 보정하고, 홈 `신뢰도 현황`의 `자세히 보기` 문구를 제거했다.
+- `DetailView.jsx`는 뉴스 상세 상단 메타에서 조회수를 표시하지 않는다.
+- `ReportView.jsx`는 `GET /reports`에 `page`와 `limit=10`을 전달하고, 백엔드 `pagination`을 사용해 이전/다음/페이지 번호 이동을 제공한다. 상세 보기/접기 버튼의 화살표 문구를 제거하고 버튼을 카드 오른쪽에 유지하며, 상세 기사 상태 배지는 클릭 가능한 커서로 보이지 않게 했다.
+- `CommunityView.jsx`는 게시글 카드 오른쪽 위 북마크 장식을 제거하고, 오른쪽 `인기 게시글`과 `최근 정정 요청`을 같은 번호 배지/제목/조회·댓글 메타 양식으로 맞췄다.
+- 검증:
+  - `npm run lint` 통과.
+  - `npm test` 통과.
+  - 기본 셸 `npm run build`는 기존 Node/Vite 이슈처럼 transform 후 exit 1.
+  - Codex 번들 Node 우선 PATH에서 `npm run build` 통과.
+
 ## 2026-08-05 분석/리포트 기사 원문 링크 보강
 
 - 백엔드 폴더(`cheatft_api`)는 수정하지 않았다.

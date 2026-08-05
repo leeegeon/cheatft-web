@@ -218,8 +218,8 @@ export default function CommunityView({ onPostClick }) {
     rightCardTitle: { fontSize: '15px', fontWeight: 'bold', color: '#202124', marginBottom: '14px' },
     popularItem: { display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'flex-start' },
     rankBadge: (rank) => ({ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: rank<=3 ? (rank===1?'#1a73e8':(rank===2?'#00c4b4':'#fbbc04')) : '#e0e0e0', color: '#fff', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }),
-    
-    correctionItem: { display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '13px', color: '#3c4043', lineHeight: '1.45' },
+    sidePostTitle: { border: 0, background: 'transparent', padding: 0, width: '100%', color: '#202124', fontSize: '14px', textAlign: 'left', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+    sidePostMeta: { fontSize: '12px', color: '#80868b', display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' },
     
     reportBanner: { backgroundColor: '#e8f0fe', borderRadius: '10px', border: '1px solid #d2e3fc', padding: '18px', textAlign: 'center', minHeight: '210px', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
     reportBtn: { width: '100%', padding: '12px', backgroundColor: '#1a73e8', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginTop: '16px', cursor: 'pointer' }
@@ -373,7 +373,6 @@ export default function CommunityView({ onPostClick }) {
                 <div style={styles.postContent}>
                   <div className="community-post-topline" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={styles.badge(post.type)}>{post.type}</div>
-                    {post.type !== '공지' && <svg width="20" height="20" fill="#dadce0" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>}
                   </div>
                   <div className="community-post-title-row" style={{ ...styles.postTitle, fontSize: post.type==='공지'?'15px':'18px', marginBottom: post.type==='공지'?'0':'8px', display: 'flex', justifyContent: 'space-between' }}>
                     {post.title}
@@ -426,11 +425,11 @@ export default function CommunityView({ onPostClick }) {
                       <button
                         type="button"
                         onClick={() => onPostClick(item.id)}
-                        style={{ border: 0, background: 'transparent', padding: 0, width: '100%', color: '#202124', fontSize: '14px', textAlign: 'left', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                        style={styles.sidePostTitle}
                       >
                         {item.title}
                       </button>
-                      <div style={{ fontSize: '12px', color: '#80868b', display: 'flex', gap: '8px', marginTop: '4px' }}>
+                      <div style={styles.sidePostMeta}>
                         <span>조회 {item.views}</span>
                         <span>댓글 {item.comments}</span>
                       </div>
@@ -447,10 +446,18 @@ export default function CommunityView({ onPostClick }) {
                   <div style={{ fontSize: '13px', color: '#5f6368', lineHeight: '1.6' }}>
                     {recentCorrectionStatus === 'error' ? '정정 요청 게시글을 불러오지 못했습니다.' : '표시할 정정 요청 게시글이 없습니다.'}
                   </div>
-                ) : correctionPosts.map((post) => (
-                  <div key={post.id ?? post.title} style={styles.correctionItem}>
-                    <span style={{color:'#ea4335', fontWeight:'bold'}}>!</span>
-                    <button type="button" onClick={() => onPostClick(post.id)} style={{ border: 0, background: 'transparent', padding: 0, color: '#3c4043', textAlign: 'left', cursor: 'pointer', lineHeight: '1.45', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post.title}</button>
+                ) : correctionPosts.map((post, index) => (
+                  <div key={post.id ?? post.title} style={styles.popularItem}>
+                    <div style={styles.rankBadge(index + 1)}>{index + 1}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <button type="button" onClick={() => onPostClick(post.id)} style={styles.sidePostTitle}>
+                        {post.title}
+                      </button>
+                      <div style={styles.sidePostMeta}>
+                        <span>조회 {post.views}</span>
+                        <span>댓글 {post.comments}</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

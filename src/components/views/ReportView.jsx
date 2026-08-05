@@ -6,6 +6,7 @@ import { buildNewsSourceSearchUrl } from '../../utils/search.js';
 import { cleanDisplayText } from '../../utils/text.js';
 
 const FAVORITE_REPORTS_KEY = 'cheat-ft-favorite-report-ids';
+const REPORTS_PAGE_SIZE = 10;
 
 function readFavoriteReportIds() {
   try {
@@ -105,7 +106,7 @@ export default function ReportView({ onAuthExpired }) {
   const [favoriteReportIds, setFavoriteReportIds] = useState(() => readFavoriteReportIds());
   const [actionMessage, setActionMessage] = useState('');
   const [periodCounts, setPeriodCounts] = useState({ today: 0, sevenDays: 0, thirtyDays: 0 });
-  const [page] = useState(1);
+  const [page, setPage] = useState(1);
   const [reportsRefreshKey, setReportsRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -116,7 +117,7 @@ export default function ReportView({ onAuthExpired }) {
       date: dateFilter,
       score: scoreFilter,
       page,
-      limit: 10,
+      limit: REPORTS_PAGE_SIZE,
     })
       .then((data) => {
         if (!ignore) {
@@ -214,6 +215,20 @@ export default function ReportView({ onAuthExpired }) {
   const setDateMenu = (menu, dateValue) => {
     setActiveMenu(menu);
     setDateFilter(dateValue);
+    setPage(1);
+    setExpandedId(null);
+  };
+
+  const updateKeyword = (value) => {
+    setKeyword(value);
+    setPage(1);
+    setExpandedId(null);
+  };
+
+  const updateScoreFilter = (value) => {
+    setScoreFilter(value);
+    setPage(1);
+    setExpandedId(null);
   };
 
   const toggleFavorite = (reportId) => {
@@ -225,6 +240,12 @@ export default function ReportView({ onAuthExpired }) {
       writeFavoriteReportIds(next);
       return next;
     });
+  };
+
+  const goToReportPage = (nextPage) => {
+    setPage(nextPage);
+    setExpandedId(null);
+    setInnerTab('related');
   };
 
   const copyReportSummary = (report, summaryText) => {
@@ -343,8 +364,23 @@ export default function ReportView({ onAuthExpired }) {
     sourceLogoImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#ffffff', borderRadius: '50%' },
     sourceScore: { fontSize: '13px', fontWeight: 'bold', color: '#3c4043' },
     
-    detailBtn: { padding: '8px 16px', border: '1px solid #dadce0', borderRadius: '20px', backgroundColor: '#ffffff', color: '#1a73e8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' },
+    detailBtn: { marginLeft: 'auto', padding: '8px 16px', border: '1px solid #dadce0', borderRadius: '20px', backgroundColor: '#ffffff', color: '#1a73e8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
     actionBtn: { border: '1px solid #dadce0', borderRadius: '999px', backgroundColor: '#ffffff', color: '#5f6368', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', padding: '7px 10px', whiteSpace: 'nowrap' },
+    paginationBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '20px', padding: '14px 16px', border: '1px solid #e8eaed', borderRadius: '12px', backgroundColor: '#ffffff', flexWrap: 'wrap' },
+    paginationInfo: { fontSize: '13px', color: '#5f6368' },
+    paginationControls: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+    paginationBtn: (isActive = false, isDisabled = false) => ({
+      minWidth: '36px',
+      height: '36px',
+      padding: '0 12px',
+      borderRadius: '8px',
+      border: isActive ? '1px solid #1a73e8' : '1px solid #dadce0',
+      backgroundColor: isActive ? '#e8f0fe' : '#ffffff',
+      color: isDisabled ? '#bdc1c6' : isActive ? '#1a73e8' : '#3c4043',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      cursor: isDisabled ? 'default' : 'pointer',
+    }),
     
     // Expanded Section
     expandedDivider: { height: '1px', backgroundColor: '#e0e0e0', margin: '24px 0', border: 'none' },
@@ -360,7 +396,7 @@ export default function ReportView({ onAuthExpired }) {
     articleListDate: { color: '#80868b', fontSize: '12px', flexShrink: 0 },
     articleListText: { color: '#3c4043', flex: 1, lineHeight: '1.5' },
     articleListLink: { color: '#3c4043', flex: 1, lineHeight: '1.5', textDecoration: 'none' },
-    articleListAction: { color: '#1a73e8', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', width: '70px', textAlign: 'right', flexShrink: 0 },
+    articleListAction: { color: '#1a73e8', fontWeight: 'bold', fontSize: '13px', cursor: 'default', width: '70px', textAlign: 'right', flexShrink: 0 },
     
     summaryCol: { flex: 1, backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e0e0e0', padding: '20px', display: 'flex', flexDirection: 'column' },
     summaryColTitle: { fontSize: '14px', fontWeight: 'bold', color: '#202124', marginBottom: '12px' },
@@ -404,6 +440,15 @@ export default function ReportView({ onAuthExpired }) {
     : sourceState === 'loading'
       ? '백엔드 API 응답 대기 중'
       : '리포트 요청 실패';
+  const reportsPagination = reportData?.pagination ?? {};
+  const currentReportPage = Number(reportsPagination.currentPage ?? page) || page;
+  const totalReportPages = Math.max(1, Number(reportsPagination.totalPages ?? 1) || 1);
+  const totalReportItems = Number(reportsPagination.totalItems ?? displayReports.length) || 0;
+  const paginationPages = useMemo(() => {
+    const endPage = Math.min(totalReportPages, Math.max(5, currentReportPage + 2));
+    const startPage = Math.max(1, Math.min(currentReportPage - 2, endPage - 4));
+    return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index);
+  }, [currentReportPage, totalReportPages]);
 
   return (
     <div className="report-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -443,13 +488,13 @@ export default function ReportView({ onAuthExpired }) {
 
           <div style={styles.sidebarSection}>
             <div style={styles.filterTitle}>리포트 필터</div>
-            <select style={styles.select} value={dateFilter} onChange={(event) => { setActiveMenu('custom'); setDateFilter(event.target.value); }}>
+            <select style={styles.select} value={dateFilter} onChange={(event) => setDateMenu('custom', event.target.value)}>
               <option value="">날짜 선택</option>
               <option value="1">최근 1일</option>
               <option value="7">최근 7일</option>
               <option value="30">최근 30일</option>
             </select>
-            <select style={styles.select} value={scoreFilter} onChange={(event) => setScoreFilter(event.target.value)}>
+            <select style={styles.select} value={scoreFilter} onChange={(event) => updateScoreFilter(event.target.value)}>
               <option value="">전체 신뢰도 등급</option>
               <option value="4">4점 이상</option>
               <option value="3">3점 이상</option>
@@ -504,7 +549,7 @@ export default function ReportView({ onAuthExpired }) {
               placeholder="검색한 주제나 키워드로 검색하세요"
               style={styles.searchInput}
               value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
+              onChange={(event) => updateKeyword(event.target.value)}
             />
             <div className="report-tools-right" style={styles.toolsRight}>
               <select style={{...styles.select, marginBottom: 0, width: '150px'}} value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="리포트 정렬">
@@ -612,7 +657,7 @@ export default function ReportView({ onAuthExpired }) {
                     )}
 
                     <button type="button" style={styles.detailBtn} onClick={() => toggleReport(report)}>
-                      {isExpanded ? '접기 ^' : '상세 보기 >'}
+                      {isExpanded ? '접기' : '상세 보기'}
                     </button>
                   </div>
 
@@ -668,6 +713,42 @@ export default function ReportView({ onAuthExpired }) {
               );
             })}
           </div>
+          {hasApiReports && totalReportItems > REPORTS_PAGE_SIZE && (
+            <div className="report-pagination" style={styles.paginationBar}>
+              <div style={styles.paginationInfo}>
+                총 {totalReportItems}개 중 {currentReportPage} / {totalReportPages}페이지
+              </div>
+              <div style={styles.paginationControls} aria-label="리포트 페이지 이동">
+                <button
+                  type="button"
+                  style={styles.paginationBtn(false, currentReportPage <= 1)}
+                  onClick={() => goToReportPage(currentReportPage - 1)}
+                  disabled={currentReportPage <= 1}
+                >
+                  이전
+                </button>
+                {paginationPages.map((pageNumber) => (
+                  <button
+                    type="button"
+                    key={pageNumber}
+                    style={styles.paginationBtn(pageNumber === currentReportPage)}
+                    onClick={() => goToReportPage(pageNumber)}
+                    aria-current={pageNumber === currentReportPage ? 'page' : undefined}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  style={styles.paginationBtn(false, currentReportPage >= totalReportPages)}
+                  onClick={() => goToReportPage(currentReportPage + 1)}
+                  disabled={currentReportPage >= totalReportPages}
+                >
+                  다음
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="report-global-footer" style={styles.globalFooter}>

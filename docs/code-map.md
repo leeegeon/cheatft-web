@@ -97,9 +97,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 | `/` | `HomeView` | 홈, `GET /summary` 응답만 표시. 프론트 더미 fallback 없음. 최신 팩트체크는 백엔드 `recentChecks` 전체 표시 |
 | `/search?q=...` | `VerificationView` | 신뢰도 분석 화면. 검색어가 있으면 검색 중 로딩 팝업을 표시하고 `POST /checks` 후 `GET /checks/{id}` 응답만 표시. 같은 탭에서 이미 조회한 검색어는 sessionStorage 캐시를 복원해 뒤로가기 시 재검색을 피함. URL 링크 검색/프론트 더미 fallback 없음. 카드 클릭은 뉴스 상세 이동 |
 | `/search` | `VerificationView` | 신뢰도 분석 기본 화면. `GET /summary`의 `recentChecks`로 최신 팩트체크 표시. 카드 클릭은 뉴스 상세 이동 |
-| `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 URL이 지원되면 `POST /article` 상세 API 응답의 `content` 본문을 우선 표시하고 기자/입력 시간/주제를 병합하며 URL별 sessionStorage 캐시를 사용. API 실패는 화면 오류로 노출하지 않음 |
+| `/article/:id` | `DetailView type="뉴스"` | 클릭한 기사 URL이 지원되면 `POST /article` 상세 API 응답의 `content` 본문을 우선 표시하고 기자/입력 시간/주제를 병합하며 URL별 sessionStorage 캐시를 사용. API 실패는 화면 오류로 노출하지 않음. 뉴스 상세 메타에서는 조회수를 표시하지 않음 |
 | `/algo` | `AlgoView` | 편향성 분석 보호 라우트. 빈 질문 입력에서 시작하고 Enter는 키워드 추천 실행, Shift+Enter는 줄바꿈, `POST /keywords`로 추천 키워드 조회, 추천 키워드 칩 선택 시 `POST /analysis` 후 `GET /analysis/{id}?limit=10`, 긴 분석 중 로딩 팝업, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 프론트 목업 fallback 없음 |
-| `/report` | `ReportView` | 보호 라우트. `GET /reports` 우선, `keyword/date/score/page/limit` 전달, 상세 펼침 시 `GET /analysis/{id}?limit=10`, 사이드바 기간/신뢰도 필터는 API query 반영, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, API/오류/빈 상태 표시, 실패 시 리포트 목록/상세 목업 없음 |
+| `/report` | `ReportView` | 보호 라우트. `GET /reports` 우선, `keyword/date/score/page/limit` 전달, 백엔드 pagination 기반 10개 단위 페이지 이동, 상세 펼침 시 `GET /analysis/{id}?limit=10`, 사이드바 기간/신뢰도 필터는 API query 반영, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, API/오류/빈 상태 표시, 실패 시 리포트 목록/상세 목업 없음 |
 | `/community` | `CommunityView` | `GET /posts` 우선, `category/keyword/page/limit` 전달, 실패 시 목업 fallback 없이 오류/빈 상태 표시 |
 | `/community/write` | `CommunityWriteView` | 보호 라우트. 글 작성 임시 저장, 등록 시 `POST /posts` |
 | `/community/:id` | `CommunityDetailView` | 게시글 상세, 수정, 삭제, 댓글 작성/삭제 API 연결 |
@@ -178,10 +178,10 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
 - `ReportView.jsx`
   - `expandedId`, `innerTab`으로 리포트 펼침/요약 탭 제어.
   - `getReports()`로 `totalStats`, `reports`, `pagination`을 가져오고 실패 시 기존 목업을 사용하지 않는다.
-  - 검색어, 날짜 필터, 신뢰도 필터를 `keyword`, `date`, `score` query parameter로 전달한다. 2026-08-02 로컬 백엔드 pull 기준 인증 사용자의 분석 기록을 반환한다.
+  - 검색어, 날짜 필터, 신뢰도 필터, 페이지를 `keyword`, `date`, `score`, `page`, `limit=10` query parameter로 전달한다. 백엔드 `pagination` 기준으로 이전/다음/페이지 번호 이동을 제공하며, 필터 변경과 페이지 이동 시 펼친 상세는 닫는다. 2026-08-02 로컬 백엔드 pull 기준 인증 사용자의 분석 기록을 반환한다.
   - `+ 새 검색 시작`은 `/algo`로 이동한다. 사이드바 전체/오늘/최근 7일/최근 30일 메뉴와 날짜 select는 `dateFilter`를 갱신하고, 오늘/최근 7일/최근 30일 개수는 별도 `GET /reports` 조회로 미리 채운다. 즐겨찾기 메뉴는 브라우저 `localStorage`에 저장된 리포트 id만 보여준다.
   - 카드 별 버튼은 로컬 즐겨찾기를 토글하고, `요약 복사`는 종합 요약 본문만 클립보드에 복사한다. 정렬 select는 `최신순`, `신뢰도 높은순`, `신뢰도 낮은순`, `주제명순`을 프론트에서 처리한다.
-  - 상세 보기를 펼치면 리포트 id를 분석 id로 보고 `getAnalysisResult(id, { limit: 10 })`를 호출해 실제 관련/반박 기사와 인사이트를 표시한다. 상세 탭은 관련 기사/반박 기사만 두고, 오른쪽 종합 요약 패널은 항상 표시한다.
+  - 상세 보기를 펼치면 리포트 id를 분석 id로 보고 `getAnalysisResult(id, { limit: 10 })`를 호출해 실제 관련/반박 기사와 인사이트를 표시한다. 상세 탭은 관련 기사/반박 기사만 두고, 오른쪽 종합 요약 패널은 항상 표시한다. 상세 보기/접기 버튼은 화살표 없이 카드 오른쪽에 유지하고, 기사 상태 배지는 클릭 가능한 커서로 보이지 않게 한다.
   - 상세 기사에 `url/link/originalLink`가 있으면 제목을 원문 새 탭 링크로 표시하고, URL이 없으면 기사 제목과 언론사 기준 네이버 뉴스 검색 링크로 표시한다.
   - 상단 nav의 리포트 내보내기 버튼, `총 검색 시간` 통계 카드, 상세 요약 다운로드 버튼은 제거됐다.
   - 통계는 검색 주제 수, 분석한 기사 수, 평균 신뢰도 3개 카드로 표시한다.
@@ -203,9 +203,9 @@ Cheat F/T 프론트엔드이다. 가짜뉴스 검증, 출처 신뢰도 확인, �
   - API 응답 표시 중인지, 요청 실패인지 목록 상단 안내로 구분한다.
   - 정보 공유/정정 요청/토론 게시판 탭 모두 실제 API 카테고리 query로 조회한다.
   - `커뮤니티 참여 현황`은 왼쪽 카테고리 메뉴 아래에 3칸 가로형으로 표시한다.
-  - 게시글 카드 오른쪽의 큰 분류 아이콘 박스는 제거했다.
+  - 게시글 카드 오른쪽의 큰 분류 아이콘 박스와 오른쪽 위 북마크 장식은 제거했다.
   - `최근 정정 요청`은 현재 탭 목록에 의존하지 않고 `GET /posts?category=정정 요청`을 따로 조회해 표시한다.
-  - 오른쪽 보조 영역은 더보기 링크 없이 `인기 게시글`, `최근 정정 요청`, `정보 오류` 카드를 기본 크기감이 맞는 카드로 표시한다. 중간 폭에서는 카드 그리드, 모바일에서는 1열로 전환한다.
+  - 오른쪽 보조 영역은 더보기 링크 없이 `인기 게시글`, `최근 정정 요청`, `정보 오류` 카드를 기본 크기감이 맞는 카드로 표시한다. `인기 게시글`과 `최근 정정 요청`은 같은 번호 배지/제목/조회·댓글 메타 양식을 사용한다. 중간 폭에서는 카드 그리드, 모바일에서는 1열로 전환한다.
 
 - `CommunityWriteView.jsx`
   - `cheat-ft-community-draft` 키로 `sessionStorage` 임시 저장.

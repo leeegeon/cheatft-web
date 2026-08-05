@@ -216,8 +216,12 @@ export default function DetailView({ type }) {
           <span style={{ fontWeight: 'bold', color: '#202124' }}>{displayArticle.author}</span>
           <span>|</span>
           <span>{displayArticle.date}</span>
-          <span>|</span>
-          <span>조회수 {displayArticle.views}</span>
+          {!isNews && (
+            <>
+              <span>|</span>
+              <span>조회수 {displayArticle.views}</span>
+            </>
+          )}
         </div>
         {isNews && (
           <div style={{ fontSize: '14px', fontWeight: '800', color: '#202124', marginBottom: '12px' }}>

@@ -37,9 +37,11 @@
 - `/mypage` 화면/라우트와 `MyPageView.jsx`는 2026-07-15 작업에서 제거됐다. `/api/profile`은 백엔드 dummy endpoint로 남아 있지만 현재 프론트 화면은 사용하지 않는다.
 - 2026-07-26 기준 `UserModel.findByEmail is not a function` 오류는 해결된 상태로 확인했다. `POST /api/login`은 테스트 계정으로 200을 반환하고 `data.accessToken`을 내려준다.
 - 2026-07-26 기준 `GET /api/summary`는 `recentChecks` 3개를 반환한다.
+- 2026-08-05 기준 `GET /api/summary` 배포 응답은 `todayStats`, `recentChecks`만 포함하고, 홈 신뢰도 현황용 `reliabilityStatus` 또는 `biasStatus.categories`는 포함하지 않는다.
 - 2026-07-31 전달 메모 기준 실제 `GET /api/summary`의 `recentChecks` 3개는 모두 `id: 1`로 내려올 수 있다.
 - 2026-07-26 기준 `GET /api/checks/{id}?page=1&limit=100`은 `경제` 검색어에서 `totalArticles: 12`, `articles.length: 12`, `pagination.totalPages: 1`로 관측됐다. `page=2&limit=5`도 12건 전체와 `currentPage: 1`을 반환해 서버 페이지네이션은 아직 적용되지 않은 상태로 보이며, 프론트는 최대 100건 수신 후 10건씩 클라이언트 페이지네이션한다.
-- 2026-08-02 로컬 백엔드 pull 기준 `GET /api/reports`는 인증이 필요하며 분석 기록 DB에서 `keyword/date/score/page/limit`을 반영해 반환한다. `mainPresses`가 언론사명 배열이 아니라 숫자/집계값으로 내려올 수 있어 프론트는 숫자를 주요 출처명으로 렌더링하지 않는다. 운영 배포 반영 여부는 별도 확인이 필요하다.
+- 2026-08-02 로컬 백엔드 pull 기준 `GET /api/reports`는 인증이 필요하며 분석 기록 DB에서 `keyword/date/score/page/limit`을 반영해 반환한다. 프론트는 `limit=10`과 현재 `page`를 보내고 백엔드 `pagination`으로 페이지 이동을 제공한다. `mainPresses`가 언론사명 배열이 아니라 숫자/집계값으로 내려올 수 있어 프론트는 숫자를 주요 출처명으로 렌더링하지 않는다.
+- 2026-08-05 기준 `GET /api/posts` 배포 응답은 게시글별 `commentCount`를 반환하지만 `communityStats.todayComments`는 0으로 반환한다. 로컬 백엔드 소스도 `todayComments: 0`으로 고정되어 있어 커뮤니티 참여 현황 댓글 수와 게시글별 댓글 수가 어긋날 수 있다.
 - 2026-08-02 로컬 백엔드 pull 기준 `GET /api/analysis/{id}?limit=10`은 관련/반박 기사 배열 각각에 `limit`을 적용한다. 기사별 `stance` 값인 `긍정`, `중립`, `반박`은 백엔드 분석 플랜이 생성해 DB에 저장한 뒤 응답으로 내려주는 값이다.
 - 2026-07-26 기준 `GET /api/health`는 서버 상태 확인 라우트로 존재하지만 공통 래핑 없이 `{ message }`만 반환한다.
 - 기존 `cheatft_web/docs/backend-handoff.md`는 회의 전 제안 문서라 `/auth/login`, `/fact-checks` 같은 다른 경로가 섞여 있었다. 현재 연결 상태와 향후 협의는 아래 매핑을 기준으로 본다.
@@ -299,7 +301,7 @@
 | 키워드 추천 | `AlgoView.jsx` | `POST /api/keywords` | 보호 라우트, 질문 내용으로 추천 키워드 API 호출, 추천 중 버튼 스피너 표시, 인증 실패 시 로그인 화면 이동 |
 | 편향성 분석 요청 | `AlgoView.jsx` | `POST /api/analysis` | 보호 라우트, 질문창 Enter 또는 버튼으로 키워드 추천 후 추천 키워드 칩 선택으로 API 요청, 긴 분석 중 로딩 팝업, 백엔드는 Bearer token 요구 |
 | 편향성 분석 결과 | `AlgoView.jsx` | `GET /api/analysis/{id}?limit=10` | 보호 라우트, 관련/반박 기사 각각 최대 10건 요청, 기사 배지는 백엔드 `stance` 값인 `긍정/중립/반박` 그대로 표시, 기사 URL이 있으면 원문 링크 제공, URL이 없으면 네이버 뉴스 검색 링크 제공, 실제 API 응답/오류/빈 상태 표시, 인증 실패 시 로그인 화면 이동, 실패 시 목업 fallback 없음 |
-| 리포트 목록 | `ReportView.jsx` | `GET /api/reports`, `DELETE /api/reports/{id}` | 보호 라우트, API 우선, `keyword/date/score/page/limit` 전달, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, 실패 시 목업 없음, API 성공 후 빈 배열은 빈 상태. 삭제 버튼 연결 |
+| 리포트 목록 | `ReportView.jsx` | `GET /api/reports`, `DELETE /api/reports/{id}` | 보호 라우트, API 우선, `keyword/date/score/page/limit` 전달, 백엔드 pagination 기반 10개 단위 페이지 이동, 즐겨찾기/정렬/종합 요약 복사는 프론트 처리, 실패 시 목업 없음, API 성공 후 빈 배열은 빈 상태. 삭제 버튼 연결 |
 | 리포트 상세 | `ReportView.jsx` | `GET /api/analysis/{id}?limit=10` | 펼친 리포트 id로 분석 상세를 조회해 실제 관련/반박 기사와 인사이트 표시, 기사 `url/link/originalLink`가 있으면 제목 원문 링크 제공, URL이 없으면 네이버 뉴스 검색 링크 제공, 실패 시 상세 목업 없음 |
 | 커뮤니티 목록 | `CommunityView.jsx` | `GET /api/posts` | API 우선, `category/keyword/page/limit` 전달, 실패 시 목업 fallback 없음, API 성공 후 빈 배열은 빈 상태. 인기 태그 목록은 응답에 없어 화면에서 제거, 최신/인기/댓글 정렬은 수신 게시글 기준 프론트 처리 |
 | 커뮤니티 작성 | `CommunityWriteView.jsx` | `POST /api/posts` | 보호 라우트, 등록 버튼에서 API 요청. 2026-08-05 배포 API 허용 카테고리는 `정보 공유 커뮤니티`, `정정 요청`, `토론 게시판` |
@@ -315,7 +317,7 @@
 
 | 메서드 | 경로 | 용도 | 주요 data |
 |---|---|---|---|
-| GET | `/api/summary` | 홈 대시보드 | `todayStats`, `recentChecks`, `biasStatus` |
+| GET | `/api/summary` | 홈 대시보드 | 현재 배포 응답은 `todayStats`, `recentChecks`; 홈 신뢰도 현황용 `biasStatus/reliabilityStatus`는 미반환 |
 | POST | `/api/signup` | 회원가입 | 성공 시 `id`, `email`, `nickname`, `level`, `user_title`, `created_at`; 중복 이메일은 현재 `500` |
 | POST | `/api/login` | 로그인 | `accessToken`, `userId` |
 | GET | `/api/me` | 인증 사용자 정보 | Bearer token 필요. 2026-07-26 배포 API 정상 조회 확인 |
@@ -327,7 +329,7 @@
 | GET | `/api/analysis/{id}` | 알고리즘 분석 결과 | `biasAnalysis`, `insights`, `relatedArticles`, `counterArticles`, `summaryStats`, `limit`; 2026-08-02 로컬 백엔드 pull 기준 관련/반박 기사 각각에 `limit` 적용 |
 | GET | `/api/reports` | 리포트 목록 | Bearer token 필요. `totalStats`, `reports`, `pagination`; 2026-08-02 로컬 백엔드 pull 기준 분석 기록 DB와 query parameter 반영 |
 | DELETE | `/api/reports/{id}` | 리포트 삭제 | Bearer token 필요. 존재하지 않는 id는 `404`, 토큰 없으면 `401` |
-| GET | `/api/posts` | 커뮤니티 목록 | `communityStats`, `posts`, `pagination`; query parameter는 현재 dummy 응답에 미반영 |
+| GET | `/api/posts` | 커뮤니티 목록 | `communityStats`, `posts`, `pagination`; 현재 배포 응답은 게시글별 `commentCount`는 반영하지만 `communityStats.todayComments`는 0 |
 | POST | `/api/posts` | 게시글 작성 | `id`, `title`, `category` |
 | GET | `/api/posts/{id}` | 커뮤니티 상세 | 게시글 본문, 태그, 조회수, 댓글 목록 |
 | PUT | `/api/posts/{id}` | 게시글 수정 | Bearer token 필요. 작성자 본인만 가능 |
